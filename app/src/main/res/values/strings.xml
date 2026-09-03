@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">WA Lead Saver</string>
+    <string name="notification_listener_service_name">WA Lead Saver Notification Listener</string>
+</resources>

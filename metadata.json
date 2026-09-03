@@ -1,0 +1,6 @@
+{
+  "name": "WA Lead Saver",
+  "description": "Automatically detect phone numbers from WhatsApp notifications, manage leads queue, and save to contacts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
