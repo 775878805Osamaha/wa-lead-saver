@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.database.AppDatabase
+import com.example.data.database.entity.BlockedPatternEntity
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
@@ -12,15 +13,25 @@ import com.example.data.repository.BatchSaveResult
 import com.example.data.repository.LeadRepository
 import com.example.data.repository.ProcessResult
 import com.example.data.repository.SaveLeadResult
+import com.example.ui.dialogs.ExportFormat
+import com.example.ui.dialogs.ExportScope
+import com.example.util.AnalyticsHelper
+import com.example.util.AnalyticsSummary
 import com.example.util.ContactsHelper
+import com.example.util.CsvExportHelper
+import com.example.util.DuplicateMatch
 import com.example.util.PermissionHelper
 import com.example.util.PhoneNumberHelper
+import com.example.util.SmartMergeHelper
+import com.example.util.VcfExportHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -44,6 +55,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val settings: StateFlow<AppSettings> = repository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
 
+    val blockedPatterns: StateFlow<List<BlockedPatternEntity>> = repository.blockedPatterns
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val activeBlockedCount: StateFlow<Int> = repository.activeBlockedCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     private val _isNotificationListenerActive = MutableStateFlow(false)
     val isNotificationListenerActive: StateFlow<Boolean> = _isNotificationListenerActive.asStateFlow()
 
@@ -62,6 +79,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isProcessingScan = MutableStateFlow(false)
     val isProcessingScan: StateFlow<Boolean> = _isProcessingScan.asStateFlow()
+
+    // Smart Duplicate Detection state
+    private val _duplicateMatches = MutableStateFlow<List<DuplicateMatch>>(emptyList())
+    val duplicateMatches: StateFlow<List<DuplicateMatch>> = _duplicateMatches.asStateFlow()
+
+    private val _isScanningDuplicates = MutableStateFlow(false)
+    val isScanningDuplicates: StateFlow<Boolean> = _isScanningDuplicates.asStateFlow()
 
     init {
         refreshStatuses()
@@ -166,6 +190,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Blocked Patterns CRUD
+    fun addBlockedPattern(
+        pattern: String,
+        matchType: String = BlockedPatternEntity.MATCH_STARTS_WITH,
+        label: String = ""
+    ) {
+        viewModelScope.launch {
+            val trimmed = pattern.trim()
+            if (trimmed.isNotBlank()) {
+                repository.addBlockedPattern(trimmed, matchType, label)
+                _userMessage.value = "Added pattern '$trimmed' to blocked list"
+            }
+        }
+    }
+
+    fun toggleBlockedPattern(id: Long, isEnabled: Boolean) {
+        viewModelScope.launch {
+            repository.toggleBlockedPattern(id, isEnabled)
+            _userMessage.value = if (isEnabled) "Rule activated" else "Rule paused"
+        }
+    }
+
+    fun deleteBlockedPattern(pattern: BlockedPatternEntity) {
+        viewModelScope.launch {
+            repository.deleteBlockedPattern(pattern)
+            _userMessage.value = "Deleted pattern '${pattern.pattern}'"
+        }
+    }
+
+    fun deleteBlockedPatternById(id: Long) {
+        viewModelScope.launch {
+            repository.deleteBlockedPatternById(id)
+            _userMessage.value = "Deleted pattern"
+        }
+    }
+
     // Photo Scan and Chat Scan processing
     fun processRawTextForNumbers(rawText: String, source: String = "Photo scan") {
         viewModelScope.launch {
@@ -208,6 +268,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             var addedCount = 0
             var autoSavedCount = 0
             var skippedDuplicates = 0
+            var skippedBlocked = 0
 
             for (item in selected) {
                 when (val res = repository.processIncomingPhoneCandidate(item.phoneNumber, source)) {
@@ -216,21 +277,143 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is ProcessResult.DuplicateInContacts -> skippedDuplicates++
                     is ProcessResult.AlreadySaved -> skippedDuplicates++
                     is ProcessResult.AlreadyInQueue -> skippedDuplicates++
+                    is ProcessResult.Blocked -> skippedBlocked++
                     ProcessResult.InvalidNumber -> {}
                 }
             }
 
             _scannedNumbers.value = emptyList()
+            val messageBuilder = StringBuilder()
             if (autoSavedCount > 0) {
-                _userMessage.value = "Auto-saved $autoSavedCount contacts. Added $addedCount to Queue."
-            } else {
-                _userMessage.value = "Added $addedCount numbers to Queue. ($skippedDuplicates duplicates skipped)"
+                messageBuilder.append("Auto-saved $autoSavedCount contacts. ")
             }
+            if (addedCount > 0) {
+                messageBuilder.append("Added $addedCount numbers to Queue. ")
+            }
+            if (skippedBlocked > 0) {
+                messageBuilder.append("($skippedBlocked blocked/ignored). ")
+            }
+            if (skippedDuplicates > 0) {
+                messageBuilder.append("($skippedDuplicates duplicates skipped).")
+            }
+
+            _userMessage.value = messageBuilder.toString().trim().ifEmpty { "No new leads added" }
         }
     }
 
     fun clearScannedResults() {
         _scannedNumbers.value = emptyList()
+    }
+
+    // Smart Duplicate Detection & Merge
+    fun scanForDuplicates() {
+        viewModelScope.launch {
+            _isScanningDuplicates.value = true
+            val duplicates = withContext(Dispatchers.IO) {
+                val currentQueue = queuedLeads.value
+                val currentHistory = historyList.value
+                SmartMergeHelper.scanForDuplicates(context, currentQueue, currentHistory)
+            }
+            _duplicateMatches.value = duplicates
+            _isScanningDuplicates.value = false
+        }
+    }
+
+    fun resolveDuplicateMatch(match: DuplicateMatch, preferredName: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                SmartMergeHelper.resolveMatch(
+                    context = context,
+                    match = match,
+                    preferredName = preferredName,
+                    onRemoveLead = { leadId ->
+                        launch { repository.removeLeadById(leadId) }
+                    }
+                )
+            }
+            _duplicateMatches.value = _duplicateMatches.value.filter { it.id != match.id }
+            _userMessage.value = "Resolved conflict for ${match.normalizedNumber}"
+            refreshStatuses()
+        }
+    }
+
+    fun autoResolveAllDuplicates() {
+        viewModelScope.launch {
+            _isScanningDuplicates.value = true
+            val count = withContext(Dispatchers.IO) {
+                SmartMergeHelper.autoResolveAll(
+                    context = context,
+                    matches = _duplicateMatches.value,
+                    onRemoveLead = { leadId ->
+                        launch { repository.removeLeadById(leadId) }
+                    }
+                )
+            }
+            _duplicateMatches.value = emptyList()
+            _isScanningDuplicates.value = false
+            _userMessage.value = "Auto-resolved $count duplicate conflicts"
+            refreshStatuses()
+        }
+    }
+
+    fun getAnalyticsSummary(): AnalyticsSummary {
+        return AnalyticsHelper.computeAnalytics(
+            historyList = historyList.value,
+            queuedLeads = queuedLeads.value
+        )
+    }
+
+    fun exportContacts(format: ExportFormat, scope: ExportScope) {
+        viewModelScope.launch {
+            val qLeads = queuedLeads.value
+            val hList = historyList.value
+
+            when (format) {
+                ExportFormat.VCF -> {
+                    val contacts = when (scope) {
+                        ExportScope.QUEUE -> VcfExportHelper.fromLeads(qLeads)
+                        ExportScope.HISTORY -> VcfExportHelper.fromHistory(hList)
+                        ExportScope.ALL -> (VcfExportHelper.fromLeads(qLeads) + VcfExportHelper.fromHistory(hList))
+                            .distinctBy { it.phoneNumber }
+                    }
+                    VcfExportHelper.exportContactsToVcf(context, contacts, "wa_leads_${scope.name.lowercase()}")
+                }
+                ExportFormat.CSV -> {
+                    when (scope) {
+                        ExportScope.QUEUE -> {
+                            val convertedHistory = qLeads.map { lead ->
+                                HistoryEntity(
+                                    phoneNumber = lead.phoneNumber,
+                                    contactName = lead.contactName,
+                                    source = lead.source,
+                                    timestamp = lead.detectedAt,
+                                    status = if (lead.isSaved) "Saved" else "Queued",
+                                    details = "Lead Queue"
+                                )
+                            }
+                            CsvExportHelper.exportHistoryToCsv(context, convertedHistory)
+                        }
+                        ExportScope.HISTORY -> {
+                            CsvExportHelper.exportHistoryToCsv(context, hList)
+                        }
+                        ExportScope.ALL -> {
+                            val convertedHistory = qLeads.map { lead ->
+                                HistoryEntity(
+                                    phoneNumber = lead.phoneNumber,
+                                    contactName = lead.contactName,
+                                    source = lead.source,
+                                    timestamp = lead.detectedAt,
+                                    status = if (lead.isSaved) "Saved" else "Queued",
+                                    details = "Lead Queue"
+                                )
+                            }
+                            val combined = hList + convertedHistory
+                            CsvExportHelper.exportHistoryToCsv(context, combined.distinctBy { it.phoneNumber })
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

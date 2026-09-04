@@ -2,10 +2,12 @@ package com.example.data.repository
 
 import android.content.Context
 import com.example.data.database.AppDatabase
+import com.example.data.database.entity.BlockedPatternEntity
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
+import com.example.util.BlockedPatternHelper
 import com.example.util.ContactsHelper
 import com.example.util.PhoneNumberHelper
 import kotlinx.coroutines.flow.Flow
@@ -18,12 +20,15 @@ class LeadRepository(
 ) {
     private val leadDao = database.leadDao()
     private val historyDao = database.historyDao()
+    private val blockedPatternDao = database.blockedPatternDao()
 
     val queuedLeads: Flow<List<LeadEntity>> = leadDao.getQueuedLeads()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
     val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
     val settings: Flow<AppSettings> = settingsDataStore.settingsFlow
+    val blockedPatterns: Flow<List<BlockedPatternEntity>> = blockedPatternDao.getAllBlockedPatterns()
+    val activeBlockedCount: Flow<Int> = blockedPatternDao.getActiveCount()
 
     /**
      * Process an incoming notification or text candidate.
@@ -44,6 +49,28 @@ class LeadRepository(
                 details = "Could not extract valid phone number pattern"
             )
             return ProcessResult.InvalidNumber
+        }
+
+        // 0. Check against Blocked / Ignored Patterns list first!
+        val activePatterns = blockedPatternDao.getActiveBlockedPatterns()
+        val matchedBlockedPattern = BlockedPatternHelper.findMatchingPattern(normalized, activePatterns)
+            ?: BlockedPatternHelper.findMatchingPattern(rawCandidate, activePatterns)
+
+        if (matchedBlockedPattern != null) {
+            val labelText = if (matchedBlockedPattern.label.isNotBlank()) {
+                "${matchedBlockedPattern.label} ('${matchedBlockedPattern.pattern}')"
+            } else {
+                "'${matchedBlockedPattern.pattern}' (${matchedBlockedPattern.matchType})"
+            }
+
+            recordHistory(
+                phoneNumber = normalized,
+                contactName = "Blocked / Ignored",
+                source = source,
+                status = "Blocked / Ignored",
+                details = "Prevented from entering queue by blocked pattern: $labelText"
+            )
+            return ProcessResult.Blocked(normalized, matchedBlockedPattern)
         }
 
         // 1. Duplicate check in Android Contacts
@@ -232,6 +259,20 @@ class LeadRepository(
         )
     }
 
+    suspend fun removeLeadById(id: Long) {
+        val current = leadDao.getQueuedLeadsSnapshot().find { it.id == id }
+        leadDao.deleteLeadById(id)
+        if (current != null) {
+            recordHistory(
+                phoneNumber = current.phoneNumber,
+                contactName = current.contactName,
+                source = current.source,
+                status = "Merged/Removed",
+                details = "Removed duplicate from Queue during Smart Merge"
+            )
+        }
+    }
+
     suspend fun clearQueue() {
         leadDao.clearQueue()
         recordHistory(
@@ -256,6 +297,34 @@ class LeadRepository(
 
     suspend fun clearHistory() {
         historyDao.clearHistory()
+    }
+
+    // Blocked Patterns CRUD
+    suspend fun addBlockedPattern(pattern: String, matchType: String, label: String): Long {
+        return blockedPatternDao.insertPattern(
+            BlockedPatternEntity(
+                pattern = pattern.trim(),
+                matchType = matchType,
+                label = label.trim(),
+                isEnabled = true
+            )
+        )
+    }
+
+    suspend fun updateBlockedPattern(pattern: BlockedPatternEntity) {
+        blockedPatternDao.updatePattern(pattern)
+    }
+
+    suspend fun toggleBlockedPattern(id: Long, isEnabled: Boolean) {
+        blockedPatternDao.setEnabled(id, isEnabled)
+    }
+
+    suspend fun deleteBlockedPattern(pattern: BlockedPatternEntity) {
+        blockedPatternDao.deletePattern(pattern)
+    }
+
+    suspend fun deleteBlockedPatternById(id: Long) {
+        blockedPatternDao.deletePatternById(id)
     }
 
     // Settings proxies
@@ -290,6 +359,7 @@ sealed class ProcessResult {
     data class DuplicateInContacts(val number: String) : ProcessResult()
     data class AlreadySaved(val number: String) : ProcessResult()
     data class AlreadyInQueue(val number: String) : ProcessResult()
+    data class Blocked(val number: String, val pattern: BlockedPatternEntity) : ProcessResult()
     object InvalidNumber : ProcessResult()
 }
 

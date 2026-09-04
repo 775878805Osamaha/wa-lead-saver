@@ -33,9 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.datastore.AppSettings
+import com.example.ui.components.AnalyticsCard
 import com.example.ui.components.AutoSaveLeadsCard
 import com.example.ui.components.ContactPrefixCard
 import com.example.ui.components.SaveExistingContactsCard
+import com.example.ui.components.SmartDuplicateAuditCard
 import com.example.ui.components.SnapAndSaveCard
 import com.example.ui.components.StatCardsRow
 import com.example.ui.theme.AppBackground
@@ -50,8 +52,11 @@ fun DashboardScreen(
     totalSaved: Int,
     inQueue: Int,
     settings: AppSettings,
+    duplicateConflictCount: Int = 0,
     onExportHistory: () -> Unit,
     onViewQueue: () -> Unit,
+    onOpenAnalytics: () -> Unit,
+    onOpenDuplicateAudit: () -> Unit,
     onOpenSaveExistingContacts: () -> Unit,
     onSnapAndSave: () -> Unit,
     onPrefixChange: (String) -> Unit,
@@ -75,6 +80,17 @@ fun DashboardScreen(
             inQueue = inQueue,
             onExportHistoryClick = onExportHistory,
             onViewQueueClick = onViewQueue
+        )
+
+        // ANALYTICS DASHBOARD Card
+        AnalyticsCard(
+            onClick = onOpenAnalytics
+        )
+
+        // SMART DUPLICATE AUDIT Card
+        SmartDuplicateAuditCard(
+            conflictCount = duplicateConflictCount,
+            onClick = onOpenDuplicateAudit
         )
 
         // SNAP AND SAVE (CameraX Scanner) Card

@@ -18,16 +18,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,6 +72,7 @@ import com.example.util.PermissionHelper
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
+    activeBlockedCount: Int,
     isNotificationListenerActive: Boolean,
     hasContactsPermission: Boolean,
     isBatteryOptimizationIgnored: Boolean,
@@ -76,6 +83,10 @@ fun SettingsScreen(
     onCountryCodeChange: (String) -> Unit,
     onRequestContactsPermission: () -> Unit,
     onOpenSamsungGuide: () -> Unit,
+    onNavigateToBlockedPatterns: () -> Unit,
+    onOpenAnalytics: () -> Unit = {},
+    onOpenDuplicateAudit: () -> Unit = {},
+    onExportContacts: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -229,6 +240,100 @@ fun SettingsScreen(
             }
         }
 
+        // Section: Blocked / Ignored Patterns
+        Text(
+            text = "LEAD FILTERING & SECURITY",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 0.5.sp
+        )
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFEE2E2))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Block,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Blocked Number Patterns",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (activeBlockedCount > 0) Color(0xFFDC2626) else Color(0xFF94A3B8))
+                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "$activeBlockedCount Active",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Prevent unwanted prefixes, internal staff, or spam numbers from entering queue",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = onNavigateToBlockedPatterns,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("btn_manage_blocked_patterns")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Manage Blocked Patterns ($activeBlockedCount active)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
         // Section: Permissions & System Status
         Text(
             text = "PERMISSIONS & SYSTEM STATUS",
@@ -332,6 +437,153 @@ fun SettingsScreen(
                     modifier = Modifier.testTag("button_open_samsung_guide")
                 ) {
                     Text("View Guide", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Section: Analytics & Tools
+        Text(
+            text = "ANALYTICS & CONTACT TOOLS",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 0.5.sp
+        )
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Analytics
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEFF6FF))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Analytics Dashboard",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Conversion rate, 7-day activity & peak hours",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onOpenAnalytics,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.testTag("btn_settings_analytics")
+                    ) {
+                        Text("View", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                    }
+                }
+
+                // Duplicate Audit
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFFBEB))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonSearch,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Smart Duplicate Audit",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Scan contacts & merge redundant numbers",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onOpenDuplicateAudit,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.testTag("btn_settings_duplicates")
+                    ) {
+                        Text("Scan", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                    }
+                }
+
+                // Export Options
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE8F5E9))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = WhatsAppGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Export Lead Data",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Download vCard (.vcf) or Excel (.csv)",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onExportContacts,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.testTag("btn_settings_export")
+                    ) {
+                        Text("Export", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                    }
                 }
             }
         }

@@ -42,11 +42,18 @@ object ContactsHelper {
      * Compares normalized numbers as well as matching the last 8-9 digits.
      */
     fun contactExists(context: Context, phoneNumber: String): Boolean {
-        if (!hasReadPermission(context)) return false
+        return findExistingContactName(context, phoneNumber) != null
+    }
+
+    /**
+     * Finds the existing contact name in device contacts for a given phone number.
+     */
+    fun findExistingContactName(context: Context, phoneNumber: String): String? {
+        if (!hasReadPermission(context)) return null
 
         val normalizedInput = PhoneNumberHelper.normalize(phoneNumber)
         val digitsOnlyInput = normalizedInput.filter { it.isDigit() }
-        if (digitsOnlyInput.isEmpty()) return false
+        if (digitsOnlyInput.isEmpty()) return null
 
         val contentResolver = context.contentResolver
 
@@ -57,22 +64,25 @@ object ContactsHelper {
                 Uri.encode(phoneNumber)
             )
             val projection = arrayOf(
-                ContactsContract.PhoneLookup._ID,
-                ContactsContract.PhoneLookup.NUMBER,
                 ContactsContract.PhoneLookup.DISPLAY_NAME
             )
             contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    return true
+                    val nameIdx = cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME)
+                    if (nameIdx >= 0) {
+                        val name = cursor.getString(nameIdx)
+                        if (!name.isNullOrBlank()) return name
+                    }
                 }
             }
         } catch (_: Exception) {
-            // Fallback to manual query on CommonDataKinds.Phone
+            // Fallback to manual query
         }
 
-        // 2. Direct query on CommonDataKinds.Phone for exact and suffix match
+        // 2. Direct query on CommonDataKinds.Phone
         try {
             val projection = arrayOf(
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
                 ContactsContract.CommonDataKinds.Phone.NUMBER,
                 ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER
             )
@@ -83,35 +93,144 @@ object ContactsHelper {
                 null,
                 null
             )?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
                 val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
                 val normalizedIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER)
 
                 while (cursor.moveToNext()) {
                     val existingNumber = if (numberIndex >= 0) cursor.getString(numberIndex) else null
                     val existingNorm = if (normalizedIndex >= 0) cursor.getString(normalizedIndex) else null
-
                     val cleanExisting = (existingNorm ?: existingNumber ?: "").filter { it.isDigit() }
 
                     if (cleanExisting == digitsOnlyInput) {
-                        return true
+                        return if (nameIndex >= 0) cursor.getString(nameIndex) ?: "Contact" else "Contact"
                     }
 
-                    // Check suffix match (last 8 digits) to catch local vs international equivalence
                     if (cleanExisting.length >= 8 && digitsOnlyInput.length >= 8) {
                         val suffixLen = minOf(8, cleanExisting.length, digitsOnlyInput.length)
-                        val existingSuffix = cleanExisting.takeLast(suffixLen)
-                        val inputSuffix = digitsOnlyInput.takeLast(suffixLen)
-                        if (existingSuffix == inputSuffix) {
-                            return true
+                        if (cleanExisting.takeLast(suffixLen) == digitsOnlyInput.takeLast(suffixLen)) {
+                            return if (nameIndex >= 0) cursor.getString(nameIndex) ?: "Contact" else "Contact"
                         }
                     }
                 }
             }
         } catch (_: Exception) {
-            // Ignore and return false
+            // Ignore
         }
 
-        return false
+        return null
+    }
+
+    /**
+     * Reads device contacts list for duplicate analysis.
+     */
+    fun getAllDeviceContacts(context: Context): List<DeviceContactItem> {
+        if (!hasReadPermission(context)) return emptyList()
+
+        val results = mutableListOf<DeviceContactItem>()
+        val contentResolver = context.contentResolver
+
+        try {
+            val projection = arrayOf(
+                ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER
+            )
+            contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                projection,
+                null,
+                null,
+                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC"
+            )?.use { cursor ->
+                val idIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+                val nameIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val numIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                val normIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER)
+
+                while (cursor.moveToNext()) {
+                    val id = if (idIdx >= 0) cursor.getLong(idIdx) else 0L
+                    val name = if (nameIdx >= 0) cursor.getString(nameIdx) ?: "" else ""
+                    val num = if (numIdx >= 0) cursor.getString(numIdx) ?: "" else ""
+                    val norm = if (normIdx >= 0) cursor.getString(normIdx) ?: "" else ""
+                    val cleanNorm = if (norm.isNotBlank()) norm else PhoneNumberHelper.normalize(num)
+
+                    if (num.isNotBlank()) {
+                        results.add(
+                            DeviceContactItem(
+                                contactId = id,
+                                name = name.ifBlank { num },
+                                phoneNumber = num,
+                                normalizedNumber = cleanNorm
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Ignore
+        }
+
+        return results
+    }
+
+    /**
+     * Updates an existing contact's display name matching the normalized phone number.
+     */
+    fun updateContactName(context: Context, phoneNumber: String, newName: String): Boolean {
+        if (!hasWritePermission(context) || !hasReadPermission(context)) return false
+        val digits = phoneNumber.filter { it.isDigit() }
+        if (digits.isEmpty()) return false
+
+        return try {
+            val projection = arrayOf(
+                ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+            )
+            var targetRawContactId: Long? = null
+
+            context.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                projection,
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                val rawIdIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID)
+                val numIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                while (cursor.moveToNext()) {
+                    val num = if (numIdx >= 0) cursor.getString(numIdx) ?: "" else ""
+                    val numDigits = num.filter { it.isDigit() }
+                    if (numDigits == digits || (numDigits.length >= 8 && digits.length >= 8 && numDigits.takeLast(8) == digits.takeLast(8))) {
+                        targetRawContactId = if (rawIdIdx >= 0) cursor.getLong(rawIdIdx) else null
+                        break
+                    }
+                }
+            }
+
+            if (targetRawContactId != null) {
+                val ops = ArrayList<ContentProviderOperation>()
+                val where = "${ContactsContract.Data.RAW_CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
+                val args = arrayOf(
+                    targetRawContactId.toString(),
+                    ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE
+                )
+
+                ops.add(
+                    ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+                        .withSelection(where, args)
+                        .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, newName)
+                        .build()
+                )
+                context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /**
@@ -176,3 +295,10 @@ object ContactsHelper {
         }
     }
 }
+
+data class DeviceContactItem(
+    val contactId: Long,
+    val name: String,
+    val phoneNumber: String,
+    val normalizedNumber: String
+)

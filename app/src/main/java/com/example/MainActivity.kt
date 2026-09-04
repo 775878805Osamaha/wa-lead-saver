@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -62,9 +63,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.database.entity.LeadEntity
 import com.example.ui.components.AppTopBar
 import com.example.ui.dialogs.EditNameDialog
+import com.example.ui.dialogs.ExportOptionsDialog
 import com.example.ui.dialogs.PhotoScanDialog
 import com.example.ui.dialogs.SamsungGuideDialog
 import com.example.ui.dialogs.SaveExistingContactsDialog
+import com.example.ui.dialogs.SmartDuplicateDialog
+import com.example.ui.screens.AnalyticsScreen
+import com.example.ui.screens.BlockedPatternsScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.QueueScreen
@@ -134,7 +139,11 @@ fun MainScreen(viewModel: MainViewModel) {
     var showPhotoScanDialog by remember { mutableStateOf(false) }
     var showSaveExistingDialog by remember { mutableStateOf(false) }
     var showSamsungGuideDialog by remember { mutableStateOf(false) }
+    var showExportOptionsDialog by remember { mutableStateOf(false) }
+    var showDuplicateDialog by remember { mutableStateOf(false) }
     var leadToEdit by remember { mutableStateOf<LeadEntity?>(null) }
+    var isViewingBlockedPatterns by remember { mutableStateOf(false) }
+    var isViewingAnalytics by remember { mutableStateOf(false) }
 
     // Collect states from ViewModel
     val queuedLeads by viewModel.queuedLeads.collectAsStateWithLifecycle()
@@ -142,6 +151,10 @@ fun MainScreen(viewModel: MainViewModel) {
     val queueCount by viewModel.queueCount.collectAsStateWithLifecycle()
     val historyList by viewModel.historyList.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val blockedPatterns by viewModel.blockedPatterns.collectAsStateWithLifecycle()
+    val activeBlockedCount by viewModel.activeBlockedCount.collectAsStateWithLifecycle()
+    val duplicateMatches by viewModel.duplicateMatches.collectAsStateWithLifecycle()
+    val isScanningDuplicates by viewModel.isScanningDuplicates.collectAsStateWithLifecycle()
 
     val isListenerActive by viewModel.isNotificationListenerActive.collectAsStateWithLifecycle()
     val hasContactsPermission by viewModel.hasContactsPermission.collectAsStateWithLifecycle()
@@ -187,6 +200,14 @@ fun MainScreen(viewModel: MainViewModel) {
         }
     }
 
+    BackHandler(enabled = isViewingBlockedPatterns || isViewingAnalytics) {
+        if (isViewingBlockedPatterns) {
+            isViewingBlockedPatterns = false
+        } else if (isViewingAnalytics) {
+            isViewingAnalytics = false
+        }
+    }
+
     Scaffold(
         topBar = {
             AppTopBar(
@@ -207,7 +228,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     showPhotoScanDialog = true
                 },
                 onExportClick = {
-                    CsvExportHelper.exportHistoryToCsv(context, historyList)
+                    showExportOptionsDialog = true
                 },
                 onWhatsAppClick = {
                     WhatsAppHelper.openChat(context, "")
@@ -226,7 +247,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 // Dashboard Tab
                 NavigationBarItem(
                     selected = currentTab == AppTab.DASHBOARD,
-                    onClick = { currentTab = AppTab.DASHBOARD },
+                    onClick = {
+                        currentTab = AppTab.DASHBOARD
+                        isViewingBlockedPatterns = false
+                    },
                     icon = {
                         Icon(imageVector = Icons.Default.Dashboard, contentDescription = "Dashboard")
                     },
@@ -244,7 +268,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 // Queue Tab with Badge
                 NavigationBarItem(
                     selected = currentTab == AppTab.QUEUE,
-                    onClick = { currentTab = AppTab.QUEUE },
+                    onClick = {
+                        currentTab = AppTab.QUEUE
+                        isViewingBlockedPatterns = false
+                    },
                     icon = {
                         BadgedBox(
                             badge = {
@@ -275,7 +302,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 // History Tab
                 NavigationBarItem(
                     selected = currentTab == AppTab.HISTORY,
-                    onClick = { currentTab = AppTab.HISTORY },
+                    onClick = {
+                        currentTab = AppTab.HISTORY
+                        isViewingBlockedPatterns = false
+                    },
                     icon = {
                         Icon(imageVector = Icons.Default.History, contentDescription = "History")
                     },
@@ -293,7 +323,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 // Settings Tab
                 NavigationBarItem(
                     selected = currentTab == AppTab.SETTINGS,
-                    onClick = { currentTab = AppTab.SETTINGS },
+                    onClick = {
+                        currentTab = AppTab.SETTINGS
+                        isViewingBlockedPatterns = false
+                    },
                     icon = {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     },
@@ -318,137 +351,189 @@ fun MainScreen(viewModel: MainViewModel) {
                 .padding(innerPadding)
                 .background(AppBackground)
         ) {
-            Crossfade(targetState = currentTab, label = "TabTransition") { tab ->
-                when (tab) {
-                    AppTab.DASHBOARD -> {
-                        DashboardScreen(
-                            totalSaved = totalSaved,
-                            inQueue = queueCount,
-                            settings = settings,
-                            onExportHistory = {
-                                CsvExportHelper.exportHistoryToCsv(context, historyList)
-                            },
-                            onViewQueue = {
-                                currentTab = AppTab.QUEUE
-                            },
-                            onOpenSaveExistingContacts = {
-                                showSaveExistingDialog = true
-                            },
-                            onSnapAndSave = {
-                                viewModel.clearScannedResults()
-                                showPhotoScanDialog = true
-                            },
-                            onPrefixChange = { newPrefix ->
-                                viewModel.setContactPrefix(newPrefix)
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Prefix updated to '$newPrefix'")
-                                }
-                            },
-                            onAutoSaveChange = { enabled ->
-                                viewModel.setAutoSave(enabled)
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (enabled) "Auto-Save Leads enabled" else "Auto-Save Leads disabled"
-                                    )
-                                }
-                            },
-                            onSimulateIncomingLead = {
-                                // Deterministic simulation of an incoming WhatsApp message with unsaved lead
-                                val randomSuffix = (1000..9999).random()
-                                val sampleNumber = "+96777$randomSuffix"
-                                scope.launch {
-                                    viewModel.repository.processIncomingPhoneCandidate(
-                                        rawCandidate = sampleNumber,
-                                        source = "WhatsApp"
-                                    )
-                                }
-                            }
-                        )
-                    }
-
-                    AppTab.QUEUE -> {
-                        QueueScreen(
-                            queuedLeads = queuedLeads,
-                            onSaveLead = { lead ->
-                                if (!hasContactsPermission) {
-                                    contactsPermissionLauncher.launch(
-                                        arrayOf(
-                                            Manifest.permission.READ_CONTACTS,
-                                            Manifest.permission.WRITE_CONTACTS
+            if (isViewingAnalytics) {
+                val analyticsSummary = remember(historyList, queuedLeads) {
+                    viewModel.getAnalyticsSummary()
+                }
+                AnalyticsScreen(
+                    analytics = analyticsSummary,
+                    onBackClick = { isViewingAnalytics = false },
+                    onExportClick = { showExportOptionsDialog = true }
+                )
+            } else {
+                Crossfade(targetState = currentTab, label = "TabTransition") { tab ->
+                    when (tab) {
+                        AppTab.DASHBOARD -> {
+                            DashboardScreen(
+                                totalSaved = totalSaved,
+                                inQueue = queueCount,
+                                settings = settings,
+                                duplicateConflictCount = duplicateMatches.size,
+                                onExportHistory = {
+                                    showExportOptionsDialog = true
+                                },
+                                onViewQueue = {
+                                    currentTab = AppTab.QUEUE
+                                },
+                                onOpenAnalytics = {
+                                    isViewingAnalytics = true
+                                },
+                                onOpenDuplicateAudit = {
+                                    viewModel.scanForDuplicates()
+                                    showDuplicateDialog = true
+                                },
+                                onOpenSaveExistingContacts = {
+                                    showSaveExistingDialog = true
+                                },
+                                onSnapAndSave = {
+                                    viewModel.clearScannedResults()
+                                    showPhotoScanDialog = true
+                                },
+                                onPrefixChange = { newPrefix ->
+                                    viewModel.setContactPrefix(newPrefix)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Prefix updated to '$newPrefix'")
+                                    }
+                                },
+                                onAutoSaveChange = { enabled ->
+                                    viewModel.setAutoSave(enabled)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (enabled) "Auto-Save Leads enabled" else "Auto-Save Leads disabled"
                                         )
-                                    )
-                                } else {
-                                    viewModel.saveLead(lead)
-                                }
-                            },
-                            onRemoveLead = { lead ->
-                                viewModel.removeLead(lead)
-                            },
-                            onWhatsAppClick = { lead ->
-                                WhatsAppHelper.openChat(context, lead.phoneNumber)
-                            },
-                            onEditLeadName = { lead ->
-                                leadToEdit = lead
-                            },
-                            onSaveAll = {
-                                if (!hasContactsPermission) {
-                                    contactsPermissionLauncher.launch(
-                                        arrayOf(
-                                            Manifest.permission.READ_CONTACTS,
-                                            Manifest.permission.WRITE_CONTACTS
+                                    }
+                                },
+                                onSimulateIncomingLead = {
+                                    // Deterministic simulation of an incoming WhatsApp message with unsaved lead
+                                    val randomSuffix = (1000..9999).random()
+                                    val sampleNumber = "+96777$randomSuffix"
+                                    scope.launch {
+                                        viewModel.repository.processIncomingPhoneCandidate(
+                                            rawCandidate = sampleNumber,
+                                            source = "WhatsApp"
                                         )
-                                    )
-                                } else {
-                                    viewModel.saveAllQueued()
+                                    }
                                 }
-                            },
-                            onClearAll = {
-                                viewModel.clearQueue()
-                            }
-                        )
-                    }
+                            )
+                        }
 
-                    AppTab.HISTORY -> {
-                        HistoryScreen(
-                            historyList = historyList,
-                            onExportHistory = {
-                                CsvExportHelper.exportHistoryToCsv(context, historyList)
-                            },
-                            onClearHistory = {
-                                viewModel.clearHistory()
-                            }
-                        )
-                    }
+                        AppTab.QUEUE -> {
+                            QueueScreen(
+                                queuedLeads = queuedLeads,
+                                onSaveLead = { lead ->
+                                    if (!hasContactsPermission) {
+                                        contactsPermissionLauncher.launch(
+                                            arrayOf(
+                                                Manifest.permission.READ_CONTACTS,
+                                                Manifest.permission.WRITE_CONTACTS
+                                            )
+                                        )
+                                    } else {
+                                        viewModel.saveLead(lead)
+                                    }
+                                },
+                                onRemoveLead = { lead ->
+                                    viewModel.removeLead(lead)
+                                },
+                                onWhatsAppClick = { lead ->
+                                    WhatsAppHelper.openChat(context, lead.phoneNumber)
+                                },
+                                onEditLeadName = { lead ->
+                                    leadToEdit = lead
+                                },
+                                onSaveAll = {
+                                    if (!hasContactsPermission) {
+                                        contactsPermissionLauncher.launch(
+                                            arrayOf(
+                                                Manifest.permission.READ_CONTACTS,
+                                                Manifest.permission.WRITE_CONTACTS
+                                            )
+                                        )
+                                    } else {
+                                        viewModel.saveAllQueued()
+                                    }
+                                },
+                                onClearAll = {
+                                    viewModel.clearQueue()
+                                }
+                            )
+                        }
 
-                    AppTab.SETTINGS -> {
-                        SettingsScreen(
-                            settings = settings,
-                            isNotificationListenerActive = isListenerActive,
-                            hasContactsPermission = hasContactsPermission,
-                            isBatteryOptimizationIgnored = isBatteryIgnored,
-                            onAutoSaveChange = { viewModel.setAutoSave(it) },
-                            onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
-                            onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
-                            onPrefixChange = {
-                                viewModel.setContactPrefix(it)
-                                scope.launch { snackbarHostState.showSnackbar("Prefix updated") }
-                            },
-                            onCountryCodeChange = {
-                                viewModel.setCountryCode(it)
-                                scope.launch { snackbarHostState.showSnackbar("Country code updated") }
-                            },
-                            onRequestContactsPermission = {
-                                contactsPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.READ_CONTACTS,
-                                        Manifest.permission.WRITE_CONTACTS
-                                    )
+                        AppTab.HISTORY -> {
+                            HistoryScreen(
+                                historyList = historyList,
+                                onExportHistory = {
+                                    showExportOptionsDialog = true
+                                },
+                                onClearHistory = {
+                                    viewModel.clearHistory()
+                                }
+                            )
+                        }
+
+                        AppTab.SETTINGS -> {
+                            if (isViewingBlockedPatterns) {
+                                BlockedPatternsScreen(
+                                    blockedPatterns = blockedPatterns,
+                                    onBackClick = { isViewingBlockedPatterns = false },
+                                    onAddPattern = { pattern, matchType, label ->
+                                        viewModel.addBlockedPattern(pattern, matchType, label)
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Added pattern '$pattern'")
+                                        }
+                                    },
+                                    onTogglePattern = { id, enabled ->
+                                        viewModel.toggleBlockedPattern(id, enabled)
+                                    },
+                                    onDeletePattern = { pattern ->
+                                        viewModel.deleteBlockedPattern(pattern)
+                                    }
                                 )
-                            },
-                            onOpenSamsungGuide = {
-                                showSamsungGuideDialog = true
+                            } else {
+                                SettingsScreen(
+                                    settings = settings,
+                                    activeBlockedCount = activeBlockedCount,
+                                    isNotificationListenerActive = isListenerActive,
+                                    hasContactsPermission = hasContactsPermission,
+                                    isBatteryOptimizationIgnored = isBatteryIgnored,
+                                    onAutoSaveChange = { viewModel.setAutoSave(it) },
+                                    onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
+                                    onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
+                                    onPrefixChange = {
+                                        viewModel.setContactPrefix(it)
+                                        scope.launch { snackbarHostState.showSnackbar("Prefix updated") }
+                                    },
+                                    onCountryCodeChange = {
+                                        viewModel.setCountryCode(it)
+                                        scope.launch { snackbarHostState.showSnackbar("Country code updated") }
+                                    },
+                                    onRequestContactsPermission = {
+                                        contactsPermissionLauncher.launch(
+                                            arrayOf(
+                                                Manifest.permission.READ_CONTACTS,
+                                                Manifest.permission.WRITE_CONTACTS
+                                            )
+                                        )
+                                    },
+                                    onOpenSamsungGuide = {
+                                        showSamsungGuideDialog = true
+                                    },
+                                    onNavigateToBlockedPatterns = {
+                                        isViewingBlockedPatterns = true
+                                    },
+                                    onOpenAnalytics = {
+                                        isViewingAnalytics = true
+                                    },
+                                    onOpenDuplicateAudit = {
+                                        viewModel.scanForDuplicates()
+                                        showDuplicateDialog = true
+                                    },
+                                    onExportContacts = {
+                                        showExportOptionsDialog = true
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -456,6 +541,35 @@ fun MainScreen(viewModel: MainViewModel) {
     }
 
     // Dialogs
+    if (showExportOptionsDialog) {
+        ExportOptionsDialog(
+            queueCount = queueCount,
+            historyCount = historyList.size,
+            onExport = { format, scopeSelected ->
+                showExportOptionsDialog = false
+                viewModel.exportContacts(format, scopeSelected)
+            },
+            onDismiss = {
+                showExportOptionsDialog = false
+            }
+        )
+    }
+
+    if (showDuplicateDialog) {
+        SmartDuplicateDialog(
+            duplicates = duplicateMatches,
+            isScanning = isScanningDuplicates,
+            onResolveMatch = { match, preferredName ->
+                viewModel.resolveDuplicateMatch(match, preferredName)
+            },
+            onAutoResolveAll = {
+                viewModel.autoResolveAllDuplicates()
+            },
+            onDismiss = {
+                showDuplicateDialog = false
+            }
+        )
+    }
     if (showPhotoScanDialog) {
         PhotoScanDialog(
             scannedNumbers = scannedNumbers,
