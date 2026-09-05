@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.HistoryEntity
@@ -101,7 +102,7 @@ fun HistoryScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Export CSV", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Export CSV", fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 }
             }
         }
@@ -195,8 +196,13 @@ fun HistoryItemCard(
                     text = item.phoneNumber,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 StatusBadge(status = item.status)
             }
@@ -208,7 +214,9 @@ fun HistoryItemCard(
                     text = item.contactName,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = WhatsAppTeal
+                    color = WhatsAppTeal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
             }
@@ -216,7 +224,9 @@ fun HistoryItemCard(
             Text(
                 text = "Source: ${item.source} • $dateStr",
                 fontSize = 12.sp,
-                color = TextSecondary
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             if (item.details.isNotBlank()) {
@@ -224,7 +234,9 @@ fun HistoryItemCard(
                 Text(
                     text = item.details,
                     fontSize = 11.sp,
-                    color = TextMuted
+                    color = TextMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -237,8 +249,9 @@ fun StatusBadge(status: String) {
         "Saved" -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
         "Duplicate" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
         "NEW LEAD", "Queued" -> Color(0xFFE0F2FE) to Color(0xFF0369A1)
+        "Verify number" -> Color(0xFFFEF3C7) to Color(0xFFD97706)
         "Removed" -> RemoveRedLight to RemoveRed
-        "Failed" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+        "Failed", "Rejected invalid phone candidate", "Rejected low-confidence candidate" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
         "Phone number unavailable" -> Color(0xFFF3E8FF) to Color(0xFF7E22CE)
         else -> Color(0xFFF3F4F6) to Color(0xFF374151)
     }
@@ -253,7 +266,9 @@ fun StatusBadge(status: String) {
             text = status,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = textColor
+            color = textColor,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

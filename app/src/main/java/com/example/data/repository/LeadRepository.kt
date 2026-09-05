@@ -8,8 +8,10 @@ import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
 import com.example.util.BlockedPatternHelper
+import com.example.util.ConfidenceLevel
 import com.example.util.ContactsHelper
 import com.example.util.PhoneNumberHelper
+import com.example.util.PhoneNumberValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -31,27 +33,75 @@ class LeadRepository(
     val activeBlockedCount: Flow<Int> = blockedPatternDao.getActiveCount()
 
     /**
-     * Process an incoming notification or text candidate.
+     * Process an incoming phone candidate under strict confidence & validation rules.
+     * Order of operations:
+     * 1. PhoneNumberValidator validation (length, Yemen rules, price/counter rejection)
+     * 2. Confidence level check:
+     *    - LOW: Rejected completely (never added to queue, recorded as "Rejected low-confidence candidate")
+     *    - MEDIUM: Allowed in Queue with "Verify number" status, NEVER auto-saved.
+     *    - HIGH: Allowed in Queue, and eligible for Auto-Save if enabled.
+     * 3. normalizeNumber()
+     * 4. BlockedPattern check
+     * 5. Existing Contacts check
+     * 6. Queue duplicate check
+     * 7. Auto-save (HIGH only) or Lead insertion into Queue
      */
     suspend fun processIncomingPhoneCandidate(
         rawCandidate: String,
-        source: String
+        source: String,
+        confidence: ConfidenceLevel = ConfidenceLevel.HIGH,
+        debugDetails: String = ""
     ): ProcessResult {
         val currentSettings = settings.first()
-        val normalized = PhoneNumberHelper.normalize(rawCandidate, currentSettings.countryCode)
 
-        if (!PhoneNumberHelper.isValidPhoneNumber(normalized)) {
+        // 1. Strict Candidate Validation
+        val validation = PhoneNumberValidator.validateCandidate(
+            rawCandidate = rawCandidate,
+            defaultCountryCode = currentSettings.countryCode,
+            isExplicitTitle = (confidence == ConfidenceLevel.HIGH)
+        )
+
+        if (!validation.isValid) {
             recordHistory(
                 phoneNumber = rawCandidate.ifBlank { "N/A" },
                 contactName = "",
                 source = source,
-                status = "Phone number unavailable",
-                details = "Could not extract valid phone number pattern"
+                status = "Rejected invalid phone candidate",
+                details = buildString {
+                    append(validation.rejectionReason)
+                    if (debugDetails.isNotBlank()) append(" | $debugDetails")
+                }
             )
             return ProcessResult.InvalidNumber
         }
 
-        // 0. Check against Blocked / Ignored Patterns list first!
+        // Effective confidence is the minimum of provided confidence and validation confidence
+        val effectiveConfidence = if (confidence == ConfidenceLevel.LOW || validation.confidence == ConfidenceLevel.LOW) {
+            ConfidenceLevel.LOW
+        } else if (confidence == ConfidenceLevel.MEDIUM || validation.confidence == ConfidenceLevel.MEDIUM) {
+            ConfidenceLevel.MEDIUM
+        } else {
+            ConfidenceLevel.HIGH
+        }
+
+        // 2. Reject LOW confidence completely (Rule 8 & 10)
+        if (effectiveConfidence == ConfidenceLevel.LOW) {
+            recordHistory(
+                phoneNumber = validation.normalizedNumber,
+                contactName = "",
+                source = source,
+                status = "Rejected low-confidence candidate",
+                details = buildString {
+                    append("Candidate rejected due to low confidence")
+                    if (debugDetails.isNotBlank()) append(" | $debugDetails")
+                }
+            )
+            return ProcessResult.RejectedLowConfidence(validation.normalizedNumber)
+        }
+
+        val normalized = validation.normalizedNumber
+
+        // 3. Blocked / Ignored Patterns check (Rule 7)
         val activePatterns = blockedPatternDao.getActiveBlockedPatterns()
         val matchedBlockedPattern = BlockedPatternHelper.findMatchingPattern(normalized, activePatterns)
             ?: BlockedPatternHelper.findMatchingPattern(rawCandidate, activePatterns)
@@ -73,7 +123,7 @@ class LeadRepository(
             return ProcessResult.Blocked(normalized, matchedBlockedPattern)
         }
 
-        // 1. Duplicate check in Android Contacts
+        // 4. Duplicate check in Android Contacts (Rule 7)
         val existsInContacts = ContactsHelper.contactExists(context, normalized)
         if (existsInContacts) {
             recordHistory(
@@ -86,7 +136,7 @@ class LeadRepository(
             return ProcessResult.DuplicateInContacts(normalized)
         }
 
-        // 2. Check if already in local Queue
+        // 5. Check if already in local Queue (Rule 7)
         val existingLead = leadDao.findLeadByNormalizedNumber(normalized)
         if (existingLead != null) {
             if (existingLead.isSaved) {
@@ -105,8 +155,8 @@ class LeadRepository(
 
         val contactName = "${currentSettings.contactNamePrefix}-$normalized"
 
-        // 3. Auto-save if enabled
-        if (currentSettings.autoSaveLeads && ContactsHelper.hasWritePermission(context)) {
+        // 6. Auto-save check: ONLY HIGH CONFIDENCE is allowed to Auto-Save (Rule 8 & Rule 9)
+        if (effectiveConfidence == ConfidenceLevel.HIGH && currentSettings.autoSaveLeads && ContactsHelper.hasWritePermission(context)) {
             val saveResult = ContactsHelper.saveContact(context, contactName, normalized)
             if (saveResult.isSuccess && saveResult.getOrNull() == true) {
                 val lead = LeadEntity(
@@ -115,7 +165,8 @@ class LeadRepository(
                     contactName = contactName,
                     source = source,
                     isSaved = true,
-                    status = "SAVED"
+                    status = "SAVED",
+                    confidence = "HIGH"
                 )
                 leadDao.insertLead(lead)
                 recordHistory(
@@ -123,42 +174,59 @@ class LeadRepository(
                     contactName = contactName,
                     source = source,
                     status = "Saved",
-                    details = "Auto-saved directly to Android Contacts"
+                    details = "Auto-saved directly to Android Contacts (Confidence: HIGH)"
                 )
                 return ProcessResult.AutoSaved(normalized)
             }
         }
 
-        // 4. Otherwise add to Queue
+        // 7. Otherwise insert into Queue (Rule 7 & Rule 8)
+        // If MEDIUM, set status note with warning "Verify number"
+        val queueStatus = if (effectiveConfidence == ConfidenceLevel.MEDIUM) "Verify number" else "NEW LEAD"
         val lead = LeadEntity(
             phoneNumber = normalized,
             normalizedNumber = normalized,
             contactName = contactName,
             source = source,
             isSaved = false,
-            status = "NEW LEAD"
+            status = queueStatus,
+            confidence = effectiveConfidence.name
         )
         leadDao.insertLead(lead)
+
         recordHistory(
             phoneNumber = normalized,
             contactName = contactName,
             source = source,
-            status = "NEW LEAD",
-            details = "Added to Queue"
+            status = queueStatus,
+            details = buildString {
+                append("Added to Queue (Confidence: $effectiveConfidence)")
+                if (debugDetails.isNotBlank()) append(" | $debugDetails")
+            }
         )
         return ProcessResult.Queued(normalized)
     }
 
     /**
-     * Records an entry when a notification was received but had no phone number.
+     * Records an entry when a notification was received but had no reliable phone number.
+     * Rule 2, 6, 10, 11
      */
-    suspend fun recordNotificationWithoutNumber(source: String, snippet: String) {
+    suspend fun recordNotificationWithoutNumber(
+        source: String,
+        reason: String,
+        debugDetails: String = ""
+    ) {
+        val detailsText = buildString {
+            append(reason)
+            if (debugDetails.isNotBlank()) append(" | $debugDetails")
+        }.take(200)
+
         recordHistory(
             phoneNumber = "Phone number unavailable",
             contactName = "N/A",
             source = source,
             status = "Phone number unavailable",
-            details = snippet.take(100)
+            details = detailsText
         )
     }
 
@@ -360,6 +428,7 @@ sealed class ProcessResult {
     data class AlreadySaved(val number: String) : ProcessResult()
     data class AlreadyInQueue(val number: String) : ProcessResult()
     data class Blocked(val number: String, val pattern: BlockedPatternEntity) : ProcessResult()
+    data class RejectedLowConfidence(val number: String) : ProcessResult()
     object InvalidNumber : ProcessResult()
 }
 

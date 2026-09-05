@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.LeadEntity
@@ -62,7 +63,7 @@ fun LeadCard(
     val relativeTime = formatRelativeTime(lead.detectedAt)
 
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
@@ -72,9 +73,9 @@ fun LeadCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(16.dp)
         ) {
-            // Header Row: Detection time + NEW LEAD pill
+            // Header Row: Detection time + Status pill
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -84,34 +85,44 @@ fun LeadCard(
                     text = relativeTime,
                     fontSize = 12.sp,
                     color = TextMuted,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    softWrap = false
                 )
+
+                val isVerify = lead.status.contains("Verify", ignoreCase = true) || lead.confidence == "MEDIUM"
+                val badgeBg = if (isVerify) Color(0xFFFEF3C7) else BadgeNewLeadBg
+                val badgeText = if (isVerify) Color(0xFFD97706) else BadgeNewLeadText
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(BadgeNewLeadBg)
+                        .background(badgeBg)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
                         text = lead.status,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BadgeNewLeadText,
-                        letterSpacing = 0.5.sp
+                        color = badgeText,
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Phone Number
             Text(
                 text = lead.phoneNumber,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = TextPrimary,
-                letterSpacing = 0.2.sp
+                letterSpacing = 0.2.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -124,9 +135,11 @@ fun LeadCard(
                 Text(
                     text = lead.contactName,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = WhatsAppTeal,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 IconButton(
@@ -140,22 +153,24 @@ fun LeadCard(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Contact Name",
                         tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Found in: Source
             Text(
                 text = "Found in: ${lead.source}",
                 fontSize = 12.sp,
                 color = TextSecondary,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Actions: [ Save ] [ Remove ] [ WhatsApp ]
             Row(
@@ -166,82 +181,88 @@ fun LeadCard(
                 // Save Button
                 Button(
                     onClick = onSaveClick,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = WhatsAppTeal,
                         contentColor = Color.White
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp)
+                        .height(38.dp)
                         .testTag("button_save_lead_${lead.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.PersonAdd,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Save",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
                 // Remove Button
                 Button(
                     onClick = onRemoveClick,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = RemoveRedLight,
                         contentColor = RemoveRed
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp)
+                        .height(38.dp)
                         .testTag("button_remove_lead_${lead.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = null,
                         tint = RemoveRed,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Remove",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = RemoveRed
+                        color = RemoveRed,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
                 // WhatsApp Button
                 Button(
                     onClick = onWhatsAppClick,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE8F8F0),
                         contentColor = WhatsAppTeal
                     ),
                     modifier = Modifier
-                        .weight(1.2f)
-                        .height(42.dp)
+                        .weight(1.1f)
+                        .height(38.dp)
                         .testTag("button_whatsapp_lead_${lead.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
                         tint = WhatsAppGreen,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "WhatsApp",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = WhatsAppTeal
+                        color = WhatsAppTeal,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

@@ -241,7 +241,7 @@ fun MainScreen(viewModel: MainViewModel) {
         bottomBar = {
             NavigationBar(
                 containerColor = Color.White,
-                tonalElevation = 6.dp,
+                tonalElevation = 3.dp,
                 modifier = Modifier.navigationBarsPadding()
             ) {
                 // Dashboard Tab
@@ -254,13 +254,13 @@ fun MainScreen(viewModel: MainViewModel) {
                     icon = {
                         Icon(imageVector = Icons.Default.Dashboard, contentDescription = "Dashboard")
                     },
-                    label = { Text("Dashboard", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text("Dashboard", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.DASHBOARD) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
-                        indicatorColor = Color(0xFFE6F4F1),
-                        unselectedIconColor = TextMuted,
-                        unselectedTextColor = TextMuted
+                        indicatorColor = Color(0xFFE8F8F0),
+                        unselectedIconColor = Color(0xFF64748B),
+                        unselectedTextColor = Color(0xFF64748B)
                     ),
                     modifier = Modifier.testTag("nav_tab_dashboard")
                 )
@@ -288,13 +288,13 @@ fun MainScreen(viewModel: MainViewModel) {
                             Icon(imageVector = Icons.Default.Inbox, contentDescription = "Queue")
                         }
                     },
-                    label = { Text("Queue", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text("Queue", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.QUEUE) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
-                        indicatorColor = Color(0xFFE6F4F1),
-                        unselectedIconColor = TextMuted,
-                        unselectedTextColor = TextMuted
+                        indicatorColor = Color(0xFFE8F8F0),
+                        unselectedIconColor = Color(0xFF64748B),
+                        unselectedTextColor = Color(0xFF64748B)
                     ),
                     modifier = Modifier.testTag("nav_tab_queue")
                 )
@@ -309,13 +309,13 @@ fun MainScreen(viewModel: MainViewModel) {
                     icon = {
                         Icon(imageVector = Icons.Default.History, contentDescription = "History")
                     },
-                    label = { Text("History", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text("History", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.HISTORY) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
-                        indicatorColor = Color(0xFFE6F4F1),
-                        unselectedIconColor = TextMuted,
-                        unselectedTextColor = TextMuted
+                        indicatorColor = Color(0xFFE8F8F0),
+                        unselectedIconColor = Color(0xFF64748B),
+                        unselectedTextColor = Color(0xFF64748B)
                     ),
                     modifier = Modifier.testTag("nav_tab_history")
                 )
@@ -330,13 +330,13 @@ fun MainScreen(viewModel: MainViewModel) {
                     icon = {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     },
-                    label = { Text("Settings", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text("Settings", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.SETTINGS) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
-                        indicatorColor = Color(0xFFE6F4F1),
-                        unselectedIconColor = TextMuted,
-                        unselectedTextColor = TextMuted
+                        indicatorColor = Color(0xFFE8F8F0),
+                        unselectedIconColor = Color(0xFF64748B),
+                        unselectedTextColor = Color(0xFF64748B)
                     ),
                     modifier = Modifier.testTag("nav_tab_settings")
                 )
@@ -351,10 +351,11 @@ fun MainScreen(viewModel: MainViewModel) {
                 .padding(innerPadding)
                 .background(AppBackground)
         ) {
+            val analyticsSummary = remember(historyList, queuedLeads) {
+                viewModel.getAnalyticsSummary()
+            }
+
             if (isViewingAnalytics) {
-                val analyticsSummary = remember(historyList, queuedLeads) {
-                    viewModel.getAnalyticsSummary()
-                }
                 AnalyticsScreen(
                     analytics = analyticsSummary,
                     onBackClick = { isViewingAnalytics = false },
@@ -369,6 +370,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                 inQueue = queueCount,
                                 settings = settings,
                                 duplicateConflictCount = duplicateMatches.size,
+                                analyticsSummary = analyticsSummary,
                                 onExportHistory = {
                                     showExportOptionsDialog = true
                                 },

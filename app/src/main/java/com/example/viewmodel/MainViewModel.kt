@@ -278,6 +278,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is ProcessResult.AlreadySaved -> skippedDuplicates++
                     is ProcessResult.AlreadyInQueue -> skippedDuplicates++
                     is ProcessResult.Blocked -> skippedBlocked++
+                    is ProcessResult.RejectedLowConfidence -> {}
                     ProcessResult.InvalidNumber -> {}
                 }
             }

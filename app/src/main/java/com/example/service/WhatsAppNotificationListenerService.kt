@@ -6,7 +6,7 @@ import android.service.notification.StatusBarNotification
 import com.example.data.database.AppDatabase
 import com.example.data.datastore.SettingsDataStore
 import com.example.data.repository.LeadRepository
-import com.example.util.PhoneNumberHelper
+import com.example.util.PhoneNumberValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,8 +44,6 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
             return
         }
 
-        val source = if (isBusinessWhatsApp) "WhatsApp Business" else "WhatsApp"
-
         serviceScope.launch {
             val settings = settingsDataStore.settingsFlow.first()
 
@@ -60,38 +58,50 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
             val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString() ?: ""
             val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
 
-            val combined = buildString {
-                if (title.isNotBlank()) append(title).append(" ")
-                if (text.isNotBlank()) append(text).append(" ")
-                if (subText.isNotBlank()) append(subText).append(" ")
-                if (bigText.isNotBlank()) append(bigText).append(" ")
-            }.trim()
+            // Combine body text if bigText has extended info
+            val effectiveText = if (bigText.isNotBlank() && bigText.length > text.length) bigText else text
 
-            if (combined.isBlank()) return@launch
+            // Ignore system backup / web session status updates
+            val combinedRaw = "$title $text $subText $bigText"
+            val isSystemStatusNotification = combinedRaw.contains("backup", ignoreCase = true) ||
+                    combinedRaw.contains("نسخ احتياطي", ignoreCase = true) ||
+                    combinedRaw.contains("checking for new messages", ignoreCase = true) ||
+                    combinedRaw.contains("البحث عن رسائل جديدة", ignoreCase = true) ||
+                    combinedRaw.contains("web is currently active", ignoreCase = true) ||
+                    combinedRaw.contains("واتساب ويب نشط حالياً", ignoreCase = true)
 
-            // Check if title or combined text contains phone number candidates
-            // In WhatsApp, if sender is unsaved, the notification title is usually "+967..." or "077..."
-            val extractedNumbers = PhoneNumberHelper.extractPhoneNumbers(combined, settings.countryCode)
+            if (isSystemStatusNotification) return@launch
 
-            if (extractedNumbers.isNotEmpty()) {
-                // We found one or more phone numbers!
-                for (number in extractedNumbers) {
-                    repository.processIncomingPhoneCandidate(number, source)
-                }
+            // Master Strict Parsing (Rules 1 to 11)
+            val parseResult = PhoneNumberValidator.parseNotification(
+                packageName = packageName,
+                title = title,
+                text = effectiveText,
+                subText = subText,
+                defaultCountryCode = settings.countryCode
+            )
+
+            if (parseResult.isAccepted && parseResult.candidateFound) {
+                // Verified phone number candidate with confidence level!
+                repository.processIncomingPhoneCandidate(
+                    rawCandidate = parseResult.normalizedNumber,
+                    source = parseResult.sourceLabel,
+                    confidence = parseResult.confidence,
+                    debugDetails = parseResult.debugDetails
+                )
             } else {
-                // If this is a message from an already named contact or a group summary like "2 new messages"
-                // Never guess or invent numbers. Record: Phone number unavailable
-                // Skip recording if it's just WhatsApp background sync/backup notification
-                val isSyncOrBackup = combined.contains("backup", ignoreCase = true) ||
-                        combined.contains("checking for new messages", ignoreCase = true) ||
-                        combined.contains("web is currently active", ignoreCase = true)
-
-                if (!isSyncOrBackup) {
-                    repository.recordNotificationWithoutNumber(
-                        source = source,
-                        snippet = "Title: '$title', Text: '$text'"
-                    )
+                // Rule 6, 10, 11: If phone number is unavailable or rejected, record accurately
+                val rejectionSnippet = if (parseResult.rejectionReason.isNotBlank()) {
+                    parseResult.rejectionReason
+                } else {
+                    "Title: '$title', Body: '${effectiveText.take(40)}'"
                 }
+
+                repository.recordNotificationWithoutNumber(
+                    source = parseResult.sourceLabel,
+                    reason = rejectionSnippet,
+                    debugDetails = parseResult.debugDetails
+                )
             }
         }
     }

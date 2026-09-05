@@ -13,7 +13,7 @@ import com.example.data.database.entity.LeadEntity
 
 @Database(
     entities = [LeadEntity::class, HistoryEntity::class, BlockedPatternEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

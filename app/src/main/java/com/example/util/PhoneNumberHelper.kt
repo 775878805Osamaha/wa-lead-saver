@@ -19,15 +19,15 @@ object PhoneNumberHelper {
      * - 771234567    -> +967771234567 (if country code is +967)
      */
     fun normalize(rawNumber: String, defaultCountryCode: String = "+967"): String {
-        val trimmed = rawNumber.trim()
-        if (trimmed.isEmpty()) return ""
+        val converted = PhoneNumberValidator.convertArabicNumerals(rawNumber.trim())
+        if (converted.isEmpty()) return ""
 
         val cleanCountryCode = if (defaultCountryCode.startsWith("+")) defaultCountryCode else "+$defaultCountryCode"
         val countryDigits = cleanCountryCode.removePrefix("+")
 
         // Retain only digits and leading plus if present
-        val hasLeadingPlus = trimmed.startsWith("+")
-        val digitsOnly = trimmed.filter { it.isDigit() }
+        val hasLeadingPlus = converted.startsWith("+")
+        val digitsOnly = converted.filter { it.isDigit() }
 
         if (digitsOnly.isEmpty()) return ""
 
@@ -36,7 +36,7 @@ object PhoneNumberHelper {
         }
 
         // If it starts with "00", convert to "+"
-        if (trimmed.startsWith("00")) {
+        if (converted.startsWith("00")) {
             return "+${digitsOnly.removePrefix("00")}"
         }
 
@@ -65,26 +65,26 @@ object PhoneNumberHelper {
     }
 
     /**
-     * Extracts phone numbers from a text block deterministically using regex.
-     * Ignores pure dates (YYYY-MM-DD), times (HH:MM), short message counters ("2 new messages").
+     * Extracts phone numbers from a text block (e.g. photo scan / manual text block).
+     * Runs every candidate through PhoneNumberValidator to prevent prices, counters, years, or invalid lengths.
      */
     fun extractPhoneNumbers(text: String, defaultCountryCode: String = "+967"): List<String> {
         if (text.isBlank()) return emptyList()
 
+        val convertedText = PhoneNumberValidator.convertArabicNumerals(text)
         val results = linkedSetOf<String>()
-        val matcher = PHONE_PATTERN.matcher(text)
+        val matcher = PHONE_PATTERN.matcher(convertedText)
 
         while (matcher.find()) {
             val candidate = matcher.group()
-            val digits = candidate.filter { it.isDigit() }
-
-            // A valid phone number usually has at least 7 digits and not more than 16 digits
-            if (digits.length in 7..16) {
-                // Ensure it's not a year or pure short counter
-                val normalized = normalize(candidate, defaultCountryCode)
-                if (isValidPhoneNumber(normalized)) {
-                    results.add(normalized)
-                }
+            val validation = PhoneNumberValidator.validateCandidate(
+                rawCandidate = candidate,
+                defaultCountryCode = defaultCountryCode,
+                contextText = convertedText,
+                isExplicitTitle = false
+            )
+            if (validation.isValid) {
+                results.add(validation.normalizedNumber)
             }
         }
 
@@ -93,10 +93,11 @@ object PhoneNumberHelper {
 
     /**
      * Checks if a string has the minimum characteristics of a valid phone number.
+     * Delegates to PhoneNumberValidator for strict validation.
      */
     fun isValidPhoneNumber(number: String): Boolean {
-        val digits = number.filter { it.isDigit() }
-        return digits.length in 7..15
+        val validation = PhoneNumberValidator.validateCandidate(number)
+        return validation.isValid
     }
 
     /**

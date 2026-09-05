@@ -46,6 +46,7 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
+import com.example.util.AnalyticsSummary
 
 @Composable
 fun DashboardScreen(
@@ -53,6 +54,7 @@ fun DashboardScreen(
     inQueue: Int,
     settings: AppSettings,
     duplicateConflictCount: Int = 0,
+    analyticsSummary: AnalyticsSummary? = null,
     onExportHistory: () -> Unit,
     onViewQueue: () -> Unit,
     onOpenAnalytics: () -> Unit,
@@ -71,10 +73,10 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(AppBackground)
             .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Two Large Dashboard Cards
+        // Two Balanced Large Dashboard Cards (TOTAL SAVED / IN QUEUE)
         StatCardsRow(
             totalSaved = totalSaved,
             inQueue = inQueue,
@@ -82,12 +84,13 @@ fun DashboardScreen(
             onViewQueueClick = onViewQueue
         )
 
-        // ANALYTICS DASHBOARD Card
+        // ANALYTICS & INSIGHTS Card with Live Trends & 7-Day Trend Preview
         AnalyticsCard(
+            analyticsSummary = analyticsSummary,
             onClick = onOpenAnalytics
         )
 
-        // SMART DUPLICATE AUDIT Card
+        // SMART DUPLICATE AUDIT Card with Scan Now Button
         SmartDuplicateAuditCard(
             conflictCount = duplicateConflictCount,
             onClick = onOpenDuplicateAudit
@@ -119,61 +122,62 @@ fun DashboardScreen(
         // Test Simulation Bar (convenient for preview & testing)
         OutlinedButton(
             onClick = onSimulateIncomingLead,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(44.dp)
                 .testTag("button_simulate_lead")
         ) {
             Icon(
                 imageVector = Icons.Default.AddAlert,
                 contentDescription = null,
                 tint = WhatsAppTeal,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Simulate WhatsApp Notification Lead",
+                text = "Simulate WhatsApp Lead Notification",
                 color = WhatsAppTeal,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
+                fontSize = 12.sp,
+                maxLines = 1
             )
         }
 
-        // WhatsApp Notification Limitation Notice
+        // WhatsApp Notification Processing Notice
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFE9EFEF))
-                .padding(14.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE7ECEB))
+                .padding(12.dp)
         ) {
             Row(verticalAlignment = Alignment.Top) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
                     tint = WhatsAppTeal,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         text = "Notification Processing Rule",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         color = TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Phone numbers are extracted using strict deterministic regex from notification titles & text. If WhatsApp exposes only a display name or '2 new messages' without an exposed phone number, no number is guessed. It is documented as 'Phone number unavailable' in History.",
-                        fontSize = 12.sp,
+                        text = "Phone numbers are extracted using strict deterministic regex from notification titles & text. If WhatsApp displays only a contact name or '2 new messages' without an exposed phone number, it is documented as 'Phone number unavailable' in History.",
+                        fontSize = 11.sp,
                         color = TextSecondary,
-                        lineHeight = 16.sp
+                        lineHeight = 15.sp
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }

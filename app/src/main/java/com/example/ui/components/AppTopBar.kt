@@ -2,11 +2,13 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,133 +54,134 @@ fun AppTopBar(
 ) {
     Surface(
         color = DarkTealHeader,
+        shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
+            // App Logo Badge
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DarkTealHeaderDarker)
+                    .testTag("app_logo_badge")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ContactPhone,
+                    contentDescription = "App Logo",
+                    tint = WhatsAppGreen,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // Title & Status Column
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "WA Lead Saver",
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Compact Status Pill
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isActive) Color(0xFF0C4A42) else Color(0xFF374151))
+                        .clickable { onStatusClick() }
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                        .testTag("status_indicator_pill")
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(if (isActive) StatusActiveGreen else Color(0xFFEF4444))
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isActive) "Active" else "Listener Disabled",
+                        color = if (isActive) Color(0xFF86EFAC) else Color(0xFFFCA5A5),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            // Balanced Action Icons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // App Logo / Icon Box
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkTealHeaderDarker)
-                        .testTag("app_logo_badge")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContactPhone,
-                        contentDescription = "App Logo",
-                        tint = WhatsAppGreen,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Title and Active Status Pill
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "WA Lead Saver",
-                        color = Color.White,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp
-                    )
-
-                    Spacer(modifier = Modifier.padding(top = 2.dp))
-
-                    // Active / Disabled Status Pill
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isActive) Color(0xFF0F4D44) else Color(0xFF374151)
-                            )
-                            .clickable { onStatusClick() }
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .testTag("status_indicator_pill")
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(if (isActive) StatusActiveGreen else Color(0xFFEF4444))
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = if (isActive) "Active" else "Listener Disabled",
-                            color = if (isActive) StatusActiveGreen else Color(0xFFFCA5A5),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                // Action Icons in Top Header
-                // Camera ("Snap and Save")
                 IconButton(
                     onClick = onCameraClick,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .testTag("topbar_camera_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Snap and Save",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Export
                 IconButton(
                     onClick = onExportClick,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .testTag("topbar_export_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Export History",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // WhatsApp
                 IconButton(
                     onClick = onWhatsAppClick,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .testTag("topbar_whatsapp_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = "Open WhatsApp",
-                        tint = WhatsAppGreen
+                        tint = WhatsAppGreen,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Settings
                 IconButton(
                     onClick = onSettingsClick,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .testTag("topbar_settings_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

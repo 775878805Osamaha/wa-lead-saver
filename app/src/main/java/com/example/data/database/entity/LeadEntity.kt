@@ -13,5 +13,6 @@ data class LeadEntity(
     val source: String, // "WhatsApp", "WhatsApp Business", "Photo scan"
     val detectedAt: Long = System.currentTimeMillis(),
     val isSaved: Boolean = false,
-    val status: String = "NEW LEAD"
+    val status: String = "NEW LEAD",
+    val confidence: String = "HIGH" // "HIGH", "MEDIUM", "LOW"
 )

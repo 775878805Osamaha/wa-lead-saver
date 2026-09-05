@@ -31,7 +31,9 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
@@ -67,7 +69,10 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
+import com.example.util.ConfidenceLevel
+import com.example.util.NotificationParseResult
 import com.example.util.PermissionHelper
+import com.example.util.PhoneNumberValidator
 
 @Composable
 fun SettingsScreen(
@@ -583,6 +588,234 @@ fun SettingsScreen(
                         modifier = Modifier.testTag("btn_settings_export")
                     ) {
                         Text("Export", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                    }
+                }
+            }
+        }
+
+        // Section: Test Notification Parser (Rule 12)
+        Text(
+            text = "TEST NOTIFICATION PARSER",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 0.5.sp
+        )
+
+        var testTitleInput by remember { mutableStateOf("+967771234567") }
+        var testTextInput by remember { mutableStateOf("السلام عليكم") }
+        var testParseResult by remember { mutableStateOf<NotificationParseResult?>(null) }
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEFF6FF))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Science,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Notification Parser Sandbox",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Simulate real WhatsApp notifications to verify strict extraction logic",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = testTitleInput,
+                    onValueChange = { testTitleInput = it },
+                    label = { Text("Notification Title (Sender / Group / Phone)") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_test_notif_title")
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = testTextInput,
+                    onValueChange = { testTextInput = it },
+                    label = { Text("Notification Text (Message Body)") },
+                    singleLine = false,
+                    maxLines = 3,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_test_notif_text")
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Quick test presets
+                Text(
+                    text = "Quick Presets:",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextMuted
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            testTitleInput = "+967771234567"
+                            testTextInput = "السلام عليكم"
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Private", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            testTitleInput = "سوق سيارات اليمن"
+                            testTextInput = "محمد: السعر 50000"
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Group Price", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            testTitleInput = "سوق سيارات صنعاء"
+                            testTextInput = "محمد: تواصل معي على 771234567"
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Group Cue", fontSize = 11.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = {
+                        val result = PhoneNumberValidator.parseNotification(
+                            packageName = "com.whatsapp",
+                            title = testTitleInput,
+                            text = testTextInput,
+                            defaultCountryCode = settings.countryCode
+                        )
+                        testParseResult = result
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("btn_test_notification_parser")
+                ) {
+                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Test Parser", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+
+                if (testParseResult != null) {
+                    val res = testParseResult!!
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    val verdictBg = if (res.isAccepted) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                    val verdictBorder = if (res.isAccepted) WhatsAppGreen else Color(0xFFEF4444)
+                    val verdictColor = if (res.isAccepted) Color(0xFF1B5E20) else Color(0xFFB91C1C)
+
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = verdictBg),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = if (res.isAccepted) "ACCEPTED (${res.confidence})" else "REJECTED",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 14.sp,
+                                    color = verdictColor
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color.White)
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "Source: ${res.sourceLabel}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "Detected Number: ${if (res.candidateFound) res.normalizedNumber else "None / Unavailable"}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+
+                            Text(
+                                text = "Confidence: ${res.confidence}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (res.confidence == ConfidenceLevel.HIGH) WhatsAppTeal else if (res.confidence == ConfidenceLevel.MEDIUM) Color(0xFFD97706) else Color(0xFFDC2626)
+                            )
+
+                            if (res.rejectionReason.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Reason: ${res.rejectionReason}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFFB91C1C)
+                                )
+                            }
+
+                            if (res.debugDetails.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Details: ${res.debugDetails}",
+                                    fontSize = 11.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
                     }
                 }
             }
