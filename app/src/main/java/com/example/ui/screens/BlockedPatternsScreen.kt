@@ -53,10 +53,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.database.entity.BlockedPatternEntity
 import com.example.ui.theme.AppBackground
 import com.example.ui.theme.CardBackground
@@ -106,20 +108,20 @@ fun BlockedPatternsScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to Settings",
+                    contentDescription = stringResource(R.string.back_to_settings),
                     tint = Color.White
                 )
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Blocked & Ignored Numbers",
+                    text = stringResource(R.string.blocked_patterns_header_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
-                    text = "Filter patterns out of the lead queue",
+                    text = stringResource(R.string.blocked_patterns_header_sub),
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.8f)
                 )
@@ -139,7 +141,7 @@ fun BlockedPatternsScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Add Pattern",
+                    text = stringResource(R.string.add_pattern),
                     color = DarkTealHeader,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
@@ -182,13 +184,13 @@ fun BlockedPatternsScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Lead Queue Protection",
+                                    text = stringResource(R.string.protection_banner_title),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
                                     color = TextPrimary
                                 )
                                 Text(
-                                    text = "$activeCount active filter rules (${blockedPatterns.size} total)",
+                                    text = stringResource(R.string.protection_banner_sub, activeCount, blockedPatterns.size),
                                     fontSize = 12.sp,
                                     color = TextSecondary
                                 )
@@ -198,7 +200,7 @@ fun BlockedPatternsScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = "Incoming WhatsApp messages or scanned numbers matching these rules will be quietly ignored and will NOT enter your Queue or Contacts. All blocked attempts are recorded in History.",
+                            text = stringResource(R.string.protection_banner_desc),
                             fontSize = 12.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -210,33 +212,36 @@ fun BlockedPatternsScreen(
             // Quick Presets
             item {
                 Text(
-                    text = "QUICK ADD PRESETS",
+                    text = stringResource(R.string.quick_add_presets),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
                     letterSpacing = 0.5.sp
                 )
                 Spacer(modifier = Modifier.height(6.dp))
+                val internalLineLabel = stringResource(R.string.preset_internal_line)
+                val tollFreeLabel = stringResource(R.string.preset_toll_free)
+                val shortcodeLabel = stringResource(R.string.preset_shortcode)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     QuickPresetChip(
-                        label = "+96770 (Internal)",
+                        label = "+96770 ($internalLineLabel)",
                         onClick = {
-                            onAddPattern("+96770", BlockedPatternEntity.MATCH_STARTS_WITH, "Internal Company Line")
+                            onAddPattern("+96770", BlockedPatternEntity.MATCH_STARTS_WITH, internalLineLabel)
                         }
                     )
                     QuickPresetChip(
-                        label = "0800 (Toll-Free)",
+                        label = "0800 ($tollFreeLabel)",
                         onClick = {
-                            onAddPattern("0800", BlockedPatternEntity.MATCH_STARTS_WITH, "Toll-Free Support")
+                            onAddPattern("0800", BlockedPatternEntity.MATCH_STARTS_WITH, tollFreeLabel)
                         }
                     )
                     QuickPresetChip(
-                        label = "1234 (Shortcodes)",
+                        label = "1234 ($shortcodeLabel)",
                         onClick = {
-                            onAddPattern("1234", BlockedPatternEntity.MATCH_STARTS_WITH, "Shortcode SMS")
+                            onAddPattern("1234", BlockedPatternEntity.MATCH_STARTS_WITH, shortcodeLabel)
                         }
                     )
                 }
@@ -260,7 +265,7 @@ fun BlockedPatternsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Test a Phone Number",
+                                text = stringResource(R.string.test_phone_number_title),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = TextPrimary
@@ -268,7 +273,7 @@ fun BlockedPatternsScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Check if a number would be ignored by your active pattern rules:",
+                            text = stringResource(R.string.test_phone_number_sub),
                             fontSize = 11.sp,
                             color = TextSecondary
                         )
@@ -308,7 +313,7 @@ fun BlockedPatternsScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                                 modifier = Modifier.testTag("btn_test_phone_number")
                             ) {
-                                Text("Test", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.test_btn), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -330,8 +335,11 @@ fun BlockedPatternsScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
+                                        val patternVal = testResult?.pattern.orEmpty()
+                                        val matchVal = testResult?.matchType.orEmpty()
+                                        val labelVal = testResult?.label.orEmpty().ifBlank { "-" }
                                         Text(
-                                            text = "BLOCKED by '${testResult?.pattern}' (${testResult?.matchType}) - ${testResult?.label.orEmpty().ifBlank { "No label" }}",
+                                            text = stringResource(R.string.number_blocked_verdict, patternVal, matchVal, labelVal),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = RemoveRed
@@ -354,7 +362,7 @@ fun BlockedPatternsScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "ALLOWED: Number will normally enter the Lead Queue.",
+                                            text = stringResource(R.string.number_allowed_verdict),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1B5E20)
@@ -375,7 +383,7 @@ fun BlockedPatternsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "CONFIGURED PATTERNS (${blockedPatterns.size})",
+                        text = stringResource(R.string.configured_patterns_count, blockedPatterns.size),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextSecondary,
@@ -417,14 +425,14 @@ fun BlockedPatternsScreen(
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "No Blocked Patterns Configured",
+                                text = stringResource(R.string.empty_patterns_title),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "All detected phone numbers currently enter your queue. Add prefixes, exact numbers, or contains rules to block unwanted leads.",
+                                text = stringResource(R.string.empty_patterns_desc),
                                 fontSize = 12.sp,
                                 color = TextSecondary,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -437,7 +445,7 @@ fun BlockedPatternsScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                                 modifier = Modifier.testTag("btn_empty_add_pattern")
                             ) {
-                                Text("Add Your First Pattern")
+                                Text(stringResource(R.string.add_first_pattern))
                             }
                         }
                     }
@@ -492,9 +500,9 @@ fun BlockedPatternCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Match Type Pill
                     val (badgeBg, badgeColor, badgeText) = when (item.matchType) {
-                        BlockedPatternEntity.MATCH_STARTS_WITH -> Triple(Color(0xFFE0F2FE), Color(0xFF0369A1), "STARTS WITH")
-                        BlockedPatternEntity.MATCH_CONTAINS -> Triple(Color(0xFFFEF3C7), Color(0xFFB45309), "CONTAINS")
-                        BlockedPatternEntity.MATCH_EXACT -> Triple(Color(0xFFF3E8FF), Color(0xFF7E22CE), "EXACT MATCH")
+                        BlockedPatternEntity.MATCH_STARTS_WITH -> Triple(Color(0xFFE0F2FE), Color(0xFF0369A1), stringResource(R.string.pattern_type_starts_with).uppercase())
+                        BlockedPatternEntity.MATCH_CONTAINS -> Triple(Color(0xFFFEF3C7), Color(0xFFB45309), stringResource(R.string.pattern_type_contains).uppercase())
+                        BlockedPatternEntity.MATCH_EXACT -> Triple(Color(0xFFF3E8FF), Color(0xFF7E22CE), stringResource(R.string.pattern_type_exact).uppercase())
                         BlockedPatternEntity.MATCH_REGEX -> Triple(Color(0xFFFFEDD5), Color(0xFFC2410C), "REGEX")
                         else -> Triple(Color(0xFFE2E8F0), Color(0xFF475569), item.matchType)
                     }
@@ -535,7 +543,7 @@ fun BlockedPatternCard(
                 )
 
                 Text(
-                    text = if (item.isEnabled) "Actively filtering leads" else "Rule paused",
+                    text = if (item.isEnabled) stringResource(R.string.rule_active_desc) else stringResource(R.string.rule_paused_desc),
                     fontSize = 11.sp,
                     color = if (item.isEnabled) StatusActiveGreen else TextMuted
                 )
@@ -561,7 +569,7 @@ fun BlockedPatternCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Pattern",
+                    contentDescription = stringResource(R.string.delete),
                     tint = RemoveRed,
                     modifier = Modifier.size(20.dp)
                 )
@@ -615,7 +623,7 @@ fun AddBlockedPatternDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Add Blocked Pattern",
+                text = stringResource(R.string.dialog_add_pattern_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
@@ -624,7 +632,7 @@ fun AddBlockedPatternDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Define a number pattern to automatically ignore and keep out of the lead queue.",
+                    text = stringResource(R.string.dialog_add_pattern_desc),
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
@@ -635,8 +643,8 @@ fun AddBlockedPatternDialog(
                         patternInput = it
                         errorMessage = null
                     },
-                    label = { Text("Pattern / Number") },
-                    placeholder = { Text("e.g. +96770, 0800, or 12345") },
+                    label = { Text(stringResource(R.string.pattern_input_label)) },
+                    placeholder = { Text(stringResource(R.string.dialog_pattern_hint)) },
                     singleLine = true,
                     isError = errorMessage != null,
                     shape = RoundedCornerShape(10.dp),
@@ -654,7 +662,7 @@ fun AddBlockedPatternDialog(
                 }
 
                 Text(
-                    text = "MATCH TYPE",
+                    text = stringResource(R.string.dialog_match_type),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
@@ -669,7 +677,7 @@ fun AddBlockedPatternDialog(
                     FilterChip(
                         selected = selectedMatchType == BlockedPatternEntity.MATCH_STARTS_WITH,
                         onClick = { selectedMatchType = BlockedPatternEntity.MATCH_STARTS_WITH },
-                        label = { Text("Starts with", fontSize = 11.sp) },
+                        label = { Text(stringResource(R.string.pattern_type_starts_with), fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = WhatsAppTeal,
                             selectedLabelColor = Color.White
@@ -678,7 +686,7 @@ fun AddBlockedPatternDialog(
                     FilterChip(
                         selected = selectedMatchType == BlockedPatternEntity.MATCH_CONTAINS,
                         onClick = { selectedMatchType = BlockedPatternEntity.MATCH_CONTAINS },
-                        label = { Text("Contains", fontSize = 11.sp) },
+                        label = { Text(stringResource(R.string.pattern_type_contains), fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = WhatsAppTeal,
                             selectedLabelColor = Color.White
@@ -687,7 +695,7 @@ fun AddBlockedPatternDialog(
                     FilterChip(
                         selected = selectedMatchType == BlockedPatternEntity.MATCH_EXACT,
                         onClick = { selectedMatchType = BlockedPatternEntity.MATCH_EXACT },
-                        label = { Text("Exact", fontSize = 11.sp) },
+                        label = { Text(stringResource(R.string.pattern_type_exact), fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = WhatsAppTeal,
                             selectedLabelColor = Color.White
@@ -697,9 +705,9 @@ fun AddBlockedPatternDialog(
 
                 // Helper explanation for selected type
                 val hint = when (selectedMatchType) {
-                    BlockedPatternEntity.MATCH_STARTS_WITH -> "Matches any number beginning with this sequence (e.g. +96770...)"
-                    BlockedPatternEntity.MATCH_CONTAINS -> "Matches any number having this sequence anywhere inside it"
-                    BlockedPatternEntity.MATCH_EXACT -> "Matches only when the phone number exactly equals this value"
+                    BlockedPatternEntity.MATCH_STARTS_WITH -> stringResource(R.string.hint_starts_with)
+                    BlockedPatternEntity.MATCH_CONTAINS -> stringResource(R.string.hint_contains)
+                    BlockedPatternEntity.MATCH_EXACT -> stringResource(R.string.hint_exact)
                     else -> ""
                 }
                 Text(text = hint, fontSize = 11.sp, color = TextMuted)
@@ -707,8 +715,8 @@ fun AddBlockedPatternDialog(
                 OutlinedTextField(
                     value = labelInput,
                     onValueChange = { labelInput = it },
-                    label = { Text("Label / Reason (Optional)") },
-                    placeholder = { Text("e.g. Internal Staff, Delivery, Spam") },
+                    label = { Text(stringResource(R.string.pattern_label_input)) },
+                    placeholder = { Text(stringResource(R.string.dialog_label_hint)) },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
@@ -718,10 +726,11 @@ fun AddBlockedPatternDialog(
             }
         },
         confirmButton = {
+            val emptyErrorMsg = stringResource(R.string.dialog_error_empty)
             Button(
                 onClick = {
                     if (patternInput.trim().isBlank()) {
-                        errorMessage = "Please enter a pattern or number"
+                        errorMessage = emptyErrorMsg
                     } else {
                         onConfirm(patternInput.trim(), selectedMatchType, labelInput.trim())
                     }
@@ -730,13 +739,14 @@ fun AddBlockedPatternDialog(
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("btn_confirm_add_pattern")
             ) {
-                Text("Save Rule")
+                Text(stringResource(R.string.dialog_save_rule))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextSecondary)
+                Text(stringResource(R.string.cancel), color = TextSecondary)
             }
         }
     )
 }
+

@@ -45,6 +45,9 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +58,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -129,13 +134,13 @@ fun SmartDuplicateDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Smart Duplicate Audit",
+                                text = stringResource(R.string.dialog_duplicate_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B)
                             )
                             Text(
-                                text = if (isScanning) "Auditing phone contacts..." else "${duplicates.size} conflicts detected",
+                                text = if (isScanning) stringResource(R.string.auditing_phone_contacts) else stringResource(R.string.conflicts_detected_count, duplicates.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -148,7 +153,7 @@ fun SmartDuplicateDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color(0xFF94A3B8)
                         )
                     }
@@ -183,7 +188,7 @@ fun SmartDuplicateDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Clean redundant queue items & merge phone contacts.",
+                                    text = stringResource(R.string.clean_redundant_banner),
                                     fontSize = 12.sp,
                                     color = Color(0xFF92400E)
                                 )
@@ -202,7 +207,7 @@ fun SmartDuplicateDialog(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Resolve All", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.resolve_all_btn), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -222,7 +227,7 @@ fun SmartDuplicateDialog(
                             CircularProgressIndicator(color = WhatsAppTeal)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Scanning contacts and queue...",
+                                text = stringResource(R.string.scanning_contacts_queue),
                                 fontSize = 13.sp,
                                 color = Color(0xFF64748B)
                             )
@@ -255,14 +260,14 @@ fun SmartDuplicateDialog(
                             }
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "No Duplicates Found!",
+                                text = stringResource(R.string.no_duplicates_title),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "All leads in your queue and device contacts are clean and unique.",
+                                text = stringResource(R.string.no_duplicates_subtitle),
                                 fontSize = 13.sp,
                                 color = Color(0xFF64748B),
                                 textAlign = TextAlign.Center
@@ -300,7 +305,7 @@ fun SmartDuplicateDialog(
                     border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Done", color = Color(0xFF475569))
+                    Text(stringResource(R.string.done), color = Color(0xFF475569))
                 }
             }
         }
@@ -335,19 +340,21 @@ private fun DuplicateCardItem(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = match.normalizedNumber,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF0F172A)
-                    )
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Text(
+                            text = match.normalizedNumber,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
                 }
 
                 val (badgeText, badgeBg, badgeTextColor) = when (match.type) {
-                    DuplicateType.IN_QUEUE_AND_CONTACTS -> Triple("Queue Conflict", Color(0xFFEFF6FF), Color(0xFF1D4ED8))
-                    DuplicateType.MULTIPLE_DEVICE_CONTACTS -> Triple("Multiple Contacts", Color(0xFFFEF2F2), Color(0xFFB91C1C))
-                    DuplicateType.FORMAT_VARIATION -> Triple("Format Variant", Color(0xFFF5F3FF), Color(0xFF6D28D9))
+                    DuplicateType.IN_QUEUE_AND_CONTACTS -> Triple(stringResource(R.string.queue_conflict_badge), Color(0xFFEFF6FF), Color(0xFF1D4ED8))
+                    DuplicateType.MULTIPLE_DEVICE_CONTACTS -> Triple(stringResource(R.string.multiple_contacts_badge), Color(0xFFFEF2F2), Color(0xFFB91C1C))
+                    DuplicateType.FORMAT_VARIATION -> Triple(stringResource(R.string.format_variant_badge), Color(0xFFF5F3FF), Color(0xFF6D28D9))
                 }
 
                 Surface(
@@ -375,7 +382,7 @@ private fun DuplicateCardItem(
 
             // Preferred Name Selection
             Text(
-                text = "CHOOSE MERGED NAME:",
+                text = stringResource(R.string.choose_merged_name_header),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF475569),
@@ -440,7 +447,7 @@ private fun DuplicateCardItem(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Merge & Standardize Contact",
+                    text = stringResource(R.string.merge_standardize_btn),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )

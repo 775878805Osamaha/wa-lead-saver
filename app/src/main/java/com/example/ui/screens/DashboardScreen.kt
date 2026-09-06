@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.data.datastore.AppSettings
 import com.example.ui.components.AnalyticsCard
 import com.example.ui.components.AutoSaveLeadsCard
@@ -136,7 +138,7 @@ fun DashboardScreen(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Simulate WhatsApp Lead Notification",
+                text = stringResource(R.string.simulate_whatsapp_lead_btn),
                 color = WhatsAppTeal,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
@@ -162,14 +164,14 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Notification Processing Rule",
+                        text = stringResource(R.string.notification_processing_rule_title),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = TextPrimary
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Phone numbers are extracted using strict deterministic regex from notification titles & text. If WhatsApp displays only a contact name or '2 new messages' without an exposed phone number, it is documented as 'Phone number unavailable' in History.",
+                        text = stringResource(R.string.notification_processing_rule_desc),
                         fontSize = 11.sp,
                         color = TextSecondary,
                         lineHeight = 15.sp

@@ -57,6 +57,8 @@ import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 import com.example.util.AnalyticsSummary
 import com.example.util.DailyStat
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import java.util.Locale
 
 @Composable
@@ -92,7 +94,7 @@ fun StatCardsRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "TOTAL SAVED",
+                        text = stringResource(R.string.total_saved),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextSecondary,
@@ -143,7 +145,7 @@ fun StatCardsRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Export CSV",
+                        text = stringResource(R.string.export_csv),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = WhatsAppTeal,
@@ -175,7 +177,7 @@ fun StatCardsRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "IN QUEUE",
+                        text = stringResource(R.string.in_queue),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextSecondary,
@@ -219,7 +221,7 @@ fun StatCardsRow(
                         .testTag("button_view_queue")
                 ) {
                     Text(
-                        text = "View All",
+                        text = stringResource(R.string.view_all),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = WhatsAppTeal,
@@ -285,14 +287,14 @@ fun AnalyticsCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Analytics & Insights",
+                        text = stringResource(R.string.analytics_title),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
                         maxLines = 1
                     )
                     Text(
-                        text = "Lead conversion & 7-day trend",
+                        text = stringResource(R.string.lead_conversion_7d_trend),
                         fontSize = 12.sp,
                         color = TextSecondary,
                         maxLines = 1,
@@ -310,7 +312,7 @@ fun AnalyticsCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Live Trends",
+                        text = stringResource(R.string.live_trends),
                         color = Color(0xFF2563EB),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -332,17 +334,17 @@ fun AnalyticsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatChip(
-                    title = "Conversion",
+                    title = stringResource(R.string.conversion_stat),
                     value = String.format(Locale.US, "%.0f%%", conversionRate),
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
-                    title = "Total Leads",
+                    title = stringResource(R.string.total_leads_stat),
                     value = "$totalCaptured",
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
-                    title = "Peak Time",
+                    title = stringResource(R.string.peak_time_stat),
                     value = peakHour.take(8),
                     modifier = Modifier.weight(1.1f)
                 )
@@ -363,7 +365,7 @@ fun AnalyticsCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Tap to view full analytics & charts",
+                    text = stringResource(R.string.tap_view_full_analytics),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = WhatsAppTeal
@@ -426,7 +428,7 @@ private fun MiniTrendChartPreview(dailyStats: List<DailyStat>) {
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "7-Day Activity Trend",
+            text = stringResource(R.string.seven_day_activity_trend),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = TextSecondary
@@ -514,14 +516,14 @@ fun SmartDuplicateAuditCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Smart Duplicate Audit",
+                        text = stringResource(R.string.smart_duplicate_audit),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
                         maxLines = 1
                     )
                     Text(
-                        text = "Scan contacts & merge redundant numbers",
+                        text = stringResource(R.string.smart_duplicate_audit_desc),
                         fontSize = 12.sp,
                         color = TextSecondary,
                         maxLines = 1,
@@ -540,7 +542,7 @@ fun SmartDuplicateAuditCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "$conflictCount found",
+                            text = "$conflictCount ${stringResource(R.string.duplicates_found)}",
                             color = Color(0xFFDC2626),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -556,7 +558,7 @@ fun SmartDuplicateAuditCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "No duplicates",
+                            text = stringResource(R.string.no_duplicates_detected),
                             color = Color(0xFF059669),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -576,7 +578,7 @@ fun SmartDuplicateAuditCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = if (conflictCount > 0) "Resolve conflicts to keep contacts clean" else "Contact list is verified and merged",
+                    text = if (conflictCount > 0) stringResource(R.string.resolve_conflicts_prompt) else stringResource(R.string.contact_list_clean),
                     fontSize = 12.sp,
                     color = TextSecondary,
                     modifier = Modifier.weight(1f),
@@ -604,7 +606,7 @@ fun SmartDuplicateAuditCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Scan Now",
+                        text = stringResource(R.string.scan_now),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -645,7 +647,7 @@ fun SaveExistingContactsCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.PersonSearch,
-                    contentDescription = "Save Existing Contacts",
+                    contentDescription = stringResource(R.string.save_existing_contacts_title),
                     tint = WhatsAppTeal,
                     modifier = Modifier.size(24.dp)
                 )
@@ -655,14 +657,14 @@ fun SaveExistingContactsCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Save Existing Contacts",
+                    text = stringResource(R.string.save_existing_contacts_title),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Scans chats and group members for unsaved numbers",
+                    text = stringResource(R.string.save_existing_contacts_desc),
                     fontSize = 12.sp,
                     color = TextSecondary,
                     lineHeight = 16.sp
@@ -710,7 +712,7 @@ fun ContactPrefixCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "CONTACT NAME PREFIX",
+                        text = stringResource(R.string.contact_name_prefix_title),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextSecondary,
@@ -718,7 +720,7 @@ fun ContactPrefixCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Default: $currentPrefix",
+                        text = stringResource(R.string.default_prefix_format, currentPrefix),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary
@@ -737,7 +739,7 @@ fun ContactPrefixCard(
                     modifier = Modifier.testTag("button_edit_prefix")
                 ) {
                     Text(
-                        text = if (isEditing) "Save" else "Edit",
+                        text = if (isEditing) stringResource(R.string.save) else stringResource(R.string.edit),
                         color = WhatsAppTeal,
                         fontWeight = FontWeight.Bold
                     )
@@ -749,7 +751,7 @@ fun ContactPrefixCard(
                 OutlinedTextField(
                     value = textValue,
                     onValueChange = { textValue = it },
-                    label = { Text("Contact Name Prefix") },
+                    label = { Text(stringResource(R.string.contact_name_prefix_title)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -768,7 +770,11 @@ fun ContactPrefixCard(
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "Example: ${if (isEditing) textValue else currentPrefix}-${countryCode}771234567",
+                    text = stringResource(
+                        R.string.prefix_example_pill,
+                        if (isEditing) textValue else currentPrefix,
+                        countryCode
+                    ),
                     fontSize = 12.sp,
                     color = TextSecondary,
                     fontWeight = FontWeight.Medium
@@ -800,14 +806,14 @@ fun AutoSaveLeadsCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Auto-Save Leads",
+                    text = stringResource(R.string.auto_save_leads_title),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Automatically save new leads to device contacts",
+                    text = stringResource(R.string.auto_save_leads_desc),
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
@@ -857,7 +863,7 @@ fun SnapAndSaveCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Snap & Save",
+                    contentDescription = stringResource(R.string.snap_and_save_title),
                     tint = WhatsAppGreen,
                     modifier = Modifier.size(24.dp)
                 )
@@ -868,7 +874,7 @@ fun SnapAndSaveCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Snap and Save",
+                        text = stringResource(R.string.snap_and_save_title),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -881,7 +887,7 @@ fun SnapAndSaveCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "CameraX",
+                            text = stringResource(R.string.camerax_badge),
                             color = WhatsAppTeal,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -891,7 +897,7 @@ fun SnapAndSaveCard(
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Scan cards, screens or documents to extract numbers",
+                    text = stringResource(R.string.snap_and_save_desc),
                     fontSize = 12.sp,
                     color = TextSecondary,
                     lineHeight = 16.sp

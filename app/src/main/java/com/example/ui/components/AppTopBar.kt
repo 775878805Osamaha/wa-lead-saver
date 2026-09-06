@@ -42,6 +42,9 @@ import com.example.ui.theme.DarkTealHeaderDarker
 import com.example.ui.theme.StatusActiveGreen
 import com.example.ui.theme.WhatsAppGreen
 
+import androidx.compose.ui.res.stringResource
+import com.example.R
+
 @Composable
 fun AppTopBar(
     isActive: Boolean,
@@ -75,7 +78,7 @@ fun AppTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.ContactPhone,
-                    contentDescription = "App Logo",
+                    contentDescription = stringResource(R.string.app_name),
                     tint = WhatsAppGreen,
                     modifier = Modifier.size(20.dp)
                 )
@@ -88,7 +91,7 @@ fun AppTopBar(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "WA Lead Saver",
+                    text = stringResource(R.string.app_name),
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
@@ -115,7 +118,7 @@ fun AppTopBar(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (isActive) "Active" else "Listener Disabled",
+                        text = if (isActive) stringResource(R.string.active) else stringResource(R.string.inactive),
                         color = if (isActive) Color(0xFF86EFAC) else Color(0xFFFCA5A5),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -137,7 +140,7 @@ fun AppTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Snap and Save",
+                        contentDescription = stringResource(R.string.top_bar_ocr_desc),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -151,7 +154,7 @@ fun AppTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
-                        contentDescription = "Export History",
+                        contentDescription = stringResource(R.string.top_bar_export_desc),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -165,7 +168,7 @@ fun AppTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
-                        contentDescription = "Open WhatsApp",
+                        contentDescription = stringResource(R.string.top_bar_wa_desc),
                         tint = WhatsAppGreen,
                         modifier = Modifier.size(20.dp)
                     )
@@ -179,7 +182,7 @@ fun AppTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
+                        contentDescription = stringResource(R.string.top_bar_settings_desc),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )

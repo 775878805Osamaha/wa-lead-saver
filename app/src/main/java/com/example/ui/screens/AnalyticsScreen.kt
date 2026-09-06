@@ -59,6 +59,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
+import java.util.Locale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -87,13 +90,13 @@ fun AnalyticsScreen(
             title = {
                 Column {
                     Text(
-                        text = "Analytics & Insights",
+                        text = stringResource(R.string.analytics_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A)
                     )
                     Text(
-                        text = "Real-time Lead Conversion & Trends",
+                        text = stringResource(R.string.analytics_screen_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF64748B)
                     )
@@ -103,7 +106,7 @@ fun AnalyticsScreen(
                 IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         tint = Color(0xFF1E293B)
                     )
                 }
@@ -112,7 +115,7 @@ fun AnalyticsScreen(
                 IconButton(onClick = onExportClick) {
                     Icon(
                         imageVector = Icons.Default.FileDownload,
-                        contentDescription = "Export Data",
+                        contentDescription = stringResource(R.string.dialog_export_title),
                         tint = WhatsAppTeal
                     )
                 }
@@ -168,18 +171,18 @@ private fun KpiGridSection(analytics: AnalyticsSummary) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KpiMetricCard(
-                title = "Total Captured",
+                title = stringResource(R.string.total_leads_stat),
                 value = "${analytics.totalLeadsCaptured}",
-                subtitle = "From all channels",
+                subtitle = stringResource(R.string.from_all_channels),
                 icon = Icons.Default.TrendingUp,
                 accentColor = Color(0xFF2563EB),
                 modifier = Modifier.weight(1f)
             )
 
             KpiMetricCard(
-                title = "Saved to Contacts",
+                title = stringResource(R.string.saved_to_contacts_kpi),
                 value = "${analytics.savedCount}",
-                subtitle = "${String.format("%.1f", analytics.conversionRate)}% conversion rate",
+                subtitle = stringResource(R.string.conversion_rate_format, String.format(Locale.US, "%.1f", analytics.conversionRate)),
                 icon = Icons.Default.CheckCircle,
                 accentColor = WhatsAppGreen,
                 modifier = Modifier.weight(1f)
@@ -191,18 +194,18 @@ private fun KpiGridSection(analytics: AnalyticsSummary) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KpiMetricCard(
-                title = "Queue Pending",
+                title = stringResource(R.string.queue_pending_kpi),
                 value = "${analytics.queuedCount}",
-                subtitle = "Awaiting review",
+                subtitle = stringResource(R.string.awaiting_review),
                 icon = Icons.Default.Inbox,
                 accentColor = Color(0xFFD97706),
                 modifier = Modifier.weight(1f)
             )
 
             KpiMetricCard(
-                title = "Blocked / Ignored",
+                title = stringResource(R.string.blocked_ignored_kpi),
                 value = "${analytics.blockedCount}",
-                subtitle = "Security filtered",
+                subtitle = stringResource(R.string.security_filtered),
                 icon = Icons.Default.FilterAlt,
                 accentColor = Color(0xFF7C3AED),
                 modifier = Modifier.weight(1f)
@@ -304,13 +307,13 @@ private fun ActivityTrendCard(dailyStats: List<DailyStat>) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "7-Day Activity Trend",
+                            text = stringResource(R.string.seven_day_activity_trend),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A)
                         )
                         Text(
-                            text = "Daily incoming lead volume",
+                            text = stringResource(R.string.daily_incoming_volume),
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
@@ -407,13 +410,13 @@ private fun PeakHoursCard(
             ) {
                 Column {
                     Text(
-                        text = "Lead Peak Hours",
+                        text = stringResource(R.string.lead_peak_hours),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A)
                     )
                     Text(
-                        text = "Optimal response time distribution",
+                        text = stringResource(R.string.optimal_response_distribution),
                         fontSize = 11.sp,
                         color = Color(0xFF64748B)
                     )
@@ -428,8 +431,12 @@ private fun PeakHoursCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "🔥 Peak: ", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                        Text(text = peakLabel, fontSize = 11.sp, color = Color(0xFFB45309))
+                        Text(
+                            text = stringResource(R.string.peak_badge, peakLabel),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFB45309)
+                        )
                     }
                 }
             }
@@ -471,14 +478,21 @@ private fun PeakHoursCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
+                                val localizedBucketTitle = when (bucket.title) {
+                                    "Morning" -> stringResource(R.string.bucket_morning)
+                                    "Afternoon" -> stringResource(R.string.bucket_afternoon)
+                                    "Evening" -> stringResource(R.string.bucket_evening)
+                                    "Night" -> stringResource(R.string.bucket_night)
+                                    else -> bucket.title
+                                }
                                 Text(
-                                    text = "${bucket.title} (${bucket.timeRange})",
+                                    text = "$localizedBucketTitle (${bucket.timeRange})",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF1E293B)
                                 )
                                 Text(
-                                    text = "${bucket.count} leads (${String.format("%.0f", bucket.percentage)}%)",
+                                    text = stringResource(R.string.leads_bucket_stat, bucket.count, String.format("%.0f", bucket.percentage)),
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B)
                                 )
@@ -536,13 +550,13 @@ private fun OperatorDistributionCard(operatorStats: List<OperatorStat>) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Operators & Geographic Reach",
+                            text = stringResource(R.string.operators_geo_reach),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A)
                         )
                         Text(
-                            text = "Detected networks & country prefixes",
+                            text = stringResource(R.string.detected_networks_prefixes),
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
@@ -554,7 +568,7 @@ private fun OperatorDistributionCard(operatorStats: List<OperatorStat>) {
 
             if (operatorStats.isEmpty()) {
                 Text(
-                    text = "No phone number records to classify yet.",
+                    text = stringResource(R.string.no_phone_records_classify),
                     fontSize = 12.sp,
                     color = Color(0xFF94A3B8),
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -593,7 +607,7 @@ private fun OperatorDistributionCard(operatorStats: List<OperatorStat>) {
                                         color = Color(0xFF1E293B)
                                     )
                                     Text(
-                                        text = "${stat.count} (${String.format("%.1f", stat.percentage)}%)",
+                                        text = "${stat.count} (${String.format(Locale.US, "%.1f", stat.percentage)}%)",
                                         fontSize = 11.sp,
                                         color = Color(0xFF64748B)
                                     )
@@ -628,13 +642,13 @@ private fun SourcesCard(analytics: AnalyticsSummary) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Capture Channels",
+                text = stringResource(R.string.capture_channels),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF0F172A)
             )
             Text(
-                text = "Where your leads originated",
+                text = stringResource(R.string.where_leads_originated),
                 fontSize = 11.sp,
                 color = Color(0xFF64748B)
             )
@@ -643,7 +657,7 @@ private fun SourcesCard(analytics: AnalyticsSummary) {
 
             if (analytics.sourceStats.isEmpty()) {
                 Text(
-                    text = "No channels recorded yet.",
+                    text = stringResource(R.string.no_channels_recorded),
                     fontSize = 12.sp,
                     color = Color(0xFF94A3B8)
                 )

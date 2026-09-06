@@ -74,6 +74,11 @@ import com.example.util.NotificationParseResult
 import com.example.util.PermissionHelper
 import com.example.util.PhoneNumberValidator
 
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.ui.res.stringResource
+import com.example.R
+import com.example.util.LocaleHelper
+
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
@@ -81,6 +86,8 @@ fun SettingsScreen(
     isNotificationListenerActive: Boolean,
     hasContactsPermission: Boolean,
     isBatteryOptimizationIgnored: Boolean,
+    currentLanguage: String = LocaleHelper.DEFAULT_LANGUAGE,
+    onLanguageChange: (String) -> Unit = {},
     onAutoSaveChange: (Boolean) -> Unit,
     onMonitorWhatsAppChange: (Boolean) -> Unit,
     onMonitorWhatsAppBusinessChange: (Boolean) -> Unit,
@@ -108,9 +115,115 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Section: Language / اللغة
+        Text(
+            text = stringResource(R.string.language_section_title),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 0.5.sp
+        )
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE8F5E9))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Translate,
+                            contentDescription = null,
+                            tint = WhatsAppGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (currentLanguage == LocaleHelper.LANGUAGE_ARABIC) "اللغة / Language" else "Language / اللغة",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = stringResource(R.string.language_section_desc),
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // English Option Button
+                    val isEnglish = currentLanguage == LocaleHelper.LANGUAGE_ENGLISH
+                    Button(
+                        onClick = { onLanguageChange(LocaleHelper.LANGUAGE_ENGLISH) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isEnglish) WhatsAppTeal else Color(0xFFF1F5F9),
+                            contentColor = if (isEnglish) Color.White else TextPrimary
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("btn_lang_english")
+                    ) {
+                        if (isEnglish) {
+                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = "English",
+                            fontWeight = if (isEnglish) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    // Arabic Option Button
+                    val isArabic = currentLanguage == LocaleHelper.LANGUAGE_ARABIC
+                    Button(
+                        onClick = { onLanguageChange(LocaleHelper.LANGUAGE_ARABIC) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isArabic) WhatsAppTeal else Color(0xFFF1F5F9),
+                            contentColor = if (isArabic) Color.White else TextPrimary
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("btn_lang_arabic")
+                    ) {
+                        if (isArabic) {
+                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = "العربية",
+                            fontWeight = if (isArabic) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+
         // Section: Core Lead Automation
         Text(
-            text = "AUTOMATION PREFERENCES",
+            text = stringResource(R.string.automation_preferences),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -126,8 +239,8 @@ fun SettingsScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 // Auto-Save Leads
                 SettingsSwitchRow(
-                    title = "Auto-Save Leads",
-                    subtitle = "Automatically save new numbers directly to Contacts",
+                    title = stringResource(R.string.auto_save_leads_title),
+                    subtitle = stringResource(R.string.auto_save_leads_desc),
                     checked = settings.autoSaveLeads,
                     onCheckedChange = onAutoSaveChange,
                     testTag = "settings_switch_autosave"
@@ -137,8 +250,8 @@ fun SettingsScreen(
 
                 // Monitor WhatsApp
                 SettingsSwitchRow(
-                    title = "Monitor WhatsApp",
-                    subtitle = "Capture incoming notifications from com.whatsapp",
+                    title = stringResource(R.string.monitor_whatsapp),
+                    subtitle = stringResource(R.string.monitor_whatsapp_desc),
                     checked = settings.monitorWhatsApp,
                     onCheckedChange = onMonitorWhatsAppChange,
                     testTag = "settings_switch_whatsapp"
@@ -148,8 +261,8 @@ fun SettingsScreen(
 
                 // Monitor WhatsApp Business
                 SettingsSwitchRow(
-                    title = "Monitor WhatsApp Business",
-                    subtitle = "Capture notifications from com.whatsapp.w4b",
+                    title = stringResource(R.string.monitor_whatsapp_business),
+                    subtitle = stringResource(R.string.monitor_whatsapp_business_desc),
                     checked = settings.monitorWhatsAppBusiness,
                     onCheckedChange = onMonitorWhatsAppBusinessChange,
                     testTag = "settings_switch_whatsapp_business"
@@ -159,7 +272,7 @@ fun SettingsScreen(
 
         // Section: Format & Normalization
         Text(
-            text = "NAMING & COUNTRY CODE",
+            text = stringResource(R.string.naming_and_country),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -175,13 +288,13 @@ fun SettingsScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 // Prefix
                 Text(
-                    text = "Contact Name Prefix",
+                    text = stringResource(R.string.contact_name_prefix),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = TextPrimary
                 )
                 Text(
-                    text = "Generates: [Prefix]-[Number] (e.g. WA-Lead-+967...)",
+                    text = stringResource(R.string.contact_name_prefix_sub),
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
@@ -203,7 +316,7 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                         modifier = Modifier.testTag("settings_save_prefix_btn")
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 }
 
@@ -211,13 +324,13 @@ fun SettingsScreen(
 
                 // Country Code
                 Text(
-                    text = "Country Code (Normalization)",
+                    text = stringResource(R.string.country_code),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = TextPrimary
                 )
                 Text(
-                    text = "Prepended to local numbers (e.g. 771234567 -> +967771234567)",
+                    text = stringResource(R.string.country_code_sub),
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
@@ -239,7 +352,7 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                         modifier = Modifier.testTag("settings_save_country_btn")
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 }
             }
@@ -247,7 +360,7 @@ fun SettingsScreen(
 
         // Section: Blocked / Ignored Patterns
         Text(
-            text = "LEAD FILTERING & SECURITY",
+            text = stringResource(R.string.lead_filtering_security),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -285,7 +398,7 @@ fun SettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Blocked Number Patterns",
+                                text = stringResource(R.string.blocked_number_patterns),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = TextPrimary
@@ -298,7 +411,7 @@ fun SettingsScreen(
                                     .padding(horizontal = 7.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "$activeBlockedCount Active",
+                                    text = stringResource(R.string.active_count, activeBlockedCount),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -307,7 +420,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Prevent unwanted prefixes, internal staff, or spam numbers from entering queue",
+                            text = stringResource(R.string.blocked_patterns_sub),
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -331,7 +444,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Manage Blocked Patterns ($activeBlockedCount active)",
+                        text = stringResource(R.string.manage_blocked_patterns, activeBlockedCount),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
@@ -341,7 +454,7 @@ fun SettingsScreen(
 
         // Section: Permissions & System Status
         Text(
-            text = "PERMISSIONS & SYSTEM STATUS",
+            text = stringResource(R.string.permissions_system_status),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -360,10 +473,10 @@ fun SettingsScreen(
             ) {
                 // Notification Access
                 PermissionStatusRow(
-                    title = "Notification Access",
-                    subtitle = "Required to detect unsaved WhatsApp incoming numbers",
+                    title = stringResource(R.string.notification_access),
+                    subtitle = stringResource(R.string.notification_access_sub),
                     isGranted = isNotificationListenerActive,
-                    actionText = "Open Settings",
+                    actionText = stringResource(R.string.open_settings),
                     onActionClick = {
                         context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
                     },
@@ -372,20 +485,20 @@ fun SettingsScreen(
 
                 // Contacts Permission
                 PermissionStatusRow(
-                    title = "Contacts Permission",
-                    subtitle = "Required to check duplicates and save contacts to Android",
+                    title = stringResource(R.string.contacts_permission),
+                    subtitle = stringResource(R.string.contacts_permission_sub),
                     isGranted = hasContactsPermission,
-                    actionText = if (hasContactsPermission) "Granted" else "Grant Access",
+                    actionText = if (hasContactsPermission) stringResource(R.string.granted) else stringResource(R.string.grant_access),
                     onActionClick = onRequestContactsPermission,
                     testTag = "btn_grant_contacts"
                 )
 
                 // Battery Optimization
                 PermissionStatusRow(
-                    title = "Battery Optimization",
-                    subtitle = "Ensure Android does not sleep the notification listener",
+                    title = stringResource(R.string.battery_optimization),
+                    subtitle = stringResource(R.string.battery_optimization_sub),
                     isGranted = isBatteryOptimizationIgnored,
-                    actionText = "Set Unrestricted",
+                    actionText = stringResource(R.string.set_unrestricted),
                     onActionClick = {
                         context.startActivity(PermissionHelper.getBatteryOptimizationSettingsIntent(context))
                     },
@@ -423,13 +536,13 @@ fun SettingsScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Samsung One UI Guide",
+                        text = stringResource(R.string.samsung_one_ui_guide),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
-                        text = "Prevent Samsung from killing background service",
+                        text = stringResource(R.string.samsung_guide_sub),
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -441,14 +554,14 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                     modifier = Modifier.testTag("button_open_samsung_guide")
                 ) {
-                    Text("View Guide", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.view_guide), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         // Section: Analytics & Tools
         Text(
-            text = "ANALYTICS & CONTACT TOOLS",
+            text = stringResource(R.string.analytics_contact_tools),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -487,13 +600,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Analytics Dashboard",
+                            text = stringResource(R.string.analytics_dashboard),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Conversion rate, 7-day activity & peak hours",
+                            text = stringResource(R.string.analytics_dashboard_sub),
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -503,7 +616,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("btn_settings_analytics")
                     ) {
-                        Text("View", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                        Text(stringResource(R.string.view), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
                     }
                 }
 
@@ -529,13 +642,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Smart Duplicate Audit",
+                            text = stringResource(R.string.smart_duplicate_audit),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Scan contacts & merge redundant numbers",
+                            text = stringResource(R.string.smart_duplicate_audit_desc),
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -545,7 +658,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("btn_settings_duplicates")
                     ) {
-                        Text("Scan", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                        Text(stringResource(R.string.scan), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
                     }
                 }
 
@@ -571,13 +684,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Export Lead Data",
+                            text = stringResource(R.string.export_lead_data),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Download vCard (.vcf) or Excel (.csv)",
+                            text = stringResource(R.string.export_lead_data_sub),
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -587,7 +700,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("btn_settings_export")
                     ) {
-                        Text("Export", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
+                        Text(stringResource(R.string.export), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = WhatsAppTeal)
                     }
                 }
             }
@@ -595,7 +708,7 @@ fun SettingsScreen(
 
         // Section: Test Notification Parser (Rule 12)
         Text(
-            text = "TEST NOTIFICATION PARSER",
+            text = stringResource(R.string.test_notification_parser),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = TextSecondary,
@@ -631,13 +744,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Notification Parser Sandbox",
+                            text = stringResource(R.string.test_notification_parser),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Simulate real WhatsApp notifications to verify strict extraction logic",
+                            text = stringResource(R.string.test_parser_sub),
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -649,7 +762,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = testTitleInput,
                     onValueChange = { testTitleInput = it },
-                    label = { Text("Notification Title (Sender / Group / Phone)") },
+                    label = { Text(stringResource(R.string.parser_title_label)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -661,7 +774,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = testTextInput,
                     onValueChange = { testTextInput = it },
-                    label = { Text("Notification Text (Message Body)") },
+                    label = { Text(stringResource(R.string.parser_text_label)) },
                     singleLine = false,
                     maxLines = 3,
                     modifier = Modifier
@@ -672,13 +785,6 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Quick test presets
-                Text(
-                    text = "Quick Presets:",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextMuted
-                )
-                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -691,7 +797,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Private", fontSize = 11.sp)
+                        Text(stringResource(R.string.sample_private), fontSize = 11.sp, maxLines = 1)
                     }
 
                     OutlinedButton(
@@ -702,7 +808,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Group Price", fontSize = 11.sp)
+                        Text(stringResource(R.string.sample_group_price), fontSize = 11.sp, maxLines = 1)
                     }
 
                     OutlinedButton(
@@ -713,7 +819,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Group Cue", fontSize = 11.sp)
+                        Text(stringResource(R.string.sample_group_cue), fontSize = 11.sp, maxLines = 1)
                     }
                 }
 
@@ -738,7 +844,7 @@ fun SettingsScreen(
                 ) {
                     Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Test Parser", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.run_parser_test), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
 
                 if (testParseResult != null) {
@@ -760,8 +866,10 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
+                                val acceptedStr = stringResource(R.string.verdict_accepted, res.confidence.toString())
+                                val rejectedStr = stringResource(R.string.verdict_rejected)
                                 Text(
-                                    text = if (res.isAccepted) "ACCEPTED (${res.confidence})" else "REJECTED",
+                                    text = if (res.isAccepted) acceptedStr else rejectedStr,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 14.sp,
                                     color = verdictColor
@@ -774,7 +882,7 @@ fun SettingsScreen(
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = "Source: ${res.sourceLabel}",
+                                        text = stringResource(R.string.parser_source_label, res.sourceLabel),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextPrimary
@@ -784,15 +892,17 @@ fun SettingsScreen(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
+                            val noneStr = stringResource(R.string.none_unavailable)
+                            val numberVal = if (res.candidateFound) res.normalizedNumber else noneStr
                             Text(
-                                text = "Detected Number: ${if (res.candidateFound) res.normalizedNumber else "None / Unavailable"}",
+                                text = stringResource(R.string.detected_number_label, numberVal),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
                             )
 
                             Text(
-                                text = "Confidence: ${res.confidence}",
+                                text = stringResource(R.string.confidence_level_label, res.confidence.toString()),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = if (res.confidence == ConfidenceLevel.HIGH) WhatsAppTeal else if (res.confidence == ConfidenceLevel.MEDIUM) Color(0xFFD97706) else Color(0xFFDC2626)
@@ -801,7 +911,7 @@ fun SettingsScreen(
                             if (res.rejectionReason.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Reason: ${res.rejectionReason}",
+                                    text = stringResource(R.string.rejection_reason_label, res.rejectionReason),
                                     fontSize = 12.sp,
                                     color = Color(0xFFB91C1C)
                                 )
@@ -810,7 +920,7 @@ fun SettingsScreen(
                             if (res.debugDetails.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "Details: ${res.debugDetails}",
+                                    text = stringResource(R.string.debug_details_label, res.debugDetails),
                                     fontSize = 11.sp,
                                     color = TextSecondary
                                 )

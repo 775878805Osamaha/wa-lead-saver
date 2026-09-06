@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,13 +114,13 @@ fun ExportOptionsDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Export Contacts",
+                                text = stringResource(R.string.export_contacts_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B)
                             )
                             Text(
-                                text = "Choose format & dataset",
+                                text = stringResource(R.string.export_contacts_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -131,7 +133,7 @@ fun ExportOptionsDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color(0xFF94A3B8)
                         )
                     }
@@ -141,7 +143,7 @@ fun ExportOptionsDialog(
 
                 // Section 1: Choose Format
                 Text(
-                    text = "FILE FORMAT",
+                    text = stringResource(R.string.file_format_header),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF64748B),
@@ -155,8 +157,8 @@ fun ExportOptionsDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     FormatSelectCard(
-                        title = "VCF (vCard)",
-                        subtitle = "Direct import to Phone & Google",
+                        title = stringResource(R.string.vcf_title),
+                        subtitle = stringResource(R.string.vcf_subtitle),
                         icon = Icons.Default.ContactPage,
                         accentColor = Color(0xFF10B981),
                         isSelected = selectedFormat == ExportFormat.VCF,
@@ -165,8 +167,8 @@ fun ExportOptionsDialog(
                     )
 
                     FormatSelectCard(
-                        title = "CSV (Excel)",
-                        subtitle = "Spreadsheets & CRM tables",
+                        title = stringResource(R.string.csv_title),
+                        subtitle = stringResource(R.string.csv_subtitle),
                         icon = Icons.Default.TableChart,
                         accentColor = Color(0xFF0284C7),
                         isSelected = selectedFormat == ExportFormat.CSV,
@@ -179,7 +181,7 @@ fun ExportOptionsDialog(
 
                 // Section 2: Choose Data Scope
                 Text(
-                    text = "SELECT DATASET",
+                    text = stringResource(R.string.select_dataset_header),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF64748B),
@@ -189,7 +191,7 @@ fun ExportOptionsDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ScopeOptionTile(
-                    title = "All Captured Contacts",
+                    title = stringResource(R.string.all_captured_contacts),
                     count = queueCount + historyCount,
                     isSelected = selectedScope == ExportScope.ALL,
                     onClick = { selectedScope = ExportScope.ALL }
@@ -198,7 +200,7 @@ fun ExportOptionsDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 ScopeOptionTile(
-                    title = "Pending Queue Leads",
+                    title = stringResource(R.string.pending_queue_leads),
                     count = queueCount,
                     isSelected = selectedScope == ExportScope.QUEUE,
                     onClick = { selectedScope = ExportScope.QUEUE }
@@ -207,7 +209,7 @@ fun ExportOptionsDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 ScopeOptionTile(
-                    title = "Saved & Processed History",
+                    title = stringResource(R.string.saved_processed_history),
                     count = historyCount,
                     isSelected = selectedScope == ExportScope.HISTORY,
                     onClick = { selectedScope = ExportScope.HISTORY }
@@ -226,7 +228,7 @@ fun ExportOptionsDialog(
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
-                        Text("Cancel", color = Color(0xFF475569))
+                        Text(stringResource(R.string.cancel), color = Color(0xFF475569))
                     }
 
                     Button(
@@ -247,7 +249,7 @@ fun ExportOptionsDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (selectedFormat == ExportFormat.VCF) "Export VCF" else "Export CSV",
+                            text = if (selectedFormat == ExportFormat.VCF) stringResource(R.string.export_vcf_btn) else stringResource(R.string.export_csv_btn),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -373,7 +375,7 @@ private fun ScopeOptionTile(
                 color = if (isSelected) WhatsAppGreen.copy(alpha = 0.2f) else Color(0xFFE2E8F0)
             ) {
                 Text(
-                    text = "$count leads",
+                    text = stringResource(R.string.leads_count_pill, count),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isSelected) Color(0xFF065F46) else Color(0xFF64748B),

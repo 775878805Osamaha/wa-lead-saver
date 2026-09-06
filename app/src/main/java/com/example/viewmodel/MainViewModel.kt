@@ -61,6 +61,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val activeBlockedCount: StateFlow<Int> = repository.activeBlockedCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val appLanguage: StateFlow<String> = com.example.util.LocaleHelper.getLanguageFlow(context)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, com.example.util.LocaleHelper.DEFAULT_LANGUAGE)
+
     private val _isNotificationListenerActive = MutableStateFlow(false)
     val isNotificationListenerActive: StateFlow<Boolean> = _isNotificationListenerActive.asStateFlow()
 
@@ -180,6 +183,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setCountryCode(countryCode: String) {
         viewModelScope.launch {
             repository.setCountryCode(countryCode)
+        }
+    }
+
+    fun setLanguage(languageCode: String) {
+        viewModelScope.launch {
+            com.example.util.LocaleHelper.setLanguage(context, languageCode)
         }
     }
 

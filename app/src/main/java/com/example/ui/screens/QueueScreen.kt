@@ -53,6 +53,9 @@ import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 
+import androidx.compose.ui.res.stringResource
+import com.example.R
+
 @Composable
 fun QueueScreen(
     queuedLeads: List<LeadEntity>,
@@ -91,7 +94,7 @@ fun QueueScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Inbox,
-                            contentDescription = "Empty Queue",
+                            contentDescription = stringResource(R.string.empty_queue_title),
                             tint = WhatsAppTeal,
                             modifier = Modifier.size(36.dp)
                         )
@@ -100,7 +103,7 @@ fun QueueScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Queue is Empty",
+                        text = stringResource(R.string.empty_queue_title),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -109,7 +112,7 @@ fun QueueScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "New unsaved numbers detected from WhatsApp notifications or photo scans will appear here.",
+                        text = stringResource(R.string.empty_queue_desc),
                         fontSize = 14.sp,
                         color = TextSecondary,
                         textAlign = TextAlign.Center,
@@ -175,7 +178,7 @@ fun QueueScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Save All (${queuedLeads.size})",
+                            text = stringResource(R.string.save_all_queued, queuedLeads.size),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -202,7 +205,7 @@ fun QueueScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Clear All",
+                            text = stringResource(R.string.clear_all),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = RemoveRed

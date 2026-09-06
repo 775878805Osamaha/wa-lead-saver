@@ -69,6 +69,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -107,7 +109,7 @@ fun CameraScannerView(
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(context, "Camera permission is required to scan numbers", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -158,7 +160,7 @@ private fun CameraPermissionPrompt(
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Camera Permission",
+                    contentDescription = stringResource(R.string.camera_permission_needed_title),
                     tint = WhatsAppGreen,
                     modifier = Modifier.size(40.dp)
                 )
@@ -167,7 +169,7 @@ private fun CameraPermissionPrompt(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Camera Permission Needed",
+                text = stringResource(R.string.camera_permission_needed_title),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -177,7 +179,7 @@ private fun CameraPermissionPrompt(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "To scan and extract phone numbers from documents, business cards, or screens using CameraX, please grant camera access.",
+                text = stringResource(R.string.camera_permission_desc),
                 fontSize = 14.sp,
                 color = Color(0xFFB0BEC5),
                 textAlign = TextAlign.Center,
@@ -201,7 +203,7 @@ private fun CameraPermissionPrompt(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Allow Camera Access", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.allow_camera_access), fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -222,7 +224,7 @@ private fun CameraPermissionPrompt(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Choose from Gallery Instead", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.choose_from_gallery_instead), fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -231,7 +233,7 @@ private fun CameraPermissionPrompt(
                 onClick = onClose,
                 modifier = Modifier.testTag("button_permission_cancel")
             ) {
-                Text("Cancel", color = Color(0xFF90A4AE))
+                Text(stringResource(R.string.cancel), color = Color(0xFF90A4AE))
             }
         }
     }
@@ -364,7 +366,7 @@ private fun CameraXLivePreview(
                     color = Color(0x99000000)
                 ) {
                     Text(
-                        text = "Align numbers or business card inside frame",
+                        text = stringResource(R.string.align_numbers_frame),
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -393,13 +395,14 @@ private fun CameraXLivePreview(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close Camera",
+                    contentDescription = stringResource(R.string.close_camera),
                     tint = Color.White
                 )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Torch toggle
+                val flashUnavailableMsg = stringResource(R.string.flashlight_unavailable)
                 IconButton(
                     onClick = {
                         val hasFlash = camera?.cameraInfo?.hasFlashUnit() ?: false
@@ -408,7 +411,7 @@ private fun CameraXLivePreview(
                             camera?.cameraControl?.enableTorch(target)
                             isTorchOn = target
                         } else {
-                            Toast.makeText(context, "Flashlight unavailable", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, flashUnavailableMsg, Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
@@ -419,7 +422,7 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = "Toggle Torch",
+                        contentDescription = stringResource(R.string.toggle_torch),
                         tint = if (isTorchOn) Color.Black else Color.White
                     )
                 }
@@ -442,7 +445,7 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "Switch Camera",
+                        contentDescription = stringResource(R.string.switch_camera),
                         tint = Color.White
                     )
                 }
@@ -489,7 +492,7 @@ private fun CameraXLivePreview(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Scan Sample Card Numbers (6)",
+                        text = stringResource(R.string.scan_sample_card_numbers),
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -514,7 +517,7 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Image,
-                        contentDescription = "Pick from Gallery",
+                        contentDescription = stringResource(R.string.pick_from_gallery),
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
@@ -592,7 +595,7 @@ private fun CameraXLivePreview(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Snap Photo",
+                                contentDescription = stringResource(R.string.snap_photo),
                                 tint = Color.White,
                                 modifier = Modifier.size(32.dp)
                             )

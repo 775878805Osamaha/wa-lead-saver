@@ -30,6 +30,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,8 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppTeal
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,7 +79,7 @@ fun HistoryScreen(
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Text(
-                text = "Activity Log (${historyList.size})",
+                text = stringResource(R.string.activity_log_count, historyList.size),
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
@@ -86,7 +91,7 @@ fun HistoryScreen(
                         onClick = onClearHistory,
                         modifier = Modifier.testTag("button_clear_history_log")
                     ) {
-                        Text("Clear", color = RemoveRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.clear_action), color = RemoveRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -102,7 +107,7 @@ fun HistoryScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Export CSV", fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.export_csv), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 }
             }
         }
@@ -128,7 +133,7 @@ fun HistoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
-                            contentDescription = "Empty History",
+                            contentDescription = stringResource(R.string.empty_history_title),
                             tint = WhatsAppTeal,
                             modifier = Modifier.size(32.dp)
                         )
@@ -137,7 +142,7 @@ fun HistoryScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "No Activity Recorded",
+                        text = stringResource(R.string.no_activity_title),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -146,7 +151,7 @@ fun HistoryScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Detected WhatsApp leads, auto-saves, and scanning events will be logged here.",
+                        text = stringResource(R.string.no_activity_desc),
                         fontSize = 13.sp,
                         color = TextSecondary,
                         textAlign = TextAlign.Center
@@ -192,15 +197,17 @@ fun HistoryItemCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = item.phoneNumber,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f, fill = false),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Text(
+                        text = item.phoneNumber,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f, fill = false),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -222,7 +229,7 @@ fun HistoryItemCard(
             }
 
             Text(
-                text = "Source: ${item.source} • $dateStr",
+                text = stringResource(R.string.history_source_label, item.source, dateStr),
                 fontSize = 12.sp,
                 color = TextSecondary,
                 maxLines = 1,
@@ -245,15 +252,29 @@ fun HistoryItemCard(
 
 @Composable
 fun StatusBadge(status: String) {
-    val (bg, textColor) = when (status) {
-        "Saved" -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
-        "Duplicate" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
-        "NEW LEAD", "Queued" -> Color(0xFFE0F2FE) to Color(0xFF0369A1)
-        "Verify number" -> Color(0xFFFEF3C7) to Color(0xFFD97706)
-        "Removed" -> RemoveRedLight to RemoveRed
-        "Failed", "Rejected invalid phone candidate", "Rejected low-confidence candidate" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
-        "Phone number unavailable" -> Color(0xFFF3E8FF) to Color(0xFF7E22CE)
+    val (bg, textColor) = when {
+        status.equals("Saved", ignoreCase = true) -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
+        status.equals("Duplicate", ignoreCase = true) -> Color(0xFFFFF3E0) to Color(0xFFE65100)
+        status.equals("NEW LEAD", ignoreCase = true) || status.equals("Queued", ignoreCase = true) -> Color(0xFFE0F2FE) to Color(0xFF0369A1)
+        status.contains("Verify", ignoreCase = true) -> Color(0xFFFEF3C7) to Color(0xFFD97706)
+        status.equals("Removed", ignoreCase = true) -> RemoveRedLight to RemoveRed
+        status.contains("Failed", ignoreCase = true) || status.contains("Rejected", ignoreCase = true) -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+        status.contains("unavailable", ignoreCase = true) -> Color(0xFFF3E8FF) to Color(0xFF7E22CE)
         else -> Color(0xFFF3F4F6) to Color(0xFF374151)
+    }
+
+    val displayStatus = when {
+        status.equals("Saved", ignoreCase = true) -> stringResource(R.string.status_saved)
+        status.equals("Duplicate", ignoreCase = true) -> stringResource(R.string.status_duplicate)
+        status.equals("Queued", ignoreCase = true) -> stringResource(R.string.status_queued)
+        status.equals("NEW LEAD", ignoreCase = true) -> stringResource(R.string.status_new_lead)
+        status.contains("Verify", ignoreCase = true) -> stringResource(R.string.verify_number)
+        status.equals("Removed", ignoreCase = true) -> stringResource(R.string.status_removed)
+        status.equals("Failed", ignoreCase = true) -> stringResource(R.string.status_failed)
+        status.contains("invalid", ignoreCase = true) -> stringResource(R.string.status_rejected_invalid)
+        status.contains("low-confidence", ignoreCase = true) -> stringResource(R.string.status_rejected_low_conf)
+        status.contains("unavailable", ignoreCase = true) -> stringResource(R.string.phone_number_unavailable)
+        else -> status
     }
 
     Box(
@@ -263,7 +284,7 @@ fun StatusBadge(status: String) {
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
-            text = status,
+            text = displayStatus,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,

@@ -38,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,13 +81,13 @@ fun SaveExistingContactsDialog(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Save Existing Contacts",
+                        text = stringResource(R.string.save_existing_contacts_header),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
-                        text = "Scan chats & group members",
+                        text = stringResource(R.string.scan_chats_group_subtitle),
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -114,7 +116,7 @@ fun SaveExistingContactsDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Privacy Compliant: We never decrypt or access WhatsApp's private database. Scanning processes shared chat exports or group participants deterministically on your device.",
+                            text = stringResource(R.string.privacy_compliant_notice),
                             fontSize = 11.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -150,7 +152,7 @@ fun SaveExistingContactsDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scan Sample Group Export", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.scan_sample_group_btn), fontWeight = FontWeight.Bold)
                     }
 
                     // Option 2: Paste chat or participants
@@ -169,14 +171,14 @@ fun SaveExistingContactsDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Paste Chat / Members Text", color = WhatsAppTeal, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.paste_chat_members_btn), color = WhatsAppTeal, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     OutlinedTextField(
                         value = textInput,
                         onValueChange = { textInput = it },
-                        label = { Text("Paste Chat / Participant List") },
-                        placeholder = { Text("Paste exported WhatsApp chat (.txt) or member numbers...") },
+                        label = { Text(stringResource(R.string.paste_chat_label)) },
+                        placeholder = { Text(stringResource(R.string.paste_chat_placeholder)) },
                         maxLines = 5,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -197,14 +199,14 @@ fun SaveExistingContactsDialog(
                             .height(46.dp)
                             .testTag("button_process_pasted_text")
                     ) {
-                        Text("Extract Unsaved Numbers", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.extract_unsaved_numbers_btn), fontWeight = FontWeight.Bold)
                     }
 
                     TextButton(
                         onClick = { showCustomInput = false },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("Back to options", color = TextSecondary, fontSize = 13.sp)
+                        Text(stringResource(R.string.back_to_options), color = TextSecondary, fontSize = 13.sp)
                     }
                 }
             }
@@ -215,7 +217,7 @@ fun SaveExistingContactsDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_close_group_dialog")
             ) {
-                Text("Close", color = TextSecondary)
+                Text(stringResource(R.string.close), color = TextSecondary)
             }
         }
     )

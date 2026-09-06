@@ -19,9 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.WhatsAppTeal
 
@@ -39,7 +41,7 @@ fun EditNameDialog(
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = "Edit Contact Name",
+                text = stringResource(R.string.dialog_edit_name_title),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = TextPrimary
@@ -47,8 +49,9 @@ fun EditNameDialog(
         },
         text = {
             Column {
+                val ltrPhoneNumber = "\u202A$phoneNumber\u202C"
                 Text(
-                    text = "Number: $phoneNumber",
+                    text = stringResource(R.string.dialog_edit_name_number_label, ltrPhoneNumber),
                     fontSize = 13.sp,
                     color = Color.Gray
                 )
@@ -56,7 +59,7 @@ fun EditNameDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Contact Name") },
+                    label = { Text(stringResource(R.string.dialog_edit_name_input_label)) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -76,7 +79,7 @@ fun EditNameDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                 modifier = Modifier.testTag("dialog_edit_name_save_button")
             ) {
-                Text("Save", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.save), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -84,7 +87,7 @@ fun EditNameDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("dialog_edit_name_cancel_button")
             ) {
-                Text("Cancel", color = Color.Gray)
+                Text(stringResource(R.string.cancel), color = Color.Gray)
             }
         }
     )

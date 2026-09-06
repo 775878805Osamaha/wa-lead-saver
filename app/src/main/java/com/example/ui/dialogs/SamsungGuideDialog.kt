@@ -33,9 +33,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -73,13 +75,13 @@ fun SamsungGuideDialog(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Samsung One UI Guide",
+                        text = stringResource(R.string.samsung_guide_title),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
-                        text = "Keep background detection alive",
+                        text = stringResource(R.string.samsung_guide_subtitle),
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -92,7 +94,7 @@ fun SamsungGuideDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Samsung devices apply strict battery saving rules to background services. To ensure WA Lead Saver captures notifications continuously:",
+                    text = stringResource(R.string.samsung_guide_intro),
                     fontSize = 13.sp,
                     color = TextSecondary,
                     lineHeight = 18.sp
@@ -101,22 +103,22 @@ fun SamsungGuideDialog(
                 // Step 1
                 GuideStepItem(
                     stepNumber = "1",
-                    title = "Set Battery to Unrestricted",
-                    instruction = "Settings → Apps → WA Lead Saver → Battery → Choose 'Unrestricted'"
+                    title = stringResource(R.string.samsung_step1_title),
+                    instruction = stringResource(R.string.samsung_step1_instruction)
                 )
 
                 // Step 2
                 GuideStepItem(
                     stepNumber = "2",
-                    title = "Avoid Deep Sleeping Apps",
-                    instruction = "Settings → Battery → Background usage limits → Ensure WA Lead Saver is NEVER in 'Deep sleeping apps' list."
+                    title = stringResource(R.string.samsung_step2_title),
+                    instruction = stringResource(R.string.samsung_step2_instruction)
                 )
 
                 // Step 3
                 GuideStepItem(
                     stepNumber = "3",
-                    title = "Automatic Self-Healing",
-                    instruction = "The app's NotificationListenerService automatically reconnects whenever the Android OS restarts or wakes up."
+                    title = stringResource(R.string.samsung_step3_title),
+                    instruction = stringResource(R.string.samsung_step3_instruction)
                 )
             }
         },
@@ -137,7 +139,7 @@ fun SamsungGuideDialog(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Open App Settings", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.open_app_settings), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -145,7 +147,7 @@ fun SamsungGuideDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_dismiss_samsung_guide")
             ) {
-                Text("Got it", color = TextSecondary)
+                Text(stringResource(R.string.got_it), color = TextSecondary)
             }
         }
     )

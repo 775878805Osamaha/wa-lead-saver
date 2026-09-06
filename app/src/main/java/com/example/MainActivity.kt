@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,10 +104,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            WALeadSaverTheme {
-                val viewModel: MainViewModel = viewModel()
-                mainViewModel = viewModel
+            val viewModel: MainViewModel = viewModel()
+            mainViewModel = viewModel
+            val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
 
+            WALeadSaverTheme(languageCode = appLanguage) {
                 // Listen to lifecycle events to refresh statuses when returning from Android Settings
                 val lifecycleOwner = LocalLifecycleOwner.current
                 DisposableEffect(lifecycleOwner) {
@@ -163,6 +165,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle()
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle()
+    val currentLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
 
     // Permission launcher for Contacts
     val contactsPermissionLauncher = rememberLauncherForActivityResult(
@@ -172,11 +175,11 @@ fun MainScreen(viewModel: MainViewModel) {
         val allGranted = permissions.values.all { it }
         if (allGranted) {
             scope.launch {
-                snackbarHostState.showSnackbar("Contacts permissions granted")
+                snackbarHostState.showSnackbar(context.getString(R.string.contacts_permission_granted))
             }
         } else {
             scope.launch {
-                snackbarHostState.showSnackbar("Contacts permission is required to save leads")
+                snackbarHostState.showSnackbar(context.getString(R.string.contacts_permission_required))
             }
         }
     }
@@ -217,10 +220,10 @@ fun MainScreen(viewModel: MainViewModel) {
                         try {
                             context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
                         } catch (_: Exception) {
-                            Toast.makeText(context, "Please enable Notification Access in Settings", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, context.getString(R.string.enable_notification_access_prompt), Toast.LENGTH_LONG).show()
                         }
                     } else {
-                        Toast.makeText(context, "WA Lead Saver Notification Listener is Active", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.notification_listener_active_toast), Toast.LENGTH_SHORT).show()
                     }
                 },
                 onCameraClick = {
@@ -252,9 +255,9 @@ fun MainScreen(viewModel: MainViewModel) {
                         isViewingBlockedPatterns = false
                     },
                     icon = {
-                        Icon(imageVector = Icons.Default.Dashboard, contentDescription = "Dashboard")
+                        Icon(imageVector = Icons.Default.Dashboard, contentDescription = stringResource(R.string.tab_dashboard))
                     },
-                    label = { Text("Dashboard", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.DASHBOARD) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
+                    label = { Text(stringResource(R.string.tab_dashboard), fontSize = 11.sp, fontWeight = if (currentTab == AppTab.DASHBOARD) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
@@ -285,10 +288,10 @@ fun MainScreen(viewModel: MainViewModel) {
                                 }
                             }
                         ) {
-                            Icon(imageVector = Icons.Default.Inbox, contentDescription = "Queue")
+                            Icon(imageVector = Icons.Default.Inbox, contentDescription = stringResource(R.string.tab_queue))
                         }
                     },
-                    label = { Text("Queue", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.QUEUE) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
+                    label = { Text(stringResource(R.string.tab_queue), fontSize = 11.sp, fontWeight = if (currentTab == AppTab.QUEUE) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
@@ -307,9 +310,9 @@ fun MainScreen(viewModel: MainViewModel) {
                         isViewingBlockedPatterns = false
                     },
                     icon = {
-                        Icon(imageVector = Icons.Default.History, contentDescription = "History")
+                        Icon(imageVector = Icons.Default.History, contentDescription = stringResource(R.string.tab_history))
                     },
-                    label = { Text("History", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.HISTORY) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
+                    label = { Text(stringResource(R.string.tab_history), fontSize = 11.sp, fontWeight = if (currentTab == AppTab.HISTORY) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
@@ -328,9 +331,9 @@ fun MainScreen(viewModel: MainViewModel) {
                         isViewingBlockedPatterns = false
                     },
                     icon = {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = stringResource(R.string.tab_settings))
                     },
-                    label = { Text("Settings", fontSize = 11.sp, fontWeight = if (currentTab == AppTab.SETTINGS) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
+                    label = { Text(stringResource(R.string.tab_settings), fontSize = 11.sp, fontWeight = if (currentTab == AppTab.SETTINGS) FontWeight.Bold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppTeal,
                         selectedTextColor = WhatsAppTeal,
@@ -498,6 +501,10 @@ fun MainScreen(viewModel: MainViewModel) {
                                     isNotificationListenerActive = isListenerActive,
                                     hasContactsPermission = hasContactsPermission,
                                     isBatteryOptimizationIgnored = isBatteryIgnored,
+                                    currentLanguage = currentLanguage,
+                                    onLanguageChange = { newLang ->
+                                        viewModel.setLanguage(newLang)
+                                    },
                                     onAutoSaveChange = { viewModel.setAutoSave(it) },
                                     onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
                                     onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },

@@ -45,6 +45,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +58,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,7 +135,7 @@ fun PhotoScanDialog(
         title = {
             Column {
                 Text(
-                    text = if (scannedNumbers.isEmpty()) "Snap and Save" else "Numbers Found (${scannedNumbers.size})",
+                    text = if (scannedNumbers.isEmpty()) stringResource(R.string.snap_and_save_dialog_title) else stringResource(R.string.numbers_found_title, scannedNumbers.size),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -138,9 +143,9 @@ fun PhotoScanDialog(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (scannedNumbers.isEmpty()) {
-                        "Capture or upload a photo of numbers — phone numbers, account numbers, anything — and pick what to keep."
+                        stringResource(R.string.snap_save_desc_initial)
                     } else {
-                        "Select the numbers you want to add to your Lead Queue:"
+                        stringResource(R.string.snap_save_desc_found)
                     },
                     fontSize = 13.sp,
                     color = TextSecondary,
@@ -160,7 +165,7 @@ fun PhotoScanDialog(
                         CircularProgressIndicator(color = WhatsAppTeal)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Extracting numbers locally...",
+                            text = stringResource(R.string.extracting_numbers_locally),
                             fontSize = 14.sp,
                             color = TextSecondary
                         )
@@ -190,7 +195,7 @@ fun PhotoScanDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scan with Camera (CameraX)", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.scan_with_camerax), fontWeight = FontWeight.Bold)
                     }
 
                     // Choose from Gallery Button
@@ -217,7 +222,7 @@ fun PhotoScanDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Choose from Gallery", color = WhatsAppTeal, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.choose_from_gallery), color = WhatsAppTeal, fontWeight = FontWeight.Bold)
                     }
 
                     // Quick Sample Numbers button (as in user prompt)
@@ -251,7 +256,7 @@ fun PhotoScanDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Try Sample Card Numbers (6)", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.try_sample_card_numbers), fontWeight = FontWeight.Bold)
                     }
 
                     // Paste / Enter text toggle
@@ -267,7 +272,7 @@ fun PhotoScanDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (showTextInput) "Hide text paste" else "Or paste text / numbers",
+                            text = if (showTextInput) stringResource(R.string.hide_text_paste) else stringResource(R.string.or_paste_text_numbers),
                             color = TextSecondary,
                             fontSize = 13.sp
                         )
@@ -277,7 +282,7 @@ fun PhotoScanDialog(
                         OutlinedTextField(
                             value = manualText,
                             onValueChange = { manualText = it },
-                            placeholder = { Text("Paste numbers or chat text here...") },
+                            placeholder = { Text(stringResource(R.string.paste_numbers_placeholder)) },
                             maxLines = 4,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -295,7 +300,7 @@ fun PhotoScanDialog(
                             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Extract Numbers", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.extract_numbers_btn), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -315,7 +320,7 @@ fun PhotoScanDialog(
                             modifier = Modifier.testTag("button_select_all_scanned")
                         ) {
                             Text(
-                                text = if (allSelected) "Deselect All" else "Select All",
+                                text = if (allSelected) stringResource(R.string.deselect_all) else stringResource(R.string.select_all),
                                 color = WhatsAppTeal,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp
@@ -324,7 +329,7 @@ fun PhotoScanDialog(
 
                         val selectedCount = scannedNumbers.count { it.isSelected }
                         Text(
-                            text = "$selectedCount selected",
+                            text = stringResource(R.string.selected_count_format, selectedCount),
                             fontSize = 12.sp,
                             color = TextMuted,
                             fontWeight = FontWeight.Medium
@@ -344,7 +349,7 @@ fun PhotoScanDialog(
                                 onCopy = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Phone Number", item.phoneNumber))
-                                    Toast.makeText(context, "Copied: ${item.phoneNumber}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.copied_toast, item.phoneNumber), Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -362,7 +367,7 @@ fun PhotoScanDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                     modifier = Modifier.testTag("button_add_selected_to_queue")
                 ) {
-                    Text("Add to Queue ($selectedCount)", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.add_to_queue_count, selectedCount), fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -372,7 +377,7 @@ fun PhotoScanDialog(
                 modifier = Modifier.testTag("button_dismiss_scan_dialog")
             ) {
                 Text(
-                    text = if (scannedNumbers.isEmpty()) "Cancel" else "Back",
+                    text = if (scannedNumbers.isEmpty()) stringResource(R.string.cancel) else stringResource(R.string.back),
                     color = TextSecondary
                 )
             }
@@ -445,16 +450,18 @@ fun ScannedNumberRow(
                     .weight(1f)
                     .padding(horizontal = 4.dp)
             ) {
-                Text(
-                    text = item.phoneNumber,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Text(
+                        text = item.phoneNumber,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
 
                 if (item.alreadyInContacts) {
                     Text(
-                        text = "Already in Contacts",
+                        text = stringResource(R.string.already_in_contacts),
                         fontSize = 11.sp,
                         color = Color(0xFFE65100),
                         fontWeight = FontWeight.Medium
@@ -468,7 +475,7 @@ fun ScannedNumberRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy number",
+                    contentDescription = stringResource(R.string.copy_phone_number),
                     tint = TextSecondary,
                     modifier = Modifier.size(17.dp)
                 )

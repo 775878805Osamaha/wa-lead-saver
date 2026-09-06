@@ -27,6 +27,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,9 @@ import com.example.ui.theme.WhatsAppTeal
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import androidx.compose.ui.res.stringResource
+import com.example.R
 
 @Composable
 fun LeadCard(
@@ -100,8 +106,15 @@ fun LeadCard(
                         .background(badgeBg)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
+                    val statusDisplay = when {
+                        lead.status.equals("NEW_LEAD", ignoreCase = true) || lead.status.equals("NEW", ignoreCase = true) -> stringResource(R.string.status_new_lead)
+                        lead.status.equals("SAVED", ignoreCase = true) -> stringResource(R.string.status_saved)
+                        lead.status.equals("AUTO_SAVED", ignoreCase = true) -> stringResource(R.string.status_auto_saved)
+                        lead.status.contains("VERIFY", ignoreCase = true) -> stringResource(R.string.status_needs_verification)
+                        else -> lead.status
+                    }
                     Text(
-                        text = lead.status,
+                        text = statusDisplay,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = badgeText,
@@ -114,16 +127,18 @@ fun LeadCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Phone Number
-            Text(
-                text = lead.phoneNumber,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = TextPrimary,
-                letterSpacing = 0.2.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Phone Number (Always LTR)
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Text(
+                    text = lead.phoneNumber,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextPrimary,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -151,7 +166,7 @@ fun LeadCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Contact Name",
+                        contentDescription = stringResource(R.string.edit_lead_name_title),
                         tint = TextSecondary,
                         modifier = Modifier.size(15.dp)
                     )
@@ -162,7 +177,7 @@ fun LeadCard(
 
             // Found in: Source
             Text(
-                text = "Found in: ${lead.source}",
+                text = "${stringResource(R.string.found_in_source)} ${lead.source}",
                 fontSize = 12.sp,
                 color = TextSecondary,
                 fontWeight = FontWeight.Normal,
@@ -198,7 +213,7 @@ fun LeadCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Save",
+                        text = stringResource(R.string.save_lead_btn),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -227,7 +242,7 @@ fun LeadCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Remove",
+                        text = stringResource(R.string.remove_lead_btn),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = RemoveRed,
@@ -257,7 +272,7 @@ fun LeadCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "WhatsApp",
+                        text = stringResource(R.string.whatsapp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = WhatsAppTeal,
