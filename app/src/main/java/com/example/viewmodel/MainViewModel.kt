@@ -95,9 +95,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshStatuses() {
-        _isNotificationListenerActive.value = PermissionHelper.isNotificationListenerEnabled(context)
-        _hasContactsPermission.value = ContactsHelper.hasContactsPermissions(context)
-        _isBatteryOptimizationIgnored.value = PermissionHelper.isBatteryOptimizationIgnored(context)
+        try {
+            _isNotificationListenerActive.value = PermissionHelper.isNotificationListenerEnabled(context)
+        } catch (_: Exception) {
+            _isNotificationListenerActive.value = false
+        }
+        try {
+            _hasContactsPermission.value = ContactsHelper.hasContactsPermissions(context)
+        } catch (_: Exception) {
+            _hasContactsPermission.value = false
+        }
+        try {
+            _isBatteryOptimizationIgnored.value = PermissionHelper.isBatteryOptimizationIgnored(context)
+        } catch (_: Exception) {
+            _isBatteryOptimizationIgnored.value = false
+        }
     }
 
     fun clearUserMessage() {

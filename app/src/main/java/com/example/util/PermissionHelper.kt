@@ -14,16 +14,20 @@ object PermissionHelper {
      * Checks if Notification Listener permission is granted to our app.
      */
     fun isNotificationListenerEnabled(context: Context): Boolean {
-        val packageName = context.packageName
-        val flat = Settings.Secure.getString(
-            context.contentResolver,
-            "enabled_notification_listeners"
-        )
-        if (flat != null && flat.contains(packageName)) {
-            return true
+        return try {
+            val packageName = context.packageName
+            val flat = Settings.Secure.getString(
+                context.contentResolver,
+                "enabled_notification_listeners"
+            )
+            if (flat != null && flat.contains(packageName)) {
+                return true
+            }
+            val enabledPackages = NotificationManagerCompat.getEnabledListenerPackages(context)
+            enabledPackages.contains(packageName)
+        } catch (_: Exception) {
+            false
         }
-        val enabledPackages = NotificationManagerCompat.getEnabledListenerPackages(context)
-        return enabledPackages.contains(packageName)
     }
 
     /**
@@ -39,8 +43,12 @@ object PermissionHelper {
      * Checks if battery optimization is disabled / unrestricted.
      */
     fun isBatteryOptimizationIgnored(context: Context): Boolean {
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        return powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
+        return try {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /**

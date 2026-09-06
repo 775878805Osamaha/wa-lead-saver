@@ -1,5 +1,7 @@
 package com.example.ui.theme
 
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -40,6 +42,9 @@ fun WALeadSaverTheme(
     content: @Composable () -> Unit
 ) {
     val currentContext = LocalContext.current
+    val activityResultRegistryOwner = LocalActivityResultRegistryOwner.current
+        ?: (currentContext as? ActivityResultRegistryOwner)
+
     val localizedContext = androidx.compose.runtime.remember(currentContext, languageCode) {
         LocaleHelper.getLocalizedContext(currentContext, languageCode)
     }
@@ -49,15 +54,28 @@ fun WALeadSaverTheme(
         LayoutDirection.Ltr
     }
 
-    CompositionLocalProvider(
-        LocalContext provides localizedContext,
-        LocalConfiguration provides localizedContext.resources.configuration,
-        LocalLayoutDirection provides layoutDirection
-    ) {
+    val themeContent = @Composable {
         MaterialTheme(
             colorScheme = LightColorScheme,
             typography = Typography,
             content = content
+        )
+    }
+
+    if (activityResultRegistryOwner != null) {
+        CompositionLocalProvider(
+            LocalContext provides localizedContext,
+            LocalConfiguration provides localizedContext.resources.configuration,
+            LocalLayoutDirection provides layoutDirection,
+            LocalActivityResultRegistryOwner provides activityResultRegistryOwner,
+            content = themeContent
+        )
+    } else {
+        CompositionLocalProvider(
+            LocalContext provides localizedContext,
+            LocalConfiguration provides localizedContext.resources.configuration,
+            LocalLayoutDirection provides layoutDirection,
+            content = themeContent
         )
     }
 }

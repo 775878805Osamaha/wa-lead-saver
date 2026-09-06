@@ -22,9 +22,13 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        val database = AppDatabase.getDatabase(applicationContext)
-        settingsDataStore = SettingsDataStore(applicationContext)
-        repository = LeadRepository(applicationContext, database, settingsDataStore)
+        try {
+            val database = AppDatabase.getDatabase(applicationContext)
+            settingsDataStore = SettingsDataStore(applicationContext)
+            repository = LeadRepository(applicationContext, database, settingsDataStore)
+        } catch (e: Exception) {
+            android.util.Log.e("WANotificationService", "Service init failed", e)
+        }
     }
 
     override fun onDestroy() {
@@ -35,6 +39,16 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
+
+        if (!::repository.isInitialized || !::settingsDataStore.isInitialized) {
+            try {
+                val database = AppDatabase.getDatabase(applicationContext)
+                settingsDataStore = SettingsDataStore(applicationContext)
+                repository = LeadRepository(applicationContext, database, settingsDataStore)
+            } catch (e: Exception) {
+                return
+            }
+        }
 
         val packageName = sbn.packageName ?: return
         val isStandardWhatsApp = packageName == "com.whatsapp"
