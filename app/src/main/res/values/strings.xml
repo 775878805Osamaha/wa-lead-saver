@@ -424,4 +424,33 @@
     <string name="bucket_night">Night</string>
     <string name="enable_notification_access_prompt">Please enable Notification Access in Settings</string>
     <string name="notification_listener_active_toast">WA Lead Saver Notification Listener is Active</string>
+
+    <!-- Live Notification Debug & Diagnostics -->
+    <string name="debug_live_notifications_title">Live Notification Debugger</string>
+    <string name="debug_live_notifications_desc">Real-time inspection of received WhatsApp &amp; WhatsApp Business notifications</string>
+    <string name="debug_no_notifications_yet">No Notifications Received Yet</string>
+    <string name="debug_no_notifications_desc">When a message arrives on WhatsApp or WhatsApp Business, the raw notification metadata, extraction, and save results will appear here in real time.</string>
+    <string name="debug_last_notification">Last Received Notification</string>
+    <string name="debug_recent_history">Recent Notifications (%1$d)</string>
+    <string name="debug_package_name">Package</string>
+    <string name="debug_title">Title</string>
+    <string name="debug_text">Text</string>
+    <string name="debug_extracted_candidate">Extracted Candidate</string>
+    <string name="debug_normalized_number">Normalized Number</string>
+    <string name="debug_detection_status">Detection Status</string>
+    <string name="debug_rejection_reason">Rejection Reason</string>
+    <string name="debug_save_status">Save Status</string>
+    <string name="debug_contact_helper_result">Contact Helper Result</string>
+    <string name="debug_timestamp">Timestamp</string>
+    <string name="debug_clear_logs">Clear Debug Logs</string>
+    <string name="debug_dialog_title">Notification Debug Inspector</string>
+    <string name="debug_open_screen">Open Notification Debugger</string>
+    <string name="debug_btn_label">Live Inspector</string>
+    <string name="permission_notification_access_title">Notification Access</string>
+    <string name="permission_notification_access_desc">Required to monitor incoming messages and extract unsaved customer numbers</string>
+    <string name="permission_write_contacts_title">Contacts Permission (WRITE_CONTACTS)</string>
+    <string name="permission_write_contacts_desc">Required to auto-save new leads directly to Android Contacts</string>
+    <string name="permission_grant_button">Grant Permission</string>
+    <string name="permission_granted_badge">Granted</string>
+    <string name="permission_missing_badge">Missing / Disabled</string>
 </resources>

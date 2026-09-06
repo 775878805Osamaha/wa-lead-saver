@@ -163,4 +163,64 @@ class PhoneNumberValidatorTest {
         assertEquals("+967772345678", namedContactWithCue.normalizedNumber)
         assertEquals(ConfidenceLevel.MEDIUM, namedContactWithCue.confidence)
     }
+
+    // Specific Test Case from Real Samsung Testing:
+    // WhatsApp Business notification with title "+967 730 232 807"
+    @Test
+    fun testWhatsAppBusinessRealScenario() {
+        val result = PhoneNumberValidator.parseNotification(
+            packageName = "com.whatsapp.w4b",
+            title = "+967 730 232 807",
+            text = "السلام عليكم، هل المنتج متوفر لديكم؟",
+            defaultCountryCode = "+967"
+        )
+        assertTrue("WhatsApp Business unsaved number in title must be accepted", result.isAccepted)
+        assertEquals("+967730232807", result.normalizedNumber)
+        assertEquals(ConfidenceLevel.HIGH, result.confidence)
+        assertEquals("WhatsApp Business", result.sourceLabel)
+    }
+
+    @Test
+    fun testWhatsAppBusinessWithBidiCharacters() {
+        // Many Android versions and Samsung OneUI wrap phone numbers in BiDi control characters
+        val bidiTitle = "\u202A+967 730 232 807\u202C"
+        val result = PhoneNumberValidator.parseNotification(
+            packageName = "com.whatsapp.w4b",
+            title = bidiTitle,
+            text = "مرحبا بكم",
+            defaultCountryCode = "+967"
+        )
+        assertTrue("BiDi formatted number must be parsed cleanly", result.isAccepted)
+        assertEquals("+967730232807", result.normalizedNumber)
+        assertEquals(ConfidenceLevel.HIGH, result.confidence)
+    }
+
+    @Test
+    fun testWhatsAppBusinessGroupOrConversationMetadata() {
+        // Scenario where title is message counter ("2 messages") but subText/conversation contains phone
+        val result = PhoneNumberValidator.parseNotification(
+            packageName = "com.whatsapp.w4b",
+            title = "2 new messages",
+            text = "هل يمكن الدفع عند الاستلام؟",
+            subText = "+967 730 232 807",
+            defaultCountryCode = "+967"
+        )
+        assertTrue("SubText phone number should be detected when title is generic count", result.isAccepted)
+        assertEquals("+967730232807", result.normalizedNumber)
+        assertEquals(ConfidenceLevel.HIGH, result.confidence)
+    }
+
+    @Test
+    fun testTitleWithAppendedMessageCount() {
+        // e.g. "+967 730 232 807 (2 messages)"
+        val result = PhoneNumberValidator.parseNotification(
+            packageName = "com.whatsapp.w4b",
+            title = "+967 730 232 807 (2 messages)",
+            text = "مرحبا",
+            defaultCountryCode = "+967"
+        )
+        assertTrue("Title with message count suffix should extract phone number", result.isAccepted)
+        assertEquals("+967730232807", result.normalizedNumber)
+        assertEquals(ConfidenceLevel.HIGH, result.confidence)
+    }
 }

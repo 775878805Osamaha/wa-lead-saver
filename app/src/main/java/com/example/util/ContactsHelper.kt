@@ -238,18 +238,23 @@ object ContactsHelper {
      * Never creates duplicate contacts.
      */
     fun saveContact(context: Context, contactName: String, phoneNumber: String): Result<Boolean> {
+        val tag = "ContactsHelper"
         if (!hasWritePermission(context)) {
-            return Result.failure(SecurityException("WRITE_CONTACTS permission not granted"))
+            val ex = SecurityException("WRITE_CONTACTS permission not granted")
+            android.util.Log.e(tag, "Failed to save contact '$contactName' ($phoneNumber): WRITE_CONTACTS permission is missing", ex)
+            return Result.failure(ex)
         }
 
         val normalized = PhoneNumberHelper.normalize(phoneNumber)
 
         // Strict duplicate check before inserting
         if (contactExists(context, normalized)) {
+            android.util.Log.i(tag, "Contact '$contactName' with number '$normalized' already exists in Android Contacts. Skipping duplicate.")
             return Result.success(false) // Already exists
         }
 
         return try {
+            android.util.Log.d(tag, "Attempting to insert contact into Android Contacts: Name='$contactName', Phone='$normalized'")
             val ops = ArrayList<ContentProviderOperation>()
 
             val rawContactInsertIndex = ops.size
@@ -288,9 +293,16 @@ object ContactsHelper {
                     .build()
             )
 
-            context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
-            Result.success(true)
+            val results = context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
+            val success = results.isNotEmpty()
+            if (success) {
+                android.util.Log.i(tag, "✅ Contact saved successfully in Android Contacts: '$contactName' -> '$normalized'")
+            } else {
+                android.util.Log.w(tag, "⚠️ applyBatch returned empty results for contact '$contactName' -> '$normalized'")
+            }
+            Result.success(success)
         } catch (e: Exception) {
+            android.util.Log.e(tag, "❌ Exception during applyBatch while saving contact '$contactName' ($normalized)", e)
             Result.failure(e)
         }
     }

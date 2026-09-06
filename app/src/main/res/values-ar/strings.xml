@@ -424,4 +424,33 @@
     <string name="bucket_night">الليل</string>
     <string name="enable_notification_access_prompt">يرجى تفعيل صلاحية قراءة الإشعارات من الإعدادات</string>
     <string name="notification_listener_active_toast">خدمة مراقبة إشعارات العملاء نشطة وتعمل</string>
+
+    <!-- Live Notification Debug & Diagnostics -->
+    <string name="debug_live_notifications_title">شاشة تشخيص الإشعارات المباشرة</string>
+    <string name="debug_live_notifications_desc">فحص فوري ودقيق لكل إشعار يصل من WhatsApp أو WhatsApp Business</string>
+    <string name="debug_no_notifications_yet">لم يتم استلام أي إشعار حتى الآن</string>
+    <string name="debug_no_notifications_desc">عند وصول رسالة على واتساب أو واتساب الأعمال، ستظهر هنا بيانات الإشعار الأصلية، استخراج الرقم، وحالة الحفظ تلقائياً في الوقت الفعلي.</string>
+    <string name="debug_last_notification">آخر إشعار تم استلامه</string>
+    <string name="debug_recent_history">سجل الإشعارات المستلمة مؤخراً (%1$d)</string>
+    <string name="debug_package_name">حزمة التطبيق (Package)</string>
+    <string name="debug_title">العنوان (Title)</string>
+    <string name="debug_text">النص (Text)</string>
+    <string name="debug_extracted_candidate">الرقم المستخرج</string>
+    <string name="debug_normalized_number">الرقم بعد التطبيع</string>
+    <string name="debug_detection_status">حالة الاكتشاف</string>
+    <string name="debug_rejection_reason">سبب الرفض</string>
+    <string name="debug_save_status">حالة الحفظ</string>
+    <string name="debug_contact_helper_result">نتيجة ContactHelper</string>
+    <string name="debug_timestamp">وقت الاستلام</string>
+    <string name="debug_clear_logs">مسح سجل التشخيص</string>
+    <string name="debug_dialog_title">فحص وتشخيص الإشعارات المباشرة</string>
+    <string name="debug_open_screen">فتح شاشة تشخيص الإشعارات</string>
+    <string name="debug_btn_label">تشخيص مباشر</string>
+    <string name="permission_notification_access_title">صلاحية قراءة الإشعارات</string>
+    <string name="permission_notification_access_desc">مطلوبة لمراقبة الرسائل الواردة واستخراج أرقام العملاء غير المحفوظة</string>
+    <string name="permission_write_contacts_title">صلاحية حفظ جهات الاتصال (WRITE_CONTACTS)</string>
+    <string name="permission_write_contacts_desc">مطلوبة لحفظ أرقام العملاء الجدد مباشرة في دفتر جهات اتصال الهاتف</string>
+    <string name="permission_grant_button">منح الصلاحية</string>
+    <string name="permission_granted_badge">ممنوحة ومفعلة</string>
+    <string name="permission_missing_badge">غير مفعلة / مفقودة</string>
 </resources>

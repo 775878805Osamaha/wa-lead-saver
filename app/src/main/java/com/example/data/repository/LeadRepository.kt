@@ -10,6 +10,7 @@ import com.example.data.datastore.SettingsDataStore
 import com.example.util.BlockedPatternHelper
 import com.example.util.ConfidenceLevel
 import com.example.util.ContactsHelper
+import com.example.util.NotificationDebugLogger
 import com.example.util.PhoneNumberHelper
 import com.example.util.PhoneNumberValidator
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +51,8 @@ class LeadRepository(
         rawCandidate: String,
         source: String,
         confidence: ConfidenceLevel = ConfidenceLevel.HIGH,
-        debugDetails: String = ""
+        debugDetails: String = "",
+        senderName: String = ""
     ): ProcessResult {
         val currentSettings = settings.first()
 
@@ -62,6 +64,7 @@ class LeadRepository(
         )
 
         if (!validation.isValid) {
+            android.util.Log.w("LeadRepository", "Candidate '$rawCandidate' rejected: ${validation.rejectionReason}")
             recordHistory(
                 phoneNumber = rawCandidate.ifBlank { "N/A" },
                 contactName = "",
@@ -71,6 +74,12 @@ class LeadRepository(
                     append(validation.rejectionReason)
                     if (debugDetails.isNotBlank()) append(" | $debugDetails")
                 }
+            )
+            NotificationDebugLogger.updateSaveResult(
+                normalizedNumber = rawCandidate,
+                autoSaveAttempted = false,
+                saveResultStatus = "Rejected: ${validation.rejectionReason}",
+                contactHelperResult = "INVALID_NUMBER"
             )
             return ProcessResult.InvalidNumber
         }
@@ -153,11 +162,48 @@ class LeadRepository(
             }
         }
 
-        val contactName = "${currentSettings.contactNamePrefix}-$normalized"
+        // Format contact name: use customer name if reliable, else prefix + normalized number (Rule 8)
+        val contactName = if (senderName.isNotBlank() && !senderName.startsWith("+")) {
+            senderName
+        } else {
+            "${currentSettings.contactNamePrefix} $normalized"
+        }
 
         // 6. Auto-save check: ONLY HIGH CONFIDENCE is allowed to Auto-Save (Rule 8 & Rule 9)
-        if (effectiveConfidence == ConfidenceLevel.HIGH && currentSettings.autoSaveLeads && ContactsHelper.hasWritePermission(context)) {
+        if (effectiveConfidence == ConfidenceLevel.HIGH && currentSettings.autoSaveLeads) {
+            if (!ContactsHelper.hasWritePermission(context)) {
+                android.util.Log.w("LeadRepository", "Auto-Save enabled for $normalized but WRITE_CONTACTS permission is missing! Saving to Queue.")
+                val lead = LeadEntity(
+                    phoneNumber = normalized,
+                    normalizedNumber = normalized,
+                    contactName = contactName,
+                    source = source,
+                    isSaved = false,
+                    status = "Permission Required",
+                    confidence = "HIGH"
+                )
+                leadDao.insertLead(lead)
+
+                recordHistory(
+                    phoneNumber = normalized,
+                    contactName = contactName,
+                    source = source,
+                    status = "Permission Required",
+                    details = "Auto-save could not complete: WRITE_CONTACTS permission is missing. Added to Queue."
+                )
+
+                NotificationDebugLogger.updateSaveResult(
+                    normalizedNumber = normalized,
+                    autoSaveAttempted = true,
+                    saveResultStatus = "Permission Required (WRITE_CONTACTS missing)",
+                    contactHelperResult = "FAILED: WRITE_CONTACTS permission not granted"
+                )
+                return ProcessResult.Queued(normalized)
+            }
+
+            android.util.Log.i("LeadRepository", "Attempting Auto-Save to Android Contacts for: '$contactName' ($normalized)...")
             val saveResult = ContactsHelper.saveContact(context, contactName, normalized)
+
             if (saveResult.isSuccess && saveResult.getOrNull() == true) {
                 val lead = LeadEntity(
                     phoneNumber = normalized,
@@ -176,12 +222,65 @@ class LeadRepository(
                     status = "Saved",
                     details = "Auto-saved directly to Android Contacts (Confidence: HIGH)"
                 )
+                NotificationDebugLogger.updateSaveResult(
+                    normalizedNumber = normalized,
+                    autoSaveAttempted = true,
+                    saveResultStatus = "Auto-Saved successfully",
+                    contactHelperResult = "SUCCESS: Created contact '$contactName'"
+                )
                 return ProcessResult.AutoSaved(normalized)
+            } else if (saveResult.isSuccess && saveResult.getOrNull() == false) {
+                // Already in contacts
+                recordHistory(
+                    phoneNumber = normalized,
+                    contactName = contactName,
+                    source = source,
+                    status = "Duplicate",
+                    details = "Number already exists in Contacts"
+                )
+                NotificationDebugLogger.updateSaveResult(
+                    normalizedNumber = normalized,
+                    autoSaveAttempted = true,
+                    saveResultStatus = "Duplicate in Contacts",
+                    contactHelperResult = "ALREADY_EXISTS"
+                )
+                return ProcessResult.DuplicateInContacts(normalized)
+            } else {
+                val ex = saveResult.exceptionOrNull()
+                val exMsg = ex?.message ?: "Unknown contact provider error"
+                android.util.Log.e("LeadRepository", "Auto-Save failed with exception for $contactName ($normalized): $exMsg", ex)
+
+                val lead = LeadEntity(
+                    phoneNumber = normalized,
+                    normalizedNumber = normalized,
+                    contactName = contactName,
+                    source = source,
+                    isSaved = false,
+                    status = "Save Failed: ${ex?.javaClass?.simpleName ?: "Error"}",
+                    confidence = "HIGH"
+                )
+                leadDao.insertLead(lead)
+
+                recordHistory(
+                    phoneNumber = normalized,
+                    contactName = contactName,
+                    source = source,
+                    status = "Save Failed",
+                    details = "Auto-save failed: $exMsg. Added to Queue."
+                )
+
+                NotificationDebugLogger.updateSaveResult(
+                    normalizedNumber = normalized,
+                    autoSaveAttempted = true,
+                    saveResultStatus = "Save Failed: $exMsg",
+                    contactHelperResult = "EXCEPTION: ${ex?.javaClass?.simpleName}",
+                    exceptionDetails = ex?.stackTraceToString() ?: ""
+                )
+                return ProcessResult.Queued(normalized)
             }
         }
 
-        // 7. Otherwise insert into Queue (Rule 7 & Rule 8)
-        // If MEDIUM, set status note with warning "Verify number"
+        // 7. Auto-Save disabled or MEDIUM confidence -> insert into Queue (Rule 7 & Rule 8 & Rule 13)
         val queueStatus = if (effectiveConfidence == ConfidenceLevel.MEDIUM) "Verify number" else "NEW LEAD"
         val lead = LeadEntity(
             phoneNumber = normalized,
@@ -194,15 +293,28 @@ class LeadRepository(
         )
         leadDao.insertLead(lead)
 
+        val queueDetails = if (!currentSettings.autoSaveLeads) {
+            "Added to Queue (Auto-Save disabled in Settings)"
+        } else {
+            "Added to Queue (Confidence: $effectiveConfidence)"
+        }
+
         recordHistory(
             phoneNumber = normalized,
             contactName = contactName,
             source = source,
             status = queueStatus,
             details = buildString {
-                append("Added to Queue (Confidence: $effectiveConfidence)")
+                append(queueDetails)
                 if (debugDetails.isNotBlank()) append(" | $debugDetails")
             }
+        )
+
+        NotificationDebugLogger.updateSaveResult(
+            normalizedNumber = normalized,
+            autoSaveAttempted = false,
+            saveResultStatus = "Entered Queue: $queueStatus (${if (!currentSettings.autoSaveLeads) "Auto-Save disabled" else "Confidence: $effectiveConfidence"})",
+            contactHelperResult = "QUEUED_WITHOUT_AUTOSAVE"
         )
         return ProcessResult.Queued(normalized)
     }

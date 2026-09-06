@@ -63,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.database.entity.LeadEntity
 import com.example.ui.components.AppTopBar
+import com.example.ui.components.NotificationDebugDialog
 import com.example.ui.dialogs.EditNameDialog
 import com.example.ui.dialogs.ExportOptionsDialog
 import com.example.ui.dialogs.PhotoScanDialog
@@ -146,6 +147,7 @@ fun MainScreen(viewModel: MainViewModel) {
     var leadToEdit by remember { mutableStateOf<LeadEntity?>(null) }
     var isViewingBlockedPatterns by remember { mutableStateOf(false) }
     var isViewingAnalytics by remember { mutableStateOf(false) }
+    var showNotificationDebugDialog by remember { mutableStateOf(false) }
 
     // Collect states from ViewModel
     val queuedLeads by viewModel.queuedLeads.collectAsStateWithLifecycle()
@@ -246,6 +248,9 @@ fun MainScreen(viewModel: MainViewModel) {
                 },
                 onSettingsClick = {
                     currentTab = AppTab.SETTINGS
+                },
+                onDebugClick = {
+                    showNotificationDebugDialog = true
                 }
             )
         },
@@ -547,6 +552,9 @@ fun MainScreen(viewModel: MainViewModel) {
                                     },
                                     onExportContacts = {
                                         showExportOptionsDialog = true
+                                    },
+                                    onOpenLiveDebugger = {
+                                        showNotificationDebugDialog = true
                                     }
                                 )
                             }
@@ -642,6 +650,42 @@ fun MainScreen(viewModel: MainViewModel) {
             onConfirm = { newName ->
                 viewModel.updateLeadName(lead.id, newName)
                 leadToEdit = null
+            }
+        )
+    }
+
+    if (showNotificationDebugDialog) {
+        NotificationDebugDialog(
+            isNotificationAccessGranted = isListenerActive,
+            isWriteContactsGranted = hasContactsPermission,
+            onRequestNotificationAccess = {
+                try {
+                    context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
+                } catch (_: Exception) {
+                    Toast.makeText(context, context.getString(R.string.enable_notification_access_prompt), Toast.LENGTH_LONG).show()
+                }
+            },
+            onRequestWriteContacts = {
+                contactsPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.READ_CONTACTS,
+                        Manifest.permission.WRITE_CONTACTS
+                    )
+                )
+            },
+            onSimulateWhatsAppBusinessTest = {
+                scope.launch {
+                    viewModel.repository.processIncomingPhoneCandidate(
+                        rawCandidate = "+967 730 232 807",
+                        source = "WhatsApp Business",
+                        confidence = com.example.util.ConfidenceLevel.HIGH,
+                        senderName = "+967 730 232 807",
+                        debugDetails = "Manual W4B Simulation from Debugger"
+                    )
+                }
+            },
+            onDismiss = {
+                showNotificationDebugDialog = false
             }
         )
     }

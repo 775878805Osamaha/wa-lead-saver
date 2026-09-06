@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
@@ -53,6 +54,7 @@ fun AppTopBar(
     onExportClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onDebugClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -170,6 +172,20 @@ fun AppTopBar(
                         imageVector = Icons.Default.Chat,
                         contentDescription = stringResource(R.string.top_bar_wa_desc),
                         tint = WhatsAppGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDebugClick,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("topbar_debug_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = stringResource(R.string.debug_dialog_title),
+                        tint = Color(0xFFFFD54F),
                         modifier = Modifier.size(20.dp)
                     )
                 }

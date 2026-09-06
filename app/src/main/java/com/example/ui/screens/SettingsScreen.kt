@@ -99,6 +99,7 @@ fun SettingsScreen(
     onOpenAnalytics: () -> Unit = {},
     onOpenDuplicateAudit: () -> Unit = {},
     onExportContacts: () -> Unit = {},
+    onOpenLiveDebugger: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -742,7 +743,7 @@ fun SettingsScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.test_notification_parser),
                             fontSize = 15.sp,
@@ -754,6 +755,14 @@ fun SettingsScreen(
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
+                    }
+
+                    OutlinedButton(
+                        onClick = onOpenLiveDebugger,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.testTag("btn_open_live_debugger")
+                    ) {
+                        Text(stringResource(R.string.debug_btn_label), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -791,13 +800,24 @@ fun SettingsScreen(
                 ) {
                     OutlinedButton(
                         onClick = {
+                            testTitleInput = "+967 730 232 807"
+                            testTextInput = "مرحبا، بكم هذا المنتج؟"
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1.2f)
+                    ) {
+                        Text("W4B (+967 730)", fontSize = 10.sp, maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
                             testTitleInput = "+967771234567"
                             testTextInput = "السلام عليكم"
                         },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.sample_private), fontSize = 11.sp, maxLines = 1)
+                        Text(stringResource(R.string.sample_private), fontSize = 10.sp, maxLines = 1)
                     }
 
                     OutlinedButton(
@@ -808,18 +828,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.sample_group_price), fontSize = 11.sp, maxLines = 1)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            testTitleInput = "سوق سيارات صنعاء"
-                            testTextInput = "محمد: تواصل معي على 771234567"
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.sample_group_cue), fontSize = 11.sp, maxLines = 1)
+                        Text(stringResource(R.string.sample_group_price), fontSize = 10.sp, maxLines = 1)
                     }
                 }
 
