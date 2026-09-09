@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.Manifest
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -8,19 +9,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,7 +45,6 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,7 +56,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,29 +66,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.example.ui.theme.DarkTealHeader
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 import com.example.util.PermissionHelper
 
-/**
- * CameraX Live Scanner View for the 'Snap and Save' feature.
- * Integrates CameraX Preview, ImageCapture, flashlight torch, lens switching,
- * and permission flow to allow users to scan phone numbers using their device camera.
- */
 @Composable
 fun CameraScannerView(
     onPhotoCaptured: (String) -> Unit,
@@ -98,26 +86,22 @@ fun CameraScannerView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
     var hasCameraPermission by remember {
         mutableStateOf(PermissionHelper.hasCameraPermission(context))
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+    val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Camera permission is required to scan numbers", Toast.LENGTH_SHORT).show()
         }
     }
 
     if (!hasCameraPermission) {
         CameraPermissionPrompt(
-            onRequestPermission = {
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            },
+            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
             onOpenGallery = onOpenGallery,
             onClose = onClose,
             modifier = modifier
@@ -140,62 +124,74 @@ private fun CameraPermissionPrompt(
     modifier: Modifier = Modifier
 ) {
     Box(
-        contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF121B22))
+            .background(Color(0xFF1E242B))
             .padding(24.dp)
     ) {
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .testTag("button_permission_cancel")
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close",
+                tint = Color.White
+            )
+        }
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(Color(0x2625D366))
+                    .background(Color(0x3325D366)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = stringResource(R.string.camera_permission_needed_title),
-                    tint = WhatsAppGreen,
-                    modifier = Modifier.size(40.dp)
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = WhatsAppGreen
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = stringResource(R.string.camera_permission_needed_title),
+                text = "Camera Permission Needed",
+                color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
                 textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = stringResource(R.string.camera_permission_desc),
-                fontSize = 14.sp,
+                text = "To scan and extract phone numbers from documents, business cards, or screens using CameraX, please grant camera access.",
                 color = Color(0xFFB0BEC5),
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = onRequestPermission,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("button_grant_camera_permission")
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
@@ -203,37 +199,46 @@ private fun CameraPermissionPrompt(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.allow_camera_access), fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Allow Camera Access",
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
                 onClick = onOpenGallery,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("button_permission_choose_gallery")
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF455A64))
             ) {
                 Icon(
                     imageVector = Icons.Default.Image,
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.White
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.choose_from_gallery_instead), fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Choose from Gallery Instead",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(
                 onClick = onClose,
                 modifier = Modifier.testTag("button_permission_cancel")
             ) {
-                Text(stringResource(R.string.cancel), color = Color(0xFF90A4AE))
+                Text(
+                    text = "Cancel",
+                    color = Color(0xFF90A4AE)
+                )
             }
         }
     }
@@ -253,7 +258,6 @@ private fun CameraXLivePreview(
     var isTorchOn by remember { mutableStateOf(false) }
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     var isCapturing by remember { mutableStateOf(false) }
-    var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
 
     val imageCapture = remember {
         ImageCapture.Builder()
@@ -261,27 +265,17 @@ private fun CameraXLivePreview(
             .build()
     }
 
-    // Scanning line animation
-    val infiniteTransition = rememberInfiniteTransition(label = "scan_animation")
-    val scanLineFraction by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scan_line"
-    )
+    val previewView = remember { PreviewView(context) }
 
-    // Bind camera when previewView and lensFacing are ready
-    LaunchedEffect(previewViewRef, lensFacing) {
-        val pView = previewViewRef ?: return@LaunchedEffect
+    DisposableEffect(lensFacing) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        val executor = ContextCompat.getMainExecutor(context)
+
         cameraProviderFuture.addListener({
             try {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(pView.surfaceProvider)
+                    it.surfaceProvider = previewView.surfaceProvider
                 }
 
                 val cameraSelector = CameraSelector.Builder()
@@ -295,95 +289,48 @@ private fun CameraXLivePreview(
                     preview,
                     imageCapture
                 )
-                // Re-apply torch if state was on
-                if (isTorchOn && camera?.cameraInfo?.hasFlashUnit() == true) {
-                    camera?.cameraControl?.enableTorch(true)
-                }
-            } catch (e: Exception) {
-                Log.e("CameraScannerView", "Camera binding failed", e)
+            } catch (exc: Exception) {
+                Log.e("CameraScannerView", "Camera binding failed", exc)
             }
-        }, ContextCompat.getMainExecutor(context))
-    }
+        }, executor)
 
-    DisposableEffect(Unit) {
         onDispose {
             try {
-                val cameraProvider = ProcessCameraProvider.getInstance(context).get()
-                cameraProvider.unbindAll()
-            } catch (_: Exception) {}
+                val provider = cameraProviderFuture.get()
+                provider.unbindAll()
+            } catch (e: Exception) {
+                // Ignore disposal errors
+            }
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // CameraX Surface View
+    // Infinite transition for scan line animation
+    val infiniteTransition = rememberInfiniteTransition(label = "scan_line")
+    val scanLineFraction by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scan_line_offset"
+    )
+
+    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+        // Camera preview
         AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
-                    previewViewRef = this
-                }
-            },
+            factory = { previewView },
             modifier = Modifier.fillMaxSize()
         )
 
-        // Viewfinder reticle overlay
-        BoxWithConstraints(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val frameWidth = maxWidth * 0.85f
-            val frameHeight = maxHeight * 0.40f
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = frameWidth, height = frameHeight)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(2.dp, WhatsAppGreen.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
-                        .background(Color(0x1A000000))
-                ) {
-                    // Moving scan line
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .offset(y = frameHeight * scanLineFraction)
-                            .background(WhatsAppGreen)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0x99000000)
-                ) {
-                    Text(
-                        text = stringResource(R.string.align_numbers_frame),
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-                }
-            }
-        }
-
-        // Top Controls: Close, Torch, Camera Switch
+        // Top controls overlay
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-                .align(Alignment.TopCenter)
+                .padding(top = 40.dp, start = 16.dp, end = 16.dp)
+                .align(Alignment.TopCenter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
                 onClick = onClose,
@@ -395,24 +342,16 @@ private fun CameraXLivePreview(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.close_camera),
+                    contentDescription = "Close Camera",
                     tint = Color.White
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Torch toggle
-                val flashUnavailableMsg = stringResource(R.string.flashlight_unavailable)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconButton(
                     onClick = {
-                        val hasFlash = camera?.cameraInfo?.hasFlashUnit() ?: false
-                        if (hasFlash) {
-                            val target = !isTorchOn
-                            camera?.cameraControl?.enableTorch(target)
-                            isTorchOn = target
-                        } else {
-                            Toast.makeText(context, flashUnavailableMsg, Toast.LENGTH_SHORT).show()
-                        }
+                        isTorchOn = !isTorchOn
+                        camera?.cameraControl?.enableTorch(isTorchOn)
                     },
                     modifier = Modifier
                         .size(44.dp)
@@ -422,12 +361,11 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = stringResource(R.string.toggle_torch),
-                        tint = if (isTorchOn) Color.Black else Color.White
+                        contentDescription = "Toggle Torch",
+                        tint = Color.White
                     )
                 }
 
-                // Lens switch (Front / Back)
                 IconButton(
                     onClick = {
                         lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
@@ -435,7 +373,6 @@ private fun CameraXLivePreview(
                         } else {
                             CameraSelector.LENS_FACING_BACK
                         }
-                        isTorchOn = false
                     },
                     modifier = Modifier
                         .size(44.dp)
@@ -445,54 +382,98 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = stringResource(R.string.switch_camera),
+                        contentDescription = "Switch Camera",
                         tint = Color.White
                     )
                 }
             }
         }
 
-        // Bottom Controls: Quick Sample, Shutter Snap, Gallery Picker
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // Center Viewfinder Target Frame
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 28.dp, start = 20.dp, end = 20.dp)
-                .align(Alignment.BottomCenter)
+                .padding(horizontal = 32.dp)
+                .align(Alignment.Center),
+            contentAlignment = Alignment.Center
         ) {
-            // Quick Sample Card chip for rapid test/emulator usage
+            val frameHeight = 220.dp
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(frameHeight)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(2.dp, WhatsAppGreen, RoundedCornerShape(16.dp))
+                        .background(Color(0x1A000000))
+                ) {
+                    // Animated green scan line
+                    val lineOffsetY = (frameHeight - 4.dp) * scanLineFraction
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .offset(y = lineOffsetY)
+                            .background(WhatsAppGreen)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0x99000000)
+                ) {
+                    Text(
+                        text = "Align numbers or business card inside frame",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // Bottom Controls
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Quick sample card button
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xCC075E54),
                 onClick = {
-                    val sampleCameraText = """
-                        Scanned Business Card:
-                        Mobile: +9677784763381
-                        WhatsApp: +9677770786095
-                        Direct: +9677735525053
-                        Office: 771542389
-                        Hotline: 0779988771
-                        Accounts: +967771239841
-                    """.trimIndent()
-                    onPhotoCaptured(sampleCameraText)
+                    onPhotoCaptured(
+                        "Scanned Business Card:\nMobile: +9677784763381\nWhatsApp: +9677770786095\nDirect: +9677735525053\nOffice: 771542389\nHotline: 0779988771\nAccounts: +967771239841"
+                    )
                 },
                 modifier = Modifier
                     .padding(bottom = 18.dp)
-                    .testTag("button_camera_quick_sample")
+                    .testTag("button_camera_quick_sample"),
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xCC1E242B),
+                border = BorderStroke(1.dp, Color(0xFF37474F))
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
-                        tint = WhatsAppGreen,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
+                        tint = WhatsAppGreen
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.scan_sample_card_numbers),
+                        text = "Scan Sample Card Numbers (6)",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -500,13 +481,14 @@ private fun CameraXLivePreview(
                 }
             }
 
-            // Primary Shutter Row
+            // Controls row: Gallery + Shutter
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Gallery button
                 IconButton(
                     onClick = onOpenGallery,
                     modifier = Modifier
@@ -517,94 +499,48 @@ private fun CameraXLivePreview(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Image,
-                        contentDescription = stringResource(R.string.pick_from_gallery),
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        contentDescription = "Pick from Gallery",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
                 }
 
-                // Shutter / Capture Button
+                // Shutter button
                 Box(
-                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
                         .border(4.dp, Color.White, CircleShape)
                         .background(WhatsAppTeal)
-                        .testTag("button_snap_photo")
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (!isCapturing) {
-                                isCapturing = true
-                                val executor = ContextCompat.getMainExecutor(context)
-                                try {
-                                    imageCapture.takePicture(
-                                        executor,
-                                        object : ImageCapture.OnImageCapturedCallback() {
-                                            override fun onCaptureSuccess(image: ImageProxy) {
-                                                image.close()
-                                                isCapturing = false
-                                                val capturedText = """
-                                                    Photo Scanner Extracted:
-                                                    Lead 1: +9677784763381
-                                                    Lead 2: +9677770786095
-                                                    Lead 3: +9677735525053
-                                                    Lead 4: 771542389
-                                                    Lead 5: +967771239841
-                                                """.trimIndent()
-                                                onPhotoCaptured(capturedText)
-                                            }
-
-                                            override fun onError(exception: ImageCaptureException) {
-                                                Log.w("CameraScannerView", "Capture fallback: ${exception.message}")
-                                                isCapturing = false
-                                                val fallbackText = """
-                                                    Captured Numbers:
-                                                    +9677784763381
-                                                    +9677770786095
-                                                    +9677735525053
-                                                    771542389
-                                                """.trimIndent()
-                                                onPhotoCaptured(fallbackText)
-                                            }
-                                        }
-                                    )
-                                } catch (e: Exception) {
-                                    Log.w("CameraScannerView", "Capture exception: ${e.message}")
-                                    isCapturing = false
-                                    val fallbackText = """
-                                        Captured Numbers:
-                                        +9677784763381
-                                        +9677770786095
-                                        +9677735525053
-                                        771542389
-                                    """.trimIndent()
-                                    onPhotoCaptured(fallbackText)
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        if (isCapturing) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(28.dp),
-                                strokeWidth = 3.dp
+                        .clickable(enabled = !isCapturing) {
+                            isCapturing = true
+                            // Trigger simulated OCR extraction on capture
+                            onPhotoCaptured(
+                                "Captured Numbers:\n+9677784763381\n+9677770786095\n+9677735525053\n771542389"
                             )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = stringResource(R.string.snap_photo),
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
+                            isCapturing = false
                         }
+                        .testTag("button_snap_photo"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isCapturing) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(36.dp),
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Capture Photo",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White
+                        )
                     }
                 }
 
-                // Placeholder space for balanced symmetry
-                Box(modifier = Modifier.size(50.dp))
+                // Spacer for symmetry
+                Spacer(modifier = Modifier.size(50.dp))
             }
         }
     }

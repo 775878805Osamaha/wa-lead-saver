@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LeadDao {
-
     @Query("SELECT * FROM leads WHERE isSaved = 0 ORDER BY detectedAt DESC")
     fun getQueuedLeads(): Flow<List<LeadEntity>>
 

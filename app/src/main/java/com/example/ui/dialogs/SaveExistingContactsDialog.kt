@@ -1,5 +1,6 @@
 package com.example.ui.dialogs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,18 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PersonSearch
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,16 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import com.example.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 
 @Composable
@@ -60,109 +55,105 @@ fun SaveExistingContactsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
-        containerColor = CardBackground,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
-                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE6F4F1))
+                        .background(WhatsAppTeal.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PersonSearch,
+                        imageVector = Icons.Default.Group,
                         contentDescription = null,
                         tint = WhatsAppTeal,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = stringResource(R.string.save_existing_contacts_header),
+                        text = "Save Existing Contacts",
+                        color = TextPrimary,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = stringResource(R.string.scan_chats_group_subtitle),
-                        fontSize = 12.sp,
-                        color = TextSecondary
+                        text = "Scan chats & group members",
+                        color = TextSecondary,
+                        fontSize = 12.sp
                     )
                 }
             }
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Privacy compliance notice
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF1F5F4))
+                        .background(Color(0xFFEFF6FF))
                         .padding(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.Top) {
+                    Row(
+                        verticalAlignment = Alignment.Top
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Security,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = WhatsAppTeal,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = stringResource(R.string.privacy_compliant_notice),
-                            fontSize = 11.sp,
-                            color = TextSecondary,
+                            text = "Extract unsaved contact numbers from WhatsApp group chat logs, exported .txt files, or pasted member messages.",
+                            fontSize = 12.sp,
+                            color = TextPrimary,
                             lineHeight = 16.sp
                         )
                     }
                 }
 
                 if (!showCustomInput) {
-                    // Option 1: Quick Sample WhatsApp Group scan
                     Button(
                         onClick = {
-                            val sampleGroupExport = """
-                                WhatsApp Group Chat - Business Community:
-                                [10:15 AM] +967771928374: Hello everyone, interested in the catalogue
-                                [10:16 AM] +967773829102: Please send price list to my number
-                                [10:18 AM] 0775612345: Add me to the broadcast list
-                                [10:20 AM] 772345678: Looking for wholesale order
-                                [10:22 AM] +967711224466: Payment sent
-                                [10:25 AM] +967733445566: Thank you!
-                            """.trimIndent()
-                            onScanText(sampleGroupExport)
+                            onScanText(
+                                "WhatsApp Group Chat - Business Community:\n" +
+                                "[10:15 AM] +967771928374: Hello everyone, interested in the catalogue\n" +
+                                "[10:16 AM] +967773829102: Please send price list to my number\n" +
+                                "[10:18 AM] 0775612345: Add me to the broadcast list\n" +
+                                "[10:20 AM] 772345678: Looking for wholesale order\n" +
+                                "[10:22 AM] +967711224466: Payment sent\n" +
+                                "[10:25 AM] +967733445566: Thank you!"
+                            )
                         },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .testTag("button_scan_sample_group")
+                            .testTag("button_scan_sample_group"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Group,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                        Text(
+                            text = "Scan Sample Group Export",
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.scan_sample_group_btn), fontWeight = FontWeight.Bold)
                     }
 
-                    // Option 2: Paste chat or participants
                     OutlinedButton(
                         onClick = { showCustomInput = true },
-                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .testTag("button_paste_group_text")
+                            .testTag("button_paste_group_text"),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, WhatsAppTeal)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentPaste,
@@ -171,19 +162,23 @@ fun SaveExistingContactsDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.paste_chat_members_btn), color = WhatsAppTeal, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Paste Chat / Members Text",
+                            color = WhatsAppTeal,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 } else {
                     OutlinedTextField(
                         value = textInput,
                         onValueChange = { textInput = it },
-                        label = { Text(stringResource(R.string.paste_chat_label)) },
-                        placeholder = { Text(stringResource(R.string.paste_chat_placeholder)) },
-                        maxLines = 5,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("input_group_text")
+                            .heightIn(min = 120.dp)
+                            .testTag("input_group_text"),
+                        label = { Text("Paste Chat / Participant List") },
+                        placeholder = { Text("Paste exported WhatsApp chat (.txt) or member numbers...") },
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     Button(
@@ -192,21 +187,28 @@ fun SaveExistingContactsDialog(
                                 onScanText(textInput)
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(46.dp)
-                            .testTag("button_process_pasted_text")
+                            .testTag("button_process_pasted_text"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
                     ) {
-                        Text(stringResource(R.string.extract_unsaved_numbers_btn), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Extract Unsaved Numbers",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     TextButton(
                         onClick = { showCustomInput = false },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text(stringResource(R.string.back_to_options), color = TextSecondary, fontSize = 13.sp)
+                        Text(
+                            text = "Back to options",
+                            color = TextSecondary,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -217,8 +219,13 @@ fun SaveExistingContactsDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_close_group_dialog")
             ) {
-                Text(stringResource(R.string.close), color = TextSecondary)
+                Text(
+                    text = "Close",
+                    color = TextSecondary
+                )
             }
-        }
+        },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = CardBackground
     )
 }

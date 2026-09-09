@@ -18,8 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -32,35 +30,23 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.example.R
 import com.example.data.datastore.AppSettings
-import com.example.ui.components.AnalyticsCard
 import com.example.ui.components.AutoSaveLeadsCard
 import com.example.ui.components.ContactPrefixCard
 import com.example.ui.components.SaveExistingContactsCard
-import com.example.ui.components.SmartDuplicateAuditCard
 import com.example.ui.components.SnapAndSaveCard
 import com.example.ui.components.StatCardsRow
-import com.example.ui.theme.AppBackground
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
-import com.example.util.AnalyticsSummary
 
 @Composable
 fun DashboardScreen(
     totalSaved: Int,
     inQueue: Int,
     settings: AppSettings,
-    duplicateConflictCount: Int = 0,
-    analyticsSummary: AnalyticsSummary? = null,
     onExportHistory: () -> Unit,
     onViewQueue: () -> Unit,
-    onOpenAnalytics: () -> Unit,
-    onOpenDuplicateAudit: () -> Unit,
     onOpenSaveExistingContacts: () -> Unit,
     onSnapAndSave: () -> Unit,
     onPrefixChange: (String) -> Unit,
@@ -73,12 +59,10 @@ fun DashboardScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppBackground)
             .verticalScroll(scrollState)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Two Balanced Large Dashboard Cards (TOTAL SAVED / IN QUEUE)
         StatCardsRow(
             totalSaved = totalSaved,
             inQueue = inQueue,
@@ -86,100 +70,83 @@ fun DashboardScreen(
             onViewQueueClick = onViewQueue
         )
 
-        // ANALYTICS & INSIGHTS Card with Live Trends & 7-Day Trend Preview
-        AnalyticsCard(
-            analyticsSummary = analyticsSummary,
-            onClick = onOpenAnalytics
-        )
-
-        // SMART DUPLICATE AUDIT Card with Scan Now Button
-        SmartDuplicateAuditCard(
-            conflictCount = duplicateConflictCount,
-            onClick = onOpenDuplicateAudit
-        )
-
-        // SNAP AND SAVE (CameraX Scanner) Card
         SnapAndSaveCard(
             onClick = onSnapAndSave
         )
 
-        // SAVE EXISTING CONTACTS Card
         SaveExistingContactsCard(
             onClick = onOpenSaveExistingContacts
         )
 
-        // CONTACT NAME PREFIX Card
         ContactPrefixCard(
-            currentPrefix = settings.contactNamePrefix,
+            currentPrefix = settings.contactPrefix,
             countryCode = settings.countryCode,
             onPrefixChange = onPrefixChange
         )
 
-        // AUTO-SAVE LEADS Card
         AutoSaveLeadsCard(
             autoSaveEnabled = settings.autoSaveLeads,
             onAutoSaveChange = onAutoSaveChange
         )
 
-        // Test Simulation Bar (convenient for preview & testing)
         OutlinedButton(
             onClick = onSimulateIncomingLead,
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(44.dp)
-                .testTag("button_simulate_lead")
+                .height(48.dp)
+                .testTag("button_simulate_lead"),
+            shape = RoundedCornerShape(14.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.AddAlert,
                 contentDescription = null,
-                tint = WhatsAppTeal,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(18.dp),
+                tint = WhatsAppTeal
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = stringResource(R.string.simulate_whatsapp_lead_btn),
+                text = "Simulate WhatsApp Notification Lead",
                 color = WhatsAppTeal,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                maxLines = 1
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        // WhatsApp Notification Processing Notice
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFE7ECEB))
-                .padding(12.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFEFF6FF))
+                .padding(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.Top) {
+            Row(
+                verticalAlignment = Alignment.Top
+            ) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = WhatsAppTeal,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp),
+                    tint = WhatsAppTeal
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = stringResource(R.string.notification_processing_rule_title),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = TextPrimary
+                        text = "Notification Processing Rule",
+                        color = TextPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = stringResource(R.string.notification_processing_rule_desc),
-                        fontSize = 11.sp,
+                        text = "Phone numbers are extracted using strict deterministic regex from notification titles & text. If WhatsApp exposes only a display name or '2 new messages' without an exposed phone number, no number is guessed. It is documented as 'Phone number unavailable' in History.",
                         color = TextSecondary,
-                        lineHeight = 15.sp
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

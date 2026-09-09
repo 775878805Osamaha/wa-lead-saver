@@ -1,10 +1,10 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,27 +24,21 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.LeadEntity
-import com.example.ui.theme.BadgeNewLeadBg
-import com.example.ui.theme.BadgeNewLeadText
-import com.example.ui.theme.CardBackground
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
+import com.example.ui.theme.TealBadgeLight
+import com.example.ui.theme.TealDark
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -53,9 +47,6 @@ import com.example.ui.theme.WhatsAppTeal
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import androidx.compose.ui.res.stringResource
-import com.example.R
 
 @Composable
 fun LeadCard(
@@ -66,218 +57,177 @@ fun LeadCard(
     onEditNameClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val relativeTime = formatRelativeTime(lead.detectedAt)
+    val relativeTime = formatRelativeTime(lead.timestamp)
 
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
             .fillMaxWidth()
-            .testTag("lead_card_${lead.id}")
+            .testTag("lead_card_${lead.id}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
-            // Header Row: Detection time + Status pill
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = relativeTime,
-                    fontSize = 12.sp,
-                    color = TextMuted,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    softWrap = false
-                )
-
-                val isVerify = lead.status.contains("Verify", ignoreCase = true) || lead.confidence == "MEDIUM"
-                val badgeBg = if (isVerify) Color(0xFFFEF3C7) else BadgeNewLeadBg
-                val badgeText = if (isVerify) Color(0xFFD97706) else BadgeNewLeadText
-
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(badgeBg)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TealBadgeLight)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
-                    val statusDisplay = when {
-                        lead.status.equals("NEW_LEAD", ignoreCase = true) || lead.status.equals("NEW", ignoreCase = true) -> stringResource(R.string.status_new_lead)
-                        lead.status.equals("SAVED", ignoreCase = true) -> stringResource(R.string.status_saved)
-                        lead.status.equals("AUTO_SAVED", ignoreCase = true) -> stringResource(R.string.status_auto_saved)
-                        lead.status.contains("VERIFY", ignoreCase = true) -> stringResource(R.string.status_needs_verification)
-                        else -> lead.status
-                    }
                     Text(
-                        text = statusDisplay,
+                        text = lead.status,
+                        color = TealDark,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = badgeText,
-                        letterSpacing = 0.5.sp,
-                        maxLines = 1,
-                        softWrap = false
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Phone Number (Always LTR)
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Text(
-                    text = lead.phoneNumber,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TextPrimary,
-                    letterSpacing = 0.2.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = relativeTime,
+                    color = TextSecondary,
+                    fontSize = 12.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Contact Name + Edit Button
+            Text(
+                text = lead.phoneNumber,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = lead.contactName,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = WhatsAppTeal,
-                    modifier = Modifier.weight(1f, fill = false),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = TextSecondary,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-
+                Spacer(modifier = Modifier.width(4.dp))
                 IconButton(
                     onClick = onEditNameClick,
                     modifier = Modifier
-                        .size(28.dp)
-                        .padding(start = 4.dp)
+                        .size(24.dp)
                         .testTag("button_edit_name_${lead.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.edit_lead_name_title),
+                        contentDescription = "Edit Contact Name",
                         tint = TextSecondary,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Found in: Source
             Text(
-                text = "${stringResource(R.string.found_in_source)} ${lead.source}",
+                text = "Found in: ${lead.source}",
                 fontSize = 12.sp,
-                color = TextSecondary,
-                fontWeight = FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                color = TextMuted
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Actions: [ Save ] [ Remove ] [ WhatsApp ]
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Save Button
                 Button(
                     onClick = onSaveClick,
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1.0f)
+                        .height(42.dp)
+                        .testTag("button_save_lead_${lead.id}"),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = WhatsAppTeal,
+                        containerColor = TealDark,
                         contentColor = Color.White
                     ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .testTag("button_save_lead_${lead.id}")
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.PersonAdd,
                         contentDescription = null,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = stringResource(R.string.save_lead_btn),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false
+                        text = "Save",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
-                // Remove Button
                 Button(
                     onClick = onRemoveClick,
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1.0f)
+                        .height(42.dp)
+                        .testTag("button_remove_lead_${lead.id}"),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = RemoveRedLight,
                         contentColor = RemoveRed
                     ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .testTag("button_remove_lead_${lead.id}")
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = null,
                         tint = RemoveRed,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = stringResource(R.string.remove_lead_btn),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "Remove",
                         color = RemoveRed,
-                        maxLines = 1,
-                        softWrap = false
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
-                // WhatsApp Button
                 Button(
                     onClick = onWhatsAppClick,
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .height(42.dp)
+                        .testTag("button_whatsapp_lead_${lead.id}"),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE8F8F0),
+                        containerColor = Color(0xFFE8F5E9),
                         contentColor = WhatsAppTeal
                     ),
-                    modifier = Modifier
-                        .weight(1.1f)
-                        .height(38.dp)
-                        .testTag("button_whatsapp_lead_${lead.id}")
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
                         tint = WhatsAppGreen,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = stringResource(R.string.whatsapp),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "WhatsApp",
                         color = WhatsAppTeal,
-                        maxLines = 1,
-                        softWrap = false
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

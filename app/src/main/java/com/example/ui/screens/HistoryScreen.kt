@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
@@ -26,13 +25,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.HistoryEntity
@@ -52,8 +46,6 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppTeal
-import androidx.compose.ui.res.stringResource
-import com.example.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,36 +62,45 @@ fun HistoryScreen(
             .fillMaxSize()
             .background(AppBackground)
     ) {
-        // Top Action bar for History
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(R.string.activity_log_count, historyList.size),
+                text = "Activity Log (${historyList.size})",
+                color = TextPrimary,
                 fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                fontWeight = FontWeight.Bold
             )
 
-            Row {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (historyList.isNotEmpty()) {
                     TextButton(
                         onClick = onClearHistory,
                         modifier = Modifier.testTag("button_clear_history_log")
                     ) {
-                        Text(stringResource(R.string.clear_action), color = RemoveRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "Clear",
+                            color = RemoveRed,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
 
                 Button(
                     onClick = onExportHistory,
+                    modifier = Modifier.testTag("button_export_history_screen"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
-                    modifier = Modifier.testTag("button_export_history_screen")
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WhatsAppTeal
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
@@ -107,64 +108,68 @@ fun HistoryScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.export_csv), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                    Text(
+                        text = "Export CSV",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
 
         if (historyList.isEmpty()) {
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(32.dp)
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(64.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE4ECE9))
+                            .background(Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
-                            contentDescription = stringResource(R.string.empty_history_title),
-                            tint = WhatsAppTeal,
-                            modifier = Modifier.size(32.dp)
+                            contentDescription = "Empty History",
+                            modifier = Modifier.size(32.dp),
+                            tint = WhatsAppTeal
                         )
                     }
-
                     Spacer(modifier = Modifier.height(14.dp))
-
                     Text(
-                        text = stringResource(R.string.no_activity_title),
+                        text = "No Activity Recorded",
+                        color = TextPrimary,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        fontWeight = FontWeight.Bold
                     )
-
                     Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
-                        text = stringResource(R.string.no_activity_desc),
-                        fontSize = 13.sp,
+                        text = "Detected WhatsApp leads, auto-saves, and scanning events will be logged here.",
                         color = TextSecondary,
+                        fontSize = 13.sp,
                         textAlign = TextAlign.Center
                     )
                 }
             }
         } else {
             LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(historyList, key = { it.id }) { item ->
+                items(
+                    items = historyList,
+                    key = { it.id }
+                ) { item ->
                     HistoryItemCard(item = item)
                 }
             }
@@ -180,70 +185,48 @@ fun HistoryItemCard(
     val dateStr = SimpleDateFormat("MMM d, yyyy • h:mm:ss a", Locale.getDefault()).format(Date(item.timestamp))
 
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
             .fillMaxWidth()
-            .testTag("history_item_${item.id}")
+            .testTag("history_item_${item.id}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp)
-        ) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Text(
-                        text = item.phoneNumber,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        modifier = Modifier.weight(1f, fill = false),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
+                Text(
+                    text = item.phoneNumber,
+                    color = TextPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 StatusBadge(status = item.status)
             }
-
             Spacer(modifier = Modifier.height(4.dp))
-
             if (item.contactName.isNotBlank() && item.contactName != "N/A") {
                 Text(
                     text = item.contactName,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
                     color = WhatsAppTeal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
             }
-
             Text(
-                text = stringResource(R.string.history_source_label, item.source, dateStr),
-                fontSize = 12.sp,
+                text = "Source: ${item.source} • $dateStr",
                 color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                fontSize = 12.sp
             )
-
             if (item.details.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = item.details,
-                    fontSize = 11.sp,
                     color = TextMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    fontSize = 11.sp
                 )
             }
         }
@@ -251,45 +234,31 @@ fun HistoryItemCard(
 }
 
 @Composable
-fun StatusBadge(status: String) {
-    val (bg, textColor) = when {
-        status.equals("Saved", ignoreCase = true) -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
-        status.equals("Duplicate", ignoreCase = true) -> Color(0xFFFFF3E0) to Color(0xFFE65100)
-        status.equals("NEW LEAD", ignoreCase = true) || status.equals("Queued", ignoreCase = true) -> Color(0xFFE0F2FE) to Color(0xFF0369A1)
-        status.contains("Verify", ignoreCase = true) -> Color(0xFFFEF3C7) to Color(0xFFD97706)
-        status.equals("Removed", ignoreCase = true) -> RemoveRedLight to RemoveRed
-        status.contains("Failed", ignoreCase = true) || status.contains("Rejected", ignoreCase = true) -> Color(0xFFFFEBEE) to Color(0xFFC62828)
-        status.contains("unavailable", ignoreCase = true) -> Color(0xFFF3E8FF) to Color(0xFF7E22CE)
-        else -> Color(0xFFF3F4F6) to Color(0xFF374151)
-    }
-
-    val displayStatus = when {
-        status.equals("Saved", ignoreCase = true) -> stringResource(R.string.status_saved)
-        status.equals("Duplicate", ignoreCase = true) -> stringResource(R.string.status_duplicate)
-        status.equals("Queued", ignoreCase = true) -> stringResource(R.string.status_queued)
-        status.equals("NEW LEAD", ignoreCase = true) -> stringResource(R.string.status_new_lead)
-        status.contains("Verify", ignoreCase = true) -> stringResource(R.string.verify_number)
-        status.equals("Removed", ignoreCase = true) -> stringResource(R.string.status_removed)
-        status.equals("Failed", ignoreCase = true) -> stringResource(R.string.status_failed)
-        status.contains("invalid", ignoreCase = true) -> stringResource(R.string.status_rejected_invalid)
-        status.contains("low-confidence", ignoreCase = true) -> stringResource(R.string.status_rejected_low_conf)
-        status.contains("unavailable", ignoreCase = true) -> stringResource(R.string.phone_number_unavailable)
-        else -> status
+fun StatusBadge(
+    status: String,
+    modifier: Modifier = Modifier
+) {
+    val (bg, textColor) = when (status) {
+        "NEW LEAD", "Queued" -> Pair(Color(0xFFE0F2FE), Color(0xFF0369A1))
+        "Saved" -> Pair(Color(0xFFDCFCE7), Color(0xFF15803D))
+        "Duplicate" -> Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
+        "Removed" -> Pair(RemoveRedLight, RemoveRed)
+        "Failed" -> Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
+        "Phone number unavailable" -> Pair(Color(0xFFF1E9FF), Color(0xFF6B21A8))
+        else -> Pair(Color(0xFFF1F5F9), Color(0xFF334155))
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(bg)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
-            text = displayStatus,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
+            text = status,
             color = textColor,
-            maxLines = 1,
-            softWrap = false
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }

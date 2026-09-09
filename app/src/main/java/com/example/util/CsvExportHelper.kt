@@ -8,14 +8,11 @@ import java.util.Date
 import java.util.Locale
 
 object CsvExportHelper {
-
     fun exportHistoryToCsv(context: Context, historyList: List<HistoryEntity>) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val csvBuilder = StringBuilder()
-
-        // CSV Header
         csvBuilder.append("ID,Phone Number,Contact Name,Source,Timestamp,Status,Details\n")
-
+        
         for (item in historyList) {
             val dateStr = dateFormat.format(Date(item.timestamp))
             val safePhone = escapeCsv(item.phoneNumber)
@@ -23,7 +20,6 @@ object CsvExportHelper {
             val safeSource = escapeCsv(item.source)
             val safeStatus = escapeCsv(item.status)
             val safeDetails = escapeCsv(item.details)
-
             csvBuilder.append("${item.id},\"$safePhone\",\"$safeName\",\"$safeSource\",\"$dateStr\",\"$safeStatus\",\"$safeDetails\"\n")
         }
 
@@ -33,10 +29,10 @@ object CsvExportHelper {
             putExtra(Intent.EXTRA_TEXT, csvBuilder.toString())
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-
-        context.startActivity(Intent.createChooser(shareIntent, "Export History CSV").apply {
+        val chooser = Intent.createChooser(shareIntent, "Export History CSV").apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        })
+        }
+        context.startActivity(chooser)
     }
 
     private fun escapeCsv(value: String): String {

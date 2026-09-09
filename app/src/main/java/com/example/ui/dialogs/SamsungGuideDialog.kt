@@ -15,15 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,16 +30,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 import com.example.util.PermissionHelper
 
@@ -54,84 +47,78 @@ fun SamsungGuideDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
-        containerColor = CardBackground,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
-                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE8F5E9))
+                        .background(WhatsAppTeal.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PhoneAndroid,
+                        imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = WhatsAppGreen,
-                        modifier = Modifier.size(22.dp)
+                        tint = WhatsAppTeal,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = stringResource(R.string.samsung_guide_title),
+                        text = "Samsung One UI Guide",
+                        color = TextPrimary,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = stringResource(R.string.samsung_guide_subtitle),
-                        fontSize = 12.sp,
-                        color = TextSecondary
+                        text = "Keep background detection alive",
+                        color = TextSecondary,
+                        fontSize = 12.sp
                     )
                 }
             }
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = stringResource(R.string.samsung_guide_intro),
-                    fontSize = 13.sp,
+                    text = "Samsung devices apply strict battery saving rules to background services. To ensure WA Lead Saver captures notifications continuously:",
                     color = TextSecondary,
+                    fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
-
-                // Step 1
+                Spacer(modifier = Modifier.height(12.dp))
                 GuideStepItem(
                     stepNumber = "1",
-                    title = stringResource(R.string.samsung_step1_title),
-                    instruction = stringResource(R.string.samsung_step1_instruction)
+                    title = "Set Battery to Unrestricted",
+                    instruction = "Settings → Apps → WA Lead Saver → Battery → Choose 'Unrestricted'"
                 )
-
-                // Step 2
+                Spacer(modifier = Modifier.height(8.dp))
                 GuideStepItem(
                     stepNumber = "2",
-                    title = stringResource(R.string.samsung_step2_title),
-                    instruction = stringResource(R.string.samsung_step2_instruction)
+                    title = "Avoid Deep Sleeping Apps",
+                    instruction = "Settings → Battery → Background usage limits → Ensure WA Lead Saver is NEVER in 'Deep sleeping apps' list."
                 )
-
-                // Step 3
+                Spacer(modifier = Modifier.height(8.dp))
                 GuideStepItem(
                     stepNumber = "3",
-                    title = stringResource(R.string.samsung_step3_title),
-                    instruction = stringResource(R.string.samsung_step3_instruction)
+                    title = "Automatic Self-Healing",
+                    instruction = "The app's NotificationListenerService automatically reconnects whenever the Android OS restarts or wakes up."
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    try {
-                        context.startActivity(PermissionHelper.getAppDetailsSettingsIntent(context))
-                    } catch (_: Exception) {}
+                    PermissionHelper.openAppSettings(context)
                 },
+                modifier = Modifier.testTag("button_open_samsung_app_settings"),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
-                modifier = Modifier.testTag("button_open_samsung_app_settings")
+                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
             ) {
                 Icon(
                     imageVector = Icons.Default.OpenInNew,
@@ -139,7 +126,10 @@ fun SamsungGuideDialog(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.open_app_settings), fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Open App Settings",
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         dismissButton = {
@@ -147,9 +137,14 @@ fun SamsungGuideDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_dismiss_samsung_guide")
             ) {
-                Text(stringResource(R.string.got_it), color = TextSecondary)
+                Text(
+                    text = "Got it",
+                    color = TextSecondary
+                )
             }
-        }
+        },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = CardBackground
     )
 }
 
@@ -160,15 +155,15 @@ private fun GuideStepItem(
     instruction: String
 ) {
     Row(
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
     ) {
         Box(
-            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(WhatsAppTeal)
+                .background(WhatsAppTeal),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = stepNumber,
@@ -177,21 +172,21 @@ private fun GuideStepItem(
                 fontWeight = FontWeight.Bold
             )
         }
-
         Spacer(modifier = Modifier.width(10.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = title,
+                color = TextPrimary,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = instruction,
-                fontSize = 12.sp,
                 color = TextSecondary,
+                fontSize = 12.sp,
                 lineHeight = 16.sp
             )
         }

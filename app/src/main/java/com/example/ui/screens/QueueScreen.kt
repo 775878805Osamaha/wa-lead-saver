@@ -18,16 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,17 +40,11 @@ import com.example.data.database.entity.LeadEntity
 import com.example.ui.components.LeadCard
 import com.example.ui.theme.AppBackground
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.CardBorder
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
-
-import androidx.compose.ui.res.stringResource
-import com.example.R
 
 @Composable
 fun QueueScreen(
@@ -73,63 +63,60 @@ fun QueueScreen(
             .background(AppBackground)
     ) {
         if (queuedLeads.isEmpty()) {
-            // Empty State
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(32.dp)
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE4ECE9))
+                            .background(Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Inbox,
-                            contentDescription = stringResource(R.string.empty_queue_title),
-                            tint = WhatsAppTeal,
-                            modifier = Modifier.size(36.dp)
+                            contentDescription = "Empty Queue",
+                            modifier = Modifier.size(36.dp),
+                            tint = WhatsAppTeal
                         )
                     }
-
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
-                        text = stringResource(R.string.empty_queue_title),
+                        text = "Queue is Empty",
+                        color = TextPrimary,
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        fontWeight = FontWeight.Bold
                     )
-
                     Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
-                        text = stringResource(R.string.empty_queue_desc),
-                        fontSize = 14.sp,
+                        text = "New unsaved numbers detected from WhatsApp notifications or photo scans will appear here.",
                         color = TextSecondary,
+                        fontSize = 14.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 20.sp
                     )
                 }
             }
         } else {
-            // List of Lead Cards
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(queuedLeads, key = { it.id }) { lead ->
+                items(
+                    items = queuedLeads,
+                    key = { it.id }
+                ) { lead ->
                     LeadCard(
                         lead = lead,
                         onSaveClick = { onSaveLead(lead) },
@@ -138,38 +125,35 @@ fun QueueScreen(
                         onEditNameClick = { onEditLeadName(lead) }
                     )
                 }
-
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
-            // Bottom Save All / Clear All Bar
             Surface(
+                modifier = Modifier.fillMaxWidth(),
                 color = CardBackground,
-                tonalElevation = 8.dp,
                 shadowElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth()
+                tonalElevation = 8.dp
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Save All (Count) Button
                     Button(
                         onClick = onSaveAll,
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(50.dp)
+                            .testTag("button_save_all"),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = WhatsAppTeal,
                             contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(50.dp)
-                            .testTag("button_save_all")
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Save,
@@ -178,37 +162,36 @@ fun QueueScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = stringResource(R.string.save_all_queued, queuedLeads.size),
+                            text = "Save All (${queuedLeads.size})",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // Clear All Button
                     Button(
                         onClick = onClearAll,
+                        modifier = Modifier
+                            .weight(1.0f)
+                            .height(50.dp)
+                            .testTag("button_clear_all"),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = RemoveRedLight,
                             contentColor = RemoveRed
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
-                            .testTag("button_clear_all")
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
                             contentDescription = null,
-                            tint = RemoveRed,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
+                            tint = RemoveRed
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = stringResource(R.string.clear_all),
+                            text = "Clear All",
+                            color = RemoveRed,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = RemoveRed
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }

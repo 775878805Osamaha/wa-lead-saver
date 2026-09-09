@@ -19,11 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.WhatsAppTeal
 
@@ -38,36 +36,6 @@ fun EditNameDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Text(
-                text = stringResource(R.string.dialog_edit_name_title),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = TextPrimary
-            )
-        },
-        text = {
-            Column {
-                val ltrPhoneNumber = "\u202A$phoneNumber\u202C"
-                Text(
-                    text = stringResource(R.string.dialog_edit_name_number_label, ltrPhoneNumber),
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.dialog_edit_name_input_label)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("dialog_edit_name_input")
-                )
-            }
-        },
         confirmButton = {
             Button(
                 onClick = {
@@ -75,11 +43,14 @@ fun EditNameDialog(
                         onConfirm(name.trim())
                     }
                 },
+                modifier = Modifier.testTag("dialog_edit_name_save_button"),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
-                modifier = Modifier.testTag("dialog_edit_name_save_button")
+                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
             ) {
-                Text(stringResource(R.string.save), fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Save",
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         dismissButton = {
@@ -87,8 +58,37 @@ fun EditNameDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("dialog_edit_name_cancel_button")
             ) {
-                Text(stringResource(R.string.cancel), color = Color.Gray)
+                Text(
+                    text = "Cancel",
+                    color = Color.Gray
+                )
             }
-        }
+        },
+        title = {
+            Text(
+                text = "Edit Contact Name",
+                color = TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Number: $phoneNumber",
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Contact Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
     )
 }
