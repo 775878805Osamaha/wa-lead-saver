@@ -2,6 +2,7 @@ package com.example.data.auth
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -191,5 +192,89 @@ class SessionCryptoAndOfflineCacheTest {
 
         val afterClear = sessionManager.getCachedSession()
         assertNull(afterClear)
+    }
+
+    @Test
+    fun testGeneratedIVIsNonEmptyAndCorrectLength() {
+        val payload = sessionCrypto.encrypt("test-auth-session-key")
+        val iv = sessionCrypto.extractIV(payload)
+
+        assertNotNull("Generated IV must not be null", iv)
+        assertEquals("Generated IV must be exactly 12 bytes (96 bits) for AES-GCM", 12, iv!!.size)
+        assertTrue("Generated IV must not be all zeros", iv.any { it != 0.toByte() })
+    }
+
+    @Test
+    fun testDifferentEncryptionsProduceDifferentIVsAndCiphertexts() {
+        val plainText = "fixed-payload-token-123"
+        val enc1 = sessionCrypto.encrypt(plainText)
+        val enc2 = sessionCrypto.encrypt(plainText)
+
+        assertNotEquals("Ciphertexts must differ due to random IVs", enc1, enc2)
+
+        val iv1 = sessionCrypto.extractIV(enc1)
+        val iv2 = sessionCrypto.extractIV(enc2)
+
+        assertNotNull(iv1)
+        assertNotNull(iv2)
+        assertFalse("Two encryptions must have generated distinct random IVs", iv1!!.contentEquals(iv2!!))
+
+        assertEquals(plainText, sessionCrypto.decrypt(enc1))
+        assertEquals(plainText, sessionCrypto.decrypt(enc2))
+    }
+
+    @Test
+    fun testCorruptedEncryptedDataFailsGracefully() = runBlocking {
+        // 1. Completely invalid string
+        assertNull(sessionCrypto.decrypt("not-a-base64-string!!@@##"))
+
+        // 2. Too short payload (less than 12-byte IV + 16-byte tag)
+        val shortPayload = android.util.Base64.encodeToString(ByteArray(10), android.util.Base64.NO_WRAP)
+        assertNull(sessionCrypto.decrypt(shortPayload))
+
+        // 3. Corrupted ciphertext payload: decrypt returns null gracefully without throwing
+        val corruptedPayload = "corrupted_non_decryptable_payload_1234567890"
+        val res = sessionCrypto.decrypt(corruptedPayload)
+        assertNull("Corrupted payload must return null without throwing", res)
+
+        // 4. Test clearing invalid session payload
+        sessionManager.clearInvalidSessionPayload()
+        val cached = sessionManager.getCachedSession()
+        assertNull(cached)
+    }
+
+    @Test
+    fun testExistingAppDataNotDeletedWhenCorruptSessionCleared() = runBlocking {
+        val settingsDataStore = com.example.data.datastore.SettingsDataStore(context)
+        val setResult = settingsDataStore.setDefaultContactName("زبون متجر أومكس المميز")
+        assertTrue(setResult.isSuccess)
+
+        // Check that settings are saved
+        val initialSettings = settingsDataStore.settingsFlow.first()
+        assertEquals("زبون متجر أومكس المميز", initialSettings.defaultContactName)
+
+        // Now simulate a corrupt session cleanup
+        sessionManager.clearInvalidSessionPayload()
+
+        // Verify app settings and database data are completely preserved
+        val settingsAfterSessionClean = settingsDataStore.settingsFlow.first()
+        assertEquals("زبون متجر أومكس المميز", settingsAfterSessionClean.defaultContactName)
+    }
+
+    @Test
+    fun testRememberMeFalseClearsPersistentStorage() = runBlocking {
+        sessionManager.saveSession(
+            accessToken = "temp_token",
+            refreshToken = null,
+            userId = "temp_user",
+            email = "temp@example.com",
+            role = UserRole.USER,
+            accountNumber = "OMX-777777",
+            account = null,
+            remember = false // user uncheck "Remember me"
+        )
+
+        val cached = sessionManager.getCachedSession()
+        assertNull("Session with remember=false must not be stored in persistent storage", cached)
     }
 }

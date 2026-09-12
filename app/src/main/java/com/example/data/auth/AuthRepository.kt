@@ -189,16 +189,20 @@ class AuthRepository(
         val profile = profileRes.getOrNull() ?: UserProfile(id = userId, email = userEmail)
 
         if (profile.role == UserRole.ADMIN) {
-            sessionManager.saveSession(
-                accessToken = token,
-                refreshToken = refreshToken,
-                userId = userId,
-                email = userEmail,
-                role = UserRole.ADMIN,
-                accountNumber = null,
-                account = null,
-                remember = rememberMe
-            )
+            try {
+                sessionManager.saveSession(
+                    accessToken = token,
+                    refreshToken = refreshToken,
+                    userId = userId,
+                    email = userEmail,
+                    role = UserRole.ADMIN,
+                    accountNumber = null,
+                    account = null,
+                    remember = rememberMe
+                )
+            } catch (e: Exception) {
+                android.util.Log.w("AuthRepository", "Failed to cache admin session locally: ${e.message}")
+            }
             val state = AuthState.AuthenticatedAdmin(profile)
             _authState.value = state
             return AuthResult.Success(state)
@@ -227,16 +231,20 @@ class AuthRepository(
 
         val finalState = validateAccountState(profile, account)
 
-        sessionManager.saveSession(
-            accessToken = token,
-            refreshToken = refreshToken,
-            userId = userId,
-            email = userEmail,
-            role = UserRole.USER,
-            accountNumber = account.accountNumber,
-            account = account,
-            remember = rememberMe
-        )
+        try {
+            sessionManager.saveSession(
+                accessToken = token,
+                refreshToken = refreshToken,
+                userId = userId,
+                email = userEmail,
+                role = UserRole.USER,
+                accountNumber = account.accountNumber,
+                account = account,
+                remember = rememberMe
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("AuthRepository", "Failed to cache user session locally: ${e.message}")
+        }
 
         return AuthResult.Success(finalState)
     }

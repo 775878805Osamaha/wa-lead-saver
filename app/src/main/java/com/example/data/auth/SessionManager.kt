@@ -75,6 +75,12 @@ class SessionManager(
         remember: Boolean = true,
         lastValidatedTimestamp: Long = System.currentTimeMillis()
     ) {
+        if (!remember) {
+            // User chose not to remember session: clear persistent session store
+            clearSession()
+            return
+        }
+
         val sessionJson = JSONObject().apply {
             put("accessToken", accessToken)
             put("refreshToken", refreshToken ?: "")
@@ -165,8 +171,13 @@ class SessionManager(
                         lastValidatedTimestamp = lastVal
                     )
                 } catch (_: Exception) {
-                    // Decryption / JSON parsing failure, proceed to fallback
+                    // Decryption / JSON parsing failure: gracefully clear invalid session payload only
+                    clearInvalidSessionPayload()
                 }
+            } else {
+                // Decryption returned null (e.g. payload corrupted, wrong tag, or legacy broken format):
+                // Gracefully clear only the invalid auth session payload so user can log in cleanly
+                clearInvalidSessionPayload()
             }
         }
 
@@ -221,6 +232,21 @@ class SessionManager(
         )
 
         return legacySession
+    }
+
+    /**
+     * Gracefully removes ONLY the invalid local encrypted auth session payload and timestamp.
+     * Does NOT touch the app database, leads, contacts, queue, history, settings, or other user data.
+     */
+    suspend fun clearInvalidSessionPayload() {
+        try {
+            context.sessionDataStore.edit { prefs ->
+                prefs.remove(KEY_ENCRYPTED_SESSION)
+                prefs.remove(KEY_LAST_OFFLINE_VALIDATED)
+            }
+        } catch (_: Exception) {
+            // Ignore error during cleanup
+        }
     }
 
     suspend fun clearSession() {
