@@ -150,6 +150,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setDefaultContactName(name: String) {
+        viewModelScope.launch {
+            val result = repository.setDefaultContactName(name)
+            if (result.isFailure) {
+                _userMessage.value = result.exceptionOrNull()?.message ?: "Invalid contact name"
+            }
+        }
+    }
+
     fun clearHistory() {
         viewModelScope.launch {
             repository.clearHistory()

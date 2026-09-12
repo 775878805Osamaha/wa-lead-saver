@@ -39,12 +39,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.R
 import com.example.data.datastore.AppSettings
 import com.example.ui.theme.AppBackground
 import com.example.ui.theme.CardBackground
@@ -53,6 +55,7 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
+import com.example.util.ContactNameValidator
 import com.example.util.PermissionHelper
 
 @Composable
@@ -63,6 +66,7 @@ fun SettingsScreen(
     onMonitorWhatsAppBusinessChange: (Boolean) -> Unit,
     onPrefixChange: (String) -> Unit,
     onCountryCodeChange: (String) -> Unit,
+    onDefaultContactNameChange: (String) -> Unit = {},
     onRequestContactsPermission: () -> Unit,
     onOpenSamsungGuide: () -> Unit,
     modifier: Modifier = Modifier
@@ -84,6 +88,10 @@ fun SettingsScreen(
     var countryCodeInput by remember(settings.countryCode) {
         mutableStateOf(settings.countryCode)
     }
+    var defaultContactNameInput by remember(settings.defaultContactName) {
+        mutableStateOf(settings.defaultContactName)
+    }
+    var defaultContactNameError by remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -179,6 +187,67 @@ fun SettingsScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = stringResource(R.string.settings_default_contact_name_title),
+                    color = TextPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.settings_default_contact_name_desc),
+                    color = TextSecondary,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = defaultContactNameInput,
+                        onValueChange = {
+                            defaultContactNameInput = it
+                            if (defaultContactNameError != null) defaultContactNameError = null
+                        },
+                        placeholder = {
+                            Text(stringResource(R.string.settings_default_contact_name_placeholder))
+                        },
+                        isError = defaultContactNameError != null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("settings_input_default_contact_name"),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val trimmed = defaultContactNameInput.trim()
+                            if (trimmed.isEmpty()) {
+                                defaultContactNameError = context.getString(R.string.settings_default_contact_name_empty_error)
+                            } else if (!ContactNameValidator.isValid(trimmed)) {
+                                defaultContactNameError = context.getString(R.string.settings_default_contact_name_invalid_error)
+                            } else {
+                                defaultContactNameError = null
+                                onDefaultContactNameChange(trimmed)
+                            }
+                        },
+                        modifier = Modifier.testTag("settings_save_default_contact_name_btn"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                    ) {
+                        Text("Save")
+                    }
+                }
+                if (defaultContactNameError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = defaultContactNameError ?: "",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 12.sp,
+                        modifier = Modifier.testTag("settings_default_contact_name_error")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "Contact Name Prefix",
                     color = TextPrimary,

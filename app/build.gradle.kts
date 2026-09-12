@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -16,6 +19,22 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val envFile = rootProject.file(".env")
+        val envProps = Properties()
+        if (envFile.exists()) {
+            FileInputStream(envFile).use { envProps.load(it) }
+        }
+        val envSupabaseUrl = (project.findProperty("SUPABASE_URL") as? String)
+            ?: envProps.getProperty("SUPABASE_URL")
+            ?: System.getenv("SUPABASE_URL")
+            ?: ""
+        val envSupabaseAnonKey = (project.findProperty("SUPABASE_ANON_KEY") as? String)
+            ?: envProps.getProperty("SUPABASE_ANON_KEY")
+            ?: System.getenv("SUPABASE_ANON_KEY")
+            ?: ""
+        buildConfigField("String", "SUPABASE_URL", "\"$envSupabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$envSupabaseAnonKey\"")
     }
 
     buildTypes {
@@ -33,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -65,6 +85,9 @@ dependencies {
     // Image loading & permissions
     implementation(libs.coil.compose)
     implementation(libs.accompanist.permissions)
+
+    // Networking for Supabase Client
+    implementation(libs.okhttp)
 
     // Testing
     testImplementation(libs.junit)

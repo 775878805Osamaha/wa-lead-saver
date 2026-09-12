@@ -34,10 +34,6 @@ class LeadRepository(
     private val database: AppDatabase,
     private val settingsDataStore: SettingsDataStore
 ) {
-    companion object {
-        const val DEFAULT_CONTACT_NAME = "زبون متجر أومكس"
-    }
-
     private val leadDao: LeadDao = database.leadDao()
     private val historyDao: HistoryDao = database.historyDao()
 
@@ -47,9 +43,16 @@ class LeadRepository(
     val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
     val settings: Flow<AppSettings> = settingsDataStore.settingsFlow
 
+    suspend fun getEffectiveDefaultContactName(): String {
+        val currentSettings = settings.first()
+        return currentSettings.defaultContactName.takeIf { it.isNotBlank() }
+            ?: AppSettings.DEFAULT_CONTACT_NAME
+    }
+
     suspend fun processIncomingPhoneCandidate(rawCandidate: String, source: String): ProcessResult {
         val currentSettings = settings.first()
         val normalized = PhoneNumberHelper.normalize(rawCandidate, currentSettings.countryCode)
+        val contactName = getEffectiveDefaultContactName()
 
         if (!PhoneNumberHelper.isValidPhoneNumber(normalized)) {
             val displayNum = rawCandidate.ifBlank { "N/A" }
@@ -65,7 +68,6 @@ class LeadRepository(
 
         // Check if already in system contacts
         if (ContactsHelper.contactExists(context, normalized)) {
-            val contactName = DEFAULT_CONTACT_NAME
             recordHistory(
                 phoneNumber = normalized,
                 contactName = contactName,
@@ -84,7 +86,7 @@ class LeadRepository(
             } else {
                 recordHistory(
                     phoneNumber = normalized,
-                    contactName = DEFAULT_CONTACT_NAME,
+                    contactName = existingLead.contactName.ifBlank { contactName },
                     source = source,
                     status = "Duplicate",
                     details = "Lead was already saved previously"
@@ -92,8 +94,6 @@ class LeadRepository(
                 ProcessResult.AlreadySaved(normalized)
             }
         }
-
-        val contactName = DEFAULT_CONTACT_NAME
 
         // Check if auto-save enabled
         return if (currentSettings.autoSaveLeads) {
@@ -175,9 +175,9 @@ class LeadRepository(
             return SaveLeadResult.MissingPermission
         }
 
-        val contactName = DEFAULT_CONTACT_NAME
+        val contactName = getEffectiveDefaultContactName()
         if (ContactsHelper.contactExists(context, lead.normalizedNumber)) {
-            leadDao.markAsSaved(lead.id)
+            leadDao.markAsSavedWithName(lead.id, contactName)
             recordHistory(
                 phoneNumber = lead.normalizedNumber,
                 contactName = contactName,
@@ -190,7 +190,7 @@ class LeadRepository(
 
         val result = ContactsHelper.saveContact(context, contactName, lead.normalizedNumber)
         return if (result.isSuccess && result.getOrNull() == true) {
-            leadDao.markAsSaved(lead.id)
+            leadDao.markAsSavedWithName(lead.id, contactName)
             recordHistory(
                 phoneNumber = lead.normalizedNumber,
                 contactName = contactName,
@@ -220,11 +220,11 @@ class LeadRepository(
         val queued = leadDao.getQueuedLeadsSnapshot()
         var savedCount = 0
         var duplicateCount = 0
+        val contactName = getEffectiveDefaultContactName()
 
         for (lead in queued) {
-            val contactName = DEFAULT_CONTACT_NAME
             if (ContactsHelper.contactExists(context, lead.normalizedNumber)) {
-                leadDao.markAsSaved(lead.id)
+                leadDao.markAsSavedWithName(lead.id, contactName)
                 recordHistory(
                     phoneNumber = lead.normalizedNumber,
                     contactName = contactName,
@@ -236,7 +236,7 @@ class LeadRepository(
             } else {
                 val res = ContactsHelper.saveContact(context, contactName, lead.normalizedNumber)
                 if (res.isSuccess && res.getOrNull() == true) {
-                    leadDao.markAsSaved(lead.id)
+                    leadDao.markAsSavedWithName(lead.id, contactName)
                     recordHistory(
                         phoneNumber = lead.normalizedNumber,
                         contactName = contactName,
@@ -316,6 +316,10 @@ class LeadRepository(
 
     suspend fun setCountryCode(countryCode: String) {
         settingsDataStore.setCountryCode(countryCode)
+    }
+
+    suspend fun setDefaultContactName(name: String): Result<Unit> {
+        return settingsDataStore.setDefaultContactName(name)
     }
 
     private suspend fun recordHistory(

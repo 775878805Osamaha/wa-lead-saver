@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ContactPhone
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ fun AppTopBar(
     onExportClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onLogoutClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -165,6 +167,21 @@ fun AppTopBar(
                         contentDescription = "Settings",
                         tint = Color.White
                     )
+                }
+
+                if (onLogoutClick != null) {
+                    IconButton(
+                        onClick = onLogoutClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("topbar_logout_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = Color(0xFFFCA5A5)
+                        )
+                    }
                 }
             }
         }

@@ -40,6 +40,9 @@ interface LeadDao {
     @Query("UPDATE leads SET isSaved = 1, status = 'SAVED' WHERE id = :id")
     suspend fun markAsSaved(id: Long)
 
+    @Query("UPDATE leads SET isSaved = 1, status = 'SAVED', contactName = :contactName WHERE id = :id")
+    suspend fun markAsSavedWithName(id: Long, contactName: String)
+
     @Query("DELETE FROM leads WHERE id = :id")
     suspend fun deleteLeadById(id: Long)
 

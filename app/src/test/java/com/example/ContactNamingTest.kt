@@ -1,18 +1,18 @@
 package com.example
 
-import android.content.ContentProviderOperation
 import android.content.Context
 import android.os.Build
-import android.provider.ContactsContract
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.AppDatabase
 import com.example.data.database.entity.LeadEntity
+import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
 import com.example.data.repository.LeadRepository
 import com.example.data.repository.ProcessResult
-import com.example.util.ContactsHelper
+import com.example.util.ContactNameValidator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -32,11 +32,12 @@ class ContactNamingTest {
 
     private lateinit var context: Context
     private lateinit var database: AppDatabase
+    private lateinit var settingsDataStore: SettingsDataStore
     private lateinit var repository: LeadRepository
-    private val expectedContactName = "زبون متجر أومكس"
+    private val defaultExpectedName = "زبون متجر أومكس"
 
     @Before
-    fun setup() {
+    fun setup() = runTest {
         val app = ApplicationProvider.getApplicationContext<android.app.Application>()
         org.robolectric.Shadows.shadowOf(app).grantPermissions(
             android.Manifest.permission.READ_CONTACTS,
@@ -46,23 +47,27 @@ class ContactNamingTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        val settingsDataStore = SettingsDataStore(context)
+        settingsDataStore = SettingsDataStore(context)
+        settingsDataStore.setDefaultContactName(AppSettings.DEFAULT_CONTACT_NAME)
         repository = LeadRepository(context, database, settingsDataStore)
     }
 
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
+        settingsDataStore.setDefaultContactName(AppSettings.DEFAULT_CONTACT_NAME)
         database.close()
     }
 
     @Test
-    fun testConstantContactNameIsExact() {
-        assertEquals("زبون متجر أومكس", LeadRepository.DEFAULT_CONTACT_NAME)
-        assertEquals("زبون متجر أومكس", ContactsHelper.DEFAULT_CONTACT_NAME)
+    fun testDefaultSettingValueIsExact() = runTest {
+        assertEquals("زبون متجر أومكس", AppSettings.DEFAULT_CONTACT_NAME)
+        val initialSettings = repository.settings.first()
+        assertEquals("زبون متجر أومكس", initialSettings.defaultContactName)
+        assertEquals("زبون متجر أومكس", repository.getEffectiveDefaultContactName())
     }
 
     @Test
-    fun testFirstCustomerNumberNaming_WhatsApp() = runTest {
+    fun testFirstCustomerNumberNaming_WhatsApp_UsesDefaultName() = runTest {
         val phoneNumber = "+96777178691"
         repository.setAutoSave(false)
 
@@ -73,14 +78,14 @@ class ContactNamingTest {
         assertEquals(1, queuedLeads.size)
         val lead = queuedLeads.first()
 
-        assertEquals(expectedContactName, lead.contactName)
+        assertEquals(defaultExpectedName, lead.contactName)
         assertFalse(lead.contactName.contains(phoneNumber))
         assertFalse(lead.contactName.contains("أنت"))
         assertFalse(lead.contactName.contains("You"))
     }
 
     @Test
-    fun testSecondCustomerNumberNaming_WhatsAppBusiness() = runTest {
+    fun testSecondCustomerNumberNaming_WhatsAppBusiness_UsesDefaultName() = runTest {
         val phoneNumber = "+967730909005"
         repository.setAutoSave(false)
 
@@ -91,14 +96,14 @@ class ContactNamingTest {
         assertEquals(1, queuedLeads.size)
         val lead = queuedLeads.first()
 
-        assertEquals(expectedContactName, lead.contactName)
+        assertEquals(defaultExpectedName, lead.contactName)
         assertFalse(lead.contactName.contains(phoneNumber))
         assertFalse(lead.contactName.contains("أنا"))
         assertFalse(lead.contactName.contains("Me"))
     }
 
     @Test
-    fun testAutoSaveNaming_WhatsApp() = runTest {
+    fun testAutoSaveNaming_WhatsApp_UsesDefaultName() = runTest {
         val phoneNumber = "+96777178691"
         repository.setAutoSave(true)
 
@@ -106,93 +111,146 @@ class ContactNamingTest {
 
         val allLeads = database.leadDao().findLeadByNormalizedNumber(phoneNumber)
         assertNotNull(allLeads)
-        assertEquals(expectedContactName, allLeads?.contactName)
+        assertEquals(defaultExpectedName, allLeads?.contactName)
     }
 
     @Test
-    fun testQueueSaveNaming() = runTest {
-        val lead = LeadEntity(
-            phoneNumber = "+967730909005",
-            normalizedNumber = "+967730909005",
-            contactName = "Old Custom Title",
-            source = "WhatsApp",
-            isSaved = false,
-            status = "NEW LEAD"
-        )
-        val id = database.leadDao().insertLead(lead)
-        val insertedLead = lead.copy(id = id)
+    fun testChangeSettingToCustomArabicName_AndVerifyFutureSavedContact() = runTest {
+        // Change setting to: "عميل أومكس"
+        val customName = "عميل أومكس"
+        val changeResult = repository.setDefaultContactName(customName)
+        assertTrue(changeResult.isSuccess)
 
-        repository.saveLead(insertedLead)
+        val updatedSettings = repository.settings.first()
+        assertEquals(customName, updatedSettings.defaultContactName)
+        assertEquals(customName, repository.getEffectiveDefaultContactName())
 
-        val history = database.historyDao().getAllHistoryList().filter { it.phoneNumber == "+967730909005" }
+        // Save a new contact with the updated setting
+        val phoneNumber = "+96777178691"
+        repository.setAutoSave(true)
+        val processResult = repository.processIncomingPhoneCandidate(phoneNumber, "WhatsApp")
+        assertTrue(processResult is ProcessResult.AutoSaved)
+
+        val savedLead = database.leadDao().findLeadByNormalizedNumber(phoneNumber)
+        assertNotNull(savedLead)
+        assertEquals(customName, savedLead?.contactName)
+
+        val history = database.historyDao().getAllHistoryList().filter { it.phoneNumber == phoneNumber }
         assertTrue(history.isNotEmpty())
-        assertEquals(expectedContactName, history.first().contactName)
+        assertEquals(customName, history.first().contactName)
     }
 
     @Test
-    fun testSaveAllQueuedNaming() = runTest {
+    fun testChangeSettingAgainToEnglishName_AndVerifyExistingContactsRemainUntouched() = runTest {
+        // Step 1: Save Contact 1 with default name: "زبون متجر أومكس"
+        val phone1 = "+96777178691"
+        repository.setAutoSave(true)
+        repository.processIncomingPhoneCandidate(phone1, "WhatsApp")
+
+        val contact1Initial = database.leadDao().findLeadByNormalizedNumber(phone1)
+        assertNotNull(contact1Initial)
+        assertEquals("زبون متجر أومكس", contact1Initial?.contactName)
+
+        // Step 2: Change setting to: "عميل أومكس"
+        val name2 = "عميل أومكس"
+        repository.setDefaultContactName(name2)
+
+        // Save Contact 2 with name "عميل أومكس"
+        val phone2 = "+967730909005"
+        repository.processIncomingPhoneCandidate(phone2, "WhatsApp Business")
+
+        val contact2 = database.leadDao().findLeadByNormalizedNumber(phone2)
+        assertNotNull(contact2)
+        assertEquals(name2, contact2?.contactName)
+
+        // Verify Contact 1 was NOT renamed
+        val contact1AfterFirstChange = database.leadDao().findLeadByNormalizedNumber(phone1)
+        assertEquals("زبون متجر أومكس", contact1AfterFirstChange?.contactName)
+
+        // Step 3: Change setting again to: "OMX Customer"
+        val name3 = "OMX Customer"
+        repository.setDefaultContactName(name3)
+
+        // Save Contact 3 with name "OMX Customer"
+        val phone3 = "+967711223344"
+        repository.processIncomingPhoneCandidate(phone3, "WhatsApp")
+
+        val contact3 = database.leadDao().findLeadByNormalizedNumber(phone3)
+        assertNotNull(contact3)
+        assertEquals(name3, contact3?.contactName)
+
+        // Verify Contact 1 and Contact 2 STILL keep their original names and were NOT renamed
+        val contact1Final = database.leadDao().findLeadByNormalizedNumber(phone1)
+        val contact2Final = database.leadDao().findLeadByNormalizedNumber(phone2)
+
+        assertEquals("زبون متجر أومكس", contact1Final?.contactName)
+        assertEquals(name2, contact2Final?.contactName)
+    }
+
+    @Test
+    fun testQueueSaveAndSaveAll_UsesCurrentConfiguredSetting() = runTest {
+        val configuredName = "عميل أومكس"
+        repository.setDefaultContactName(configuredName)
+
         val lead1 = LeadEntity(
             phoneNumber = "+96777178691",
             normalizedNumber = "+96777178691",
-            contactName = "Title 1",
+            contactName = "Old Title",
             source = "WhatsApp",
             isSaved = false,
             status = "NEW LEAD"
         )
+        val id = database.leadDao().insertLead(lead1)
+        val insertedLead = lead1.copy(id = id)
+
+        repository.saveLead(insertedLead)
+
+        val history = database.historyDao().getAllHistoryList().filter { it.phoneNumber == "+96777178691" }
+        assertTrue(history.isNotEmpty())
+        assertEquals(configuredName, history.first().contactName)
+
+        // Test Save All with another contact
+        val configuredName2 = "OMX Customer"
+        repository.setDefaultContactName(configuredName2)
+
         val lead2 = LeadEntity(
             phoneNumber = "+967730909005",
             normalizedNumber = "+967730909005",
-            contactName = "Title 2",
+            contactName = "Old Title 2",
             source = "WhatsApp Business",
             isSaved = false,
             status = "NEW LEAD"
         )
-        database.leadDao().insertLead(lead1)
         database.leadDao().insertLead(lead2)
 
         repository.saveAllQueued()
 
-        val allHistory = database.historyDao().getAllHistoryList()
-        val history1 = allHistory.filter { it.phoneNumber == "+96777178691" }
-        assertTrue(history1.isNotEmpty())
-        assertEquals(expectedContactName, history1.first().contactName)
-
-        val history2 = allHistory.filter { it.phoneNumber == "+967730909005" }
+        val history2 = database.historyDao().getAllHistoryList().filter { it.phoneNumber == "+967730909005" }
         assertTrue(history2.isNotEmpty())
-        assertEquals(expectedContactName, history2.first().contactName)
+        assertEquals(configuredName2, history2.first().contactName)
     }
 
     @Test
-    fun testFinalNamePassedToContactsContract() {
-        assertEquals("زبون متجر أومكس", ContactsHelper.DEFAULT_CONTACT_NAME)
+    fun testValidation_RejectsEmptyAndDisallowedNames() = runTest {
+        assertFalse(ContactNameValidator.isValid(""))
+        assertFalse(ContactNameValidator.isValid("   "))
+        assertFalse(ContactNameValidator.isValid("أنت"))
+        assertFalse(ContactNameValidator.isValid("أنا"))
+        assertFalse(ContactNameValidator.isValid("You"))
+        assertFalse(ContactNameValidator.isValid("me"))
 
-        val testNumber = "+96777178691"
-        val ops = ArrayList<ContentProviderOperation>()
-        val rawContactInsertIndex = ops.size
-        ops.add(
-            ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
-                .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
-                .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null)
-                .build()
-        )
-        ops.add(
-            ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactInsertIndex)
-                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, ContactsHelper.DEFAULT_CONTACT_NAME)
-                .build()
-        )
-        ops.add(
-            ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactInsertIndex)
-                .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, testNumber)
-                .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
-                .build()
-        )
+        assertTrue(ContactNameValidator.isValid("زبون متجر أومكس"))
+        assertTrue(ContactNameValidator.isValid("عميل أومكس"))
+        assertTrue(ContactNameValidator.isValid("OMX Customer"))
 
-        val nameOp = ops[1]
-        assertNotNull(nameOp)
-        assertEquals(ContactsContract.Data.CONTENT_URI, nameOp.uri)
+        // Attempting to save an invalid name returns failure
+        val emptyResult = repository.setDefaultContactName("   ")
+        assertTrue(emptyResult.isFailure)
+
+        val disallowedResult = repository.setDefaultContactName("You")
+        assertTrue(disallowedResult.isFailure)
+
+        // Setting should remain unchanged
+        assertEquals("زبون متجر أومكس", repository.getEffectiveDefaultContactName())
     }
 }

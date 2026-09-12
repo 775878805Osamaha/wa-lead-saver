@@ -45,6 +45,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.auth.AuthState
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
 import com.example.ui.components.AppTopBar
@@ -52,8 +53,10 @@ import com.example.ui.dialogs.EditNameDialog
 import com.example.ui.dialogs.PhotoScanDialog
 import com.example.ui.dialogs.SamsungGuideDialog
 import com.example.ui.dialogs.SaveExistingContactsDialog
+import com.example.ui.screens.AdminDashboardScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.HistoryScreen
+import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.QueueScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TextMuted
@@ -62,6 +65,7 @@ import com.example.ui.theme.WhatsAppTeal
 import com.example.util.CsvExportHelper
 import com.example.util.PermissionHelper
 import com.example.util.WhatsAppHelper
+import com.example.viewmodel.AuthViewModel
 import com.example.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             WALeadSaverTheme {
                 val viewModel: MainViewModel = viewModel()
+                val authViewModel: AuthViewModel = viewModel()
                 mainViewModel = viewModel
 
                 val lifecycleOwner = LocalLifecycleOwner.current
@@ -89,14 +94,36 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                MainScreen(viewModel = viewModel)
+                val authState by authViewModel.authState.collectAsStateWithLifecycle()
+                when (val state = authState) {
+                    is AuthState.AuthenticatedUser -> {
+                        MainScreen(
+                            viewModel = viewModel,
+                            authViewModel = authViewModel
+                        )
+                    }
+                    is AuthState.AuthenticatedAdmin -> {
+                        AdminDashboardScreen(
+                            authViewModel = authViewModel,
+                            onLogout = { authViewModel.logout() }
+                        )
+                    }
+                    else -> {
+                        LoginScreen(
+                            authViewModel = authViewModel
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(viewModel: MainViewModel) {
+fun MainScreen(
+    viewModel: MainViewModel,
+    authViewModel: AuthViewModel? = null
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -174,7 +201,8 @@ fun MainScreen(viewModel: MainViewModel) {
                 onCameraClick = { showPhotoScanDialog = true },
                 onExportClick = { exportHistory() },
                 onWhatsAppClick = { WhatsAppHelper.openWhatsApp(context) },
-                onSettingsClick = { currentTab = AppTab.SETTINGS }
+                onSettingsClick = { currentTab = AppTab.SETTINGS },
+                onLogoutClick = { authViewModel?.logout() }
             )
         },
         bottomBar = {
@@ -276,6 +304,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
                     onPrefixChange = { viewModel.setContactPrefix(it) },
                     onCountryCodeChange = { viewModel.setCountryCode(it) },
+                    onDefaultContactNameChange = { viewModel.setDefaultContactName(it) },
                     onRequestContactsPermission = {
                         permissionLauncher.launch(permissionsToRequest.toTypedArray())
                     },

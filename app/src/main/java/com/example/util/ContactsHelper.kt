@@ -8,8 +8,6 @@ import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 
 object ContactsHelper {
-    const val DEFAULT_CONTACT_NAME = "زبون متجر أومكس"
-
     fun hasReadPermission(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -98,16 +96,18 @@ object ContactsHelper {
         return false
     }
 
-    fun saveContact(context: Context, contactName: String = DEFAULT_CONTACT_NAME, phoneNumber: String): Result<Boolean> {
+    fun saveContact(context: Context, contactName: String, phoneNumber: String): Result<Boolean> {
         if (!hasWritePermission(context)) {
             return Result.failure(SecurityException("WRITE_CONTACTS permission not granted"))
+        }
+        val trimmedName = contactName.trim()
+        if (trimmedName.isBlank()) {
+            return Result.failure(IllegalArgumentException("Contact name cannot be empty"))
         }
         val normalized = PhoneNumberHelper.normalize(phoneNumber)
         if (contactExists(context, normalized)) {
             return Result.success(false) // Already exists
         }
-
-        val finalName = DEFAULT_CONTACT_NAME
 
         return try {
             val ops = ArrayList<ContentProviderOperation>()
@@ -122,7 +122,7 @@ object ContactsHelper {
                 ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
                     .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactInsertIndex)
                     .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, finalName)
+                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, trimmedName)
                     .build()
             )
             ops.add(
