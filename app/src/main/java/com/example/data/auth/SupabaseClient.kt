@@ -101,7 +101,7 @@ class SupabaseClient(private val context: Context) {
         }
     }
 
-    suspend fun signUpUser(email: String, password: String): Result<JSONObject> = withContext(Dispatchers.IO) {
+    suspend fun signUpUser(email: String, password: String, fullName: String = ""): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
             val baseUrl = getBaseUrl()
             val anonKey = getAnonKey()
@@ -109,6 +109,11 @@ class SupabaseClient(private val context: Context) {
             val bodyJson = JSONObject().apply {
                 put("email", email.trim())
                 put("password", password)
+                if (fullName.isNotBlank()) {
+                    put("data", JSONObject().apply {
+                        put("full_name", fullName.trim())
+                    })
+                }
             }
 
             val request = Request.Builder()
@@ -630,6 +635,190 @@ class SupabaseClient(private val context: Context) {
                     Result.success(true)
                 } else {
                     Result.failure(Exception("فشل إعادة تعيين الأجهزة"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllProfiles(accessToken: String): Result<List<UserProfileWithMeta>> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/rest/v1/profiles?select=*&order=created_at.desc"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                if (response.isSuccessful) {
+                    val array = JSONArray(respStr)
+                    val list = mutableListOf<UserProfileWithMeta>()
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        list.add(
+                            UserProfileWithMeta(
+                                id = obj.getString("id"),
+                                email = obj.optString("email"),
+                                fullName = obj.optString("full_name"),
+                                role = UserRole.fromString(obj.optString("role")),
+                                createdAt = obj.optString("created_at"),
+                                updatedAt = obj.optString("updated_at")
+                            )
+                        )
+                    }
+                    Result.success(list)
+                } else {
+                    Result.failure(Exception("فشل قراءة الملفات الشخصية: ${response.code}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun logAdminAction(
+        actionType: String,
+        targetAccountId: String?,
+        targetAccountNumber: String?,
+        details: JSONObject = JSONObject(),
+        accessToken: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/rest/v1/rpc/log_admin_action"
+
+            val body = JSONObject().apply {
+                put("p_action_type", actionType)
+                if (!targetAccountId.isNullOrBlank()) {
+                    put("p_target_account_id", targetAccountId)
+                }
+                if (!targetAccountNumber.isNullOrBlank()) {
+                    put("p_target_account_number", targetAccountNumber)
+                }
+                put("p_details", details)
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .addHeader("Content-Type", "application/json")
+                .post(body.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { resp ->
+                Result.success(resp.isSuccessful)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAccountDevices(accountId: String, accessToken: String): Result<List<AccountDevice>> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/rest/v1/account_devices?account_id=eq.$accountId&order=registered_at.desc"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                if (response.isSuccessful) {
+                    val array = JSONArray(respStr)
+                    val list = mutableListOf<AccountDevice>()
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        list.add(
+                            AccountDevice(
+                                id = obj.getString("id"),
+                                accountId = obj.getString("account_id"),
+                                deviceId = obj.getString("device_id"),
+                                deviceName = obj.optString("device_name"),
+                                registeredAt = obj.optString("registered_at"),
+                                lastActiveAt = obj.optString("last_active_at")
+                            )
+                        )
+                    }
+                    Result.success(list)
+                } else {
+                    Result.failure(Exception("فشل قراءة أجهزة الحساب"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun removeAccountDevice(deviceId: String, accessToken: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/rest/v1/account_devices?id=eq.$deviceId"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .delete()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                Result.success(response.isSuccessful)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAdminActions(accessToken: String, limit: Int = 50): Result<List<AdminActionItem>> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/rest/v1/admin_actions?select=*&order=created_at.desc&limit=$limit"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                if (response.isSuccessful) {
+                    val array = JSONArray(respStr)
+                    val list = mutableListOf<AdminActionItem>()
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        list.add(
+                            AdminActionItem(
+                                id = obj.getString("id"),
+                                adminId = obj.optString("admin_id").takeIf { it.isNotEmpty() },
+                                actionType = obj.getString("action_type"),
+                                targetAccountId = obj.optString("target_account_id").takeIf { it.isNotEmpty() },
+                                targetAccountNumber = obj.optString("target_account_number").takeIf { it.isNotEmpty() },
+                                details = obj.opt("details")?.toString() ?: "",
+                                createdAt = obj.optString("created_at")
+                            )
+                        )
+                    }
+                    Result.success(list)
+                } else {
+                    Result.failure(Exception("فشل قراءة سجل العمليات الإدارية"))
                 }
             }
         } catch (e: Exception) {

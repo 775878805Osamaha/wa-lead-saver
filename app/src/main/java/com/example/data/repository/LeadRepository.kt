@@ -19,6 +19,8 @@ sealed class ProcessResult {
     data class DuplicateInContacts(val number: String) : ProcessResult()
     data class AlreadySaved(val number: String) : ProcessResult()
     data class AlreadyInQueue(val number: String) : ProcessResult()
+    data class AccountStopped(val number: String, val message: String = "الحساب متوقف من الإدارة.") : ProcessResult()
+    data class LicenseBlocked(val number: String, val message: String) : ProcessResult()
     data object InvalidNumber : ProcessResult()
 }
 
@@ -27,6 +29,8 @@ sealed class SaveLeadResult {
     data object Duplicate : SaveLeadResult()
     data object Failed : SaveLeadResult()
     data object MissingPermission : SaveLeadResult()
+    data class AccountStopped(val message: String = "الحساب متوقف من الإدارة.") : SaveLeadResult()
+    data class LicenseBlocked(val message: String) : SaveLeadResult()
 }
 
 class LeadRepository(
@@ -36,12 +40,21 @@ class LeadRepository(
 ) {
     private val leadDao: LeadDao = database.leadDao()
     private val historyDao: HistoryDao = database.historyDao()
+    val licenseManager = com.example.data.auth.LicenseManager(context)
 
     val queuedLeads: Flow<List<LeadEntity>> = leadDao.getQueuedLeads()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
     val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
     val settings: Flow<AppSettings> = settingsDataStore.settingsFlow
+
+    suspend fun checkLicense(): com.example.data.auth.LicenseStatus {
+        return licenseManager.checkLicense()
+    }
+
+    fun isAccountStopped(): Boolean {
+        return !licenseManager.isSaveAllowedSync()
+    }
 
     suspend fun getEffectiveDefaultContactName(): String {
         val currentSettings = settings.first()
@@ -53,6 +66,26 @@ class LeadRepository(
         val currentSettings = settings.first()
         val normalized = PhoneNumberHelper.normalize(rawCandidate, currentSettings.countryCode)
         val contactName = getEffectiveDefaultContactName()
+
+        val license = licenseManager.checkLicense()
+        if (!license.isSaveAllowed) {
+            val errMsg = when (license) {
+                is com.example.data.auth.LicenseStatus.PendingActivation -> license.message
+                is com.example.data.auth.LicenseStatus.Stopped -> license.message
+                is com.example.data.auth.LicenseStatus.Expired -> license.message
+                is com.example.data.auth.LicenseStatus.DeviceLimitExceeded -> license.message
+                is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
+                else -> "عملية الحفظ غير مصرح بها."
+            }
+            recordHistory(
+                phoneNumber = normalized.ifBlank { rawCandidate },
+                contactName = contactName,
+                source = source,
+                status = license.displayStatusText,
+                details = errMsg
+            )
+            return ProcessResult.LicenseBlocked(normalized.ifBlank { rawCandidate }, errMsg)
+        }
 
         if (!PhoneNumberHelper.isValidPhoneNumber(normalized)) {
             val displayNum = rawCandidate.ifBlank { "N/A" }
@@ -171,6 +204,19 @@ class LeadRepository(
     }
 
     suspend fun saveLead(lead: LeadEntity): SaveLeadResult {
+        val license = licenseManager.checkLicense()
+        if (!license.isSaveAllowed) {
+            val errMsg = when (license) {
+                is com.example.data.auth.LicenseStatus.PendingActivation -> license.message
+                is com.example.data.auth.LicenseStatus.Stopped -> license.message
+                is com.example.data.auth.LicenseStatus.Expired -> license.message
+                is com.example.data.auth.LicenseStatus.DeviceLimitExceeded -> license.message
+                is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
+                else -> "عملية الحفظ غير مصرح بها."
+            }
+            return SaveLeadResult.LicenseBlocked(errMsg)
+        }
+
         if (!ContactsHelper.hasWritePermission(context)) {
             return SaveLeadResult.MissingPermission
         }
@@ -213,6 +259,19 @@ class LeadRepository(
     }
 
     suspend fun saveAllQueued(): BatchSaveResult {
+        val license = licenseManager.checkLicense()
+        if (!license.isSaveAllowed) {
+            val errMsg = when (license) {
+                is com.example.data.auth.LicenseStatus.PendingActivation -> license.message
+                is com.example.data.auth.LicenseStatus.Stopped -> license.message
+                is com.example.data.auth.LicenseStatus.Expired -> license.message
+                is com.example.data.auth.LicenseStatus.DeviceLimitExceeded -> license.message
+                is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
+                else -> "عملية الحفظ غير مصرح بها."
+            }
+            return BatchSaveResult(0, 0, false, isStopped = true, blockedMessage = errMsg)
+        }
+
         if (!ContactsHelper.hasWritePermission(context)) {
             return BatchSaveResult(0, 0, true)
         }

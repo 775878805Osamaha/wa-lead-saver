@@ -50,6 +50,7 @@ class ContactNamingTest {
         settingsDataStore = SettingsDataStore(context)
         settingsDataStore.setDefaultContactName(AppSettings.DEFAULT_CONTACT_NAME)
         repository = LeadRepository(context, database, settingsDataStore)
+        repository.licenseManager.testLicenseOverride = com.example.data.auth.LicenseStatus.Active
     }
 
     @After
@@ -252,5 +253,74 @@ class ContactNamingTest {
 
         // Setting should remain unchanged
         assertEquals("زبون متجر أومكس", repository.getEffectiveDefaultContactName())
+    }
+
+    @Test
+    fun testExtractPhoneNumbers_RejectsPricesYearsAndIds() {
+        val priceText1 = "السلام عليكم، سعر القطعة 15000 ريال يمني"
+        val extracted1 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(priceText1)
+        assertTrue("Prices like 15000 ريال must be rejected", extracted1.isEmpty())
+
+        val priceText2 = "Total amount is 25000 YER for this shipment"
+        val extracted2 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(priceText2)
+        assertTrue("Prices like 25000 YER must be rejected", extracted2.isEmpty())
+
+        val priceText3 = "السعر 2,500,000 ريال فقط"
+        val extracted3 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(priceText3)
+        assertTrue("Prices with commas must be rejected", extracted3.isEmpty())
+
+        val yearText = "مجموعة تجار اليمن - دفعة عام 2025 وموديل 2026"
+        val extractedYears = com.example.util.PhoneNumberHelper.extractPhoneNumbers(yearText)
+        assertTrue("Calendar years like 2025 and 2026 must be rejected", extractedYears.isEmpty())
+
+        val idText = "طلب العميل رقم #1234567 مع كود الشحنة ID: 98765432"
+        val extractedIds = com.example.util.PhoneNumberHelper.extractPhoneNumbers(idText)
+        assertTrue("IDs, hash codes, and order numbers must be rejected", extractedIds.isEmpty())
+    }
+
+    @Test
+    fun testExtractPhoneNumbers_AcceptsValidYemeniPhoneFormats() {
+        // Standard mobile with country code
+        val num1 = "+967 771 234 567"
+        val res1 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(num1)
+        assertEquals(1, res1.size)
+        assertEquals("+967771234567", res1.first())
+
+        // Mobile with leading 0
+        val num2 = "0771234567"
+        val res2 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(num2)
+        assertEquals(1, res2.size)
+        assertEquals("+967771234567", res2.first())
+
+        // Mobile starting with 7 without 0
+        val num3 = "730909005"
+        val res3 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(num3)
+        assertEquals(1, res3.size)
+        assertEquals("+967730909005", res3.first())
+
+        // Mobile with dashes
+        val num4 = "+967-78-012-3456"
+        val res4 = com.example.util.PhoneNumberHelper.extractPhoneNumbers(num4)
+        assertEquals(1, res4.size)
+        assertEquals("+967780123456", res4.first())
+    }
+
+    @Test
+    fun testDuplicatePhoneNumber_DoesNotSaveTwice() = runTest {
+        val phoneNumber = "+96777178691"
+        repository.setAutoSave(true)
+
+        // First save -> AutoSaved
+        val firstResult = repository.processIncomingPhoneCandidate(phoneNumber, "WhatsApp")
+        assertTrue("First attempt must auto-save", firstResult is ProcessResult.AutoSaved)
+
+        // Second save -> Duplicate / AlreadySaved
+        val secondResult = repository.processIncomingPhoneCandidate(phoneNumber, "WhatsApp")
+        assertTrue("Second attempt must be detected as duplicate", secondResult is ProcessResult.AlreadySaved || secondResult is ProcessResult.DuplicateInContacts)
+
+        // Verify database contains this lead and it is marked as saved
+        val lead = database.leadDao().findLeadByNormalizedNumber(phoneNumber)
+        assertNotNull(lead)
+        assertTrue(lead!!.isSaved)
     }
 }

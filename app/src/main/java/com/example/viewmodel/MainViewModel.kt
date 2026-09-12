@@ -62,14 +62,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isProcessingScan = MutableStateFlow(false)
     val isProcessingScan: StateFlow<Boolean> = _isProcessingScan.asStateFlow()
 
+    val licenseStatus: StateFlow<com.example.data.auth.LicenseStatus> = repository.licenseManager.currentStatus
+
     init {
         refreshStatuses()
+        viewModelScope.launch {
+            repository.checkLicense()
+        }
     }
 
     fun refreshStatuses() {
         _isNotificationListenerActive.value = PermissionHelper.isNotificationListenerEnabled(context)
         _hasContactsPermission.value = ContactsHelper.hasContactsPermissions(context)
         _isBatteryOptimizationIgnored.value = PermissionHelper.isBatteryOptimizationIgnored(context)
+        viewModelScope.launch {
+            repository.checkLicense()
+        }
     }
 
     fun clearUserMessage() {
@@ -78,11 +86,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveLead(lead: LeadEntity) {
         viewModelScope.launch {
-            when (repository.saveLead(lead)) {
+            when (val res = repository.saveLead(lead)) {
                 is SaveLeadResult.Success -> _userMessage.value = "Contact saved successfully"
                 is SaveLeadResult.Duplicate -> _userMessage.value = "Contact already exists"
                 is SaveLeadResult.MissingPermission -> _userMessage.value = "Contacts permission required to save contacts"
                 is SaveLeadResult.Failed -> _userMessage.value = "Failed to save contact"
+                is SaveLeadResult.AccountStopped -> _userMessage.value = res.message
+                is SaveLeadResult.LicenseBlocked -> _userMessage.value = res.message
             }
             refreshStatuses()
         }
@@ -91,7 +101,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveAllQueued() {
         viewModelScope.launch {
             val result = repository.saveAllQueued()
-            if (result.missingPermission) {
+            if (result.isStopped) {
+                _userMessage.value = result.blockedMessage ?: "الحساب متوقف من الإدارة."
+            } else if (result.missingPermission) {
                 _userMessage.value = "Contacts permission required to save contacts"
             } else {
                 _userMessage.value = "Saved ${result.savedCount} leads. Skipped ${result.duplicateCount} duplicates."
@@ -206,6 +218,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addSelectedToQueue(source: String = "Photo scan") {
         viewModelScope.launch {
+            val license = repository.licenseManager.checkLicense()
+            if (!license.isSaveAllowed) {
+                val errMsg = when (license) {
+                    is com.example.data.auth.LicenseStatus.PendingActivation -> license.message
+                    is com.example.data.auth.LicenseStatus.Stopped -> license.message
+                    is com.example.data.auth.LicenseStatus.Expired -> license.message
+                    is com.example.data.auth.LicenseStatus.DeviceLimitExceeded -> license.message
+                    is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
+                    else -> "عملية الحفظ غير مصرح بها."
+                }
+                _userMessage.value = errMsg
+                _scannedNumbers.value = emptyList()
+                return@launch
+            }
+
             val selected = _scannedNumbers.value.filter { it.isSelected }
             var addedCount = 0
             var autoSavedCount = 0
@@ -215,6 +242,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 when (repository.processIncomingPhoneCandidate(item.phoneNumber, source)) {
                     is ProcessResult.Queued -> addedCount++
                     is ProcessResult.AutoSaved -> autoSavedCount++
+                    is ProcessResult.AccountStopped -> Unit
+                    is ProcessResult.LicenseBlocked -> Unit
                     is ProcessResult.DuplicateInContacts,
                     is ProcessResult.AlreadySaved,
                     is ProcessResult.AlreadyInQueue -> skippedDuplicates++

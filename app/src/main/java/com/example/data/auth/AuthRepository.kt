@@ -75,14 +75,11 @@ class AuthRepository(
         if (accountRes.isSuccess) {
             val account = accountRes.getOrNull()
             if (account == null) {
-                // If no account row attached, check cached
-                if (cachedSession.cachedAccount != null && cachedSession.isOfflineGraceValid()) {
-                    return validateAccountState(
-                        UserProfile(id = cachedSession.userId, email = cachedSession.email),
-                        cachedSession.cachedAccount
-                    )
-                }
-                val state = AuthState.AccountInactive(cachedSession.accountNumber.orEmpty(), "الحساب غير مفعل أو غير موجود.")
+                // Customer registered, pending admin activation
+                val state = AuthState.AuthenticatedUser(
+                    profileRes.getOrNull() ?: UserProfile(id = cachedSession.userId, email = cachedSession.email),
+                    null
+                )
                 _authState.value = state
                 return state
             }
@@ -213,7 +210,21 @@ class AuthRepository(
         val account = accountRes.getOrNull()
 
         if (account == null) {
-            val state = AuthState.AccountInactive(trimmedInput, "لم يتم تفعيل هذا الحساب بعد.")
+            try {
+                sessionManager.saveSession(
+                    accessToken = token,
+                    refreshToken = refreshToken,
+                    userId = userId,
+                    email = userEmail,
+                    role = UserRole.USER,
+                    accountNumber = null,
+                    account = null,
+                    remember = rememberMe
+                )
+            } catch (e: Exception) {
+                android.util.Log.w("AuthRepository", "Failed to cache pending user session: ${e.message}")
+            }
+            val state = AuthState.AuthenticatedUser(profile, null)
             _authState.value = state
             return AuthResult.Success(state)
         }
@@ -249,23 +260,29 @@ class AuthRepository(
         return AuthResult.Success(finalState)
     }
 
-    private suspend fun validateAccountState(profile: UserProfile, account: CustomerAccount): AuthState {
-        return when {
-            account.status == AccountStatus.INACTIVE -> {
-                val state = AuthState.AccountInactive(account.accountNumber, "تم إيقاف الحساب من قبل الإدارة.")
-                _authState.value = state
-                state
-            }
-            account.isExpired() -> {
-                val state = AuthState.AccountExpired(account.accountNumber, "انتهت صلاحية الحساب")
-                _authState.value = state
-                state
-            }
-            else -> {
-                val state = AuthState.AuthenticatedUser(profile, account)
-                _authState.value = state
-                state
-            }
+    private suspend fun validateAccountState(profile: UserProfile, account: CustomerAccount?): AuthState {
+        if (account == null) {
+            val state = AuthState.AuthenticatedUser(profile, null)
+            _authState.value = state
+            return state
+        }
+        val state = AuthState.AuthenticatedUser(profile, account)
+        _authState.value = state
+        return state
+    }
+
+    suspend fun registerCustomer(fullName: String, email: String, password: String): Result<Boolean> {
+        val trimmedEmail = email.trim()
+        val trimmedName = fullName.trim()
+        if (trimmedEmail.isBlank() || password.isBlank() || trimmedName.isBlank()) {
+            return Result.failure(Exception("يرجى ملء جميع الحقول"))
+        }
+
+        val res = supabaseClient.signUpUser(trimmedEmail, password, trimmedName)
+        return if (res.isSuccess) {
+            Result.success(true)
+        } else {
+            Result.failure(res.exceptionOrNull() ?: Exception("فشل إنشاء الحساب"))
         }
     }
 

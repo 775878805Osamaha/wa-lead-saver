@@ -46,6 +46,10 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
         val source = if (isBusinessWhatsApp) "WhatsApp Business" else "WhatsApp"
 
         serviceScope.launch {
+            if (!repository.licenseManager.checkLicense().isSaveAllowed) {
+                return@launch
+            }
+
             val settings = settingsDataStore.settingsFlow.first()
             if (isStandardWhatsApp && !settings.monitorWhatsApp) {
                 return@launch
@@ -57,35 +61,58 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
             val notification = sbn.notification ?: return@launch
             val extras = notification.extras ?: return@launch
 
-            val title = extras.getCharSequence("android.title")?.toString().orEmpty()
-            val text = extras.getCharSequence("android.text")?.toString().orEmpty()
-            val subText = extras.getCharSequence("android.subText")?.toString().orEmpty()
-            val bigText = extras.getCharSequence("android.bigText")?.toString().orEmpty()
+            val title = extras.getCharSequence("android.title")?.toString().orEmpty().trim()
+            val text = extras.getCharSequence("android.text")?.toString().orEmpty().trim()
+            val subText = extras.getCharSequence("android.subText")?.toString().orEmpty().trim()
+            val bigText = extras.getCharSequence("android.bigText")?.toString().orEmpty().trim()
+            val conversationTitle = extras.getCharSequence("android.conversationTitle")?.toString().orEmpty().trim()
+            val isGroup = extras.getBoolean("android.isGroupConversation", false) || conversationTitle.isNotBlank()
 
-            val combined = buildString {
-                if (title.isNotBlank()) append(title).append(" ")
-                if (text.isNotBlank()) append(text).append(" ")
-                if (subText.isNotBlank()) append(subText).append(" ")
-                if (bigText.isNotBlank()) append(bigText).append(" ")
-            }.trim()
-
-            if (combined.isBlank()) {
+            // Discard system/backup/sync notifications
+            val checkSync = "$title $text $subText"
+            if (checkSync.contains("backup", ignoreCase = true) ||
+                checkSync.contains("checking for new messages", ignoreCase = true) ||
+                checkSync.contains("web is currently active", ignoreCase = true)
+            ) {
                 return@launch
             }
 
-            val extractedNumbers = PhoneNumberHelper.extractPhoneNumbers(combined, settings.countryCode)
+            val extractedNumbers = mutableListOf<String>()
+
+            if (isGroup) {
+                // Group message rules:
+                // 1. Do NOT extract numbers from the group title / conversationTitle
+                // 2. Do NOT extract random numbers, prices, or IDs from message body text
+                // 3. Only extract if sender is explicitly identified before a colon (e.g. "+967 771 234 567: message")
+                val textCandidate = if (text.contains(":")) text.substringBefore(":") else ""
+                val bigTextCandidate = if (bigText.contains(":")) bigText.substringBefore(":") else ""
+                
+                val senderPrefix = when {
+                    textCandidate.isNotBlank() -> textCandidate
+                    bigTextCandidate.isNotBlank() -> bigTextCandidate
+                    else -> ""
+                }.trim()
+
+                if (senderPrefix.isNotBlank() && senderPrefix != conversationTitle) {
+                    val candidateNumbers = PhoneNumberHelper.extractPhoneNumbers(senderPrefix, settings.countryCode)
+                    extractedNumbers.addAll(candidateNumbers)
+                }
+            } else {
+                // Direct 1-to-1 chat rules:
+                // In 1-to-1 chats, 'title' represents the sender. If it's an unsaved number, extract from title.
+                // Do not extract random numbers inside message body text.
+                if (title.isNotBlank()) {
+                    val titleNumbers = PhoneNumberHelper.extractPhoneNumbers(title, settings.countryCode)
+                    extractedNumbers.addAll(titleNumbers)
+                }
+            }
+
             if (extractedNumbers.isNotEmpty()) {
-                for (number in extractedNumbers) {
+                for (number in extractedNumbers.distinct()) {
                     repository.processIncomingPhoneCandidate(number, source)
                 }
             } else {
-                val isSyncOrBackup = combined.contains("backup", ignoreCase = true) ||
-                        combined.contains("checking for new messages", ignoreCase = true) ||
-                        combined.contains("web is currently active", ignoreCase = true)
-
-                if (!isSyncOrBackup) {
-                    repository.recordNotificationWithoutNumber(source, "Title: '$title', Text: '$text'")
-                }
+                repository.recordNotificationWithoutNumber(source, "Title: '$title', Text: '$text'")
             }
         }
     }

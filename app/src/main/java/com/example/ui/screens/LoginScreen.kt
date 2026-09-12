@@ -81,12 +81,24 @@ fun LoginScreen(
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
+    val successMessage by authViewModel.successMessage.collectAsStateWithLifecycle()
 
+    var isRegisterMode by remember { mutableStateOf(false) }
+
+    // Login state
     var accountOrEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
     var loginMethod by remember { mutableStateOf(LoginMethod.ACCOUNT_NUMBER) }
+
+    // Register state
+    var regFullName by remember { mutableStateOf("") }
+    var regEmail by remember { mutableStateOf("") }
+    var regPassword by remember { mutableStateOf("") }
+    var regConfirmPassword by remember { mutableStateOf("") }
+    var regPasswordVisible by remember { mutableStateOf(false) }
+    var regValidationErr by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -152,7 +164,7 @@ fun LoginScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = stringResource(R.string.auth_login_title),
+                            text = if (isRegisterMode) stringResource(R.string.auth_register_title) else stringResource(R.string.auth_login_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1E293B),
@@ -162,177 +174,287 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Login Method Switcher (Account Number vs Email)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
-                                .padding(4.dp)
-                                .testTag("login_method_selector"),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Button(
-                                onClick = { loginMethod = LoginMethod.ACCOUNT_NUMBER },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .testTag("tab_account_number"),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) WhatsAppTeal else Color.Transparent,
-                                    contentColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Color.White else Color(0xFF64748B)
+                        if (isRegisterMode) {
+                            // Register Form Fields
+                            OutlinedTextField(
+                                value = regFullName,
+                                onValueChange = { regFullName = it },
+                                label = { Text(stringResource(R.string.auth_register_name_label)) },
+                                placeholder = { Text("مثال: متجر السعادة أو أحمد علي") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Next
                                 ),
-                                elevation = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Badge,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = stringResource(R.string.auth_tab_account_number),
-                                    fontSize = 13.sp,
-                                    fontWeight = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-
-                            Button(
-                                onClick = { loginMethod = LoginMethod.EMAIL },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .testTag("tab_email"),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (loginMethod == LoginMethod.EMAIL) WhatsAppTeal else Color.Transparent,
-                                    contentColor = if (loginMethod == LoginMethod.EMAIL) Color.White else Color(0xFF64748B)
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
                                 ),
-                                elevation = if (loginMethod == LoginMethod.EMAIL) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("reg_name_input")
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            OutlinedTextField(
+                                value = regEmail,
+                                onValueChange = { regEmail = it },
+                                label = { Text(stringResource(R.string.auth_email_label)) },
+                                placeholder = { Text(stringResource(R.string.auth_email_placeholder)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Next
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("reg_email_input")
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            OutlinedTextField(
+                                value = regPassword,
+                                onValueChange = { regPassword = it },
+                                label = { Text(stringResource(R.string.auth_password_label)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { regPasswordVisible = !regPasswordVisible }) {
+                                        Icon(
+                                            imageVector = if (regPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = "Toggle password visibility"
+                                        )
+                                    }
+                                },
+                                singleLine = true,
+                                visualTransformation = if (regPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Next
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("reg_password_input")
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            OutlinedTextField(
+                                value = regConfirmPassword,
+                                onValueChange = { regConfirmPassword = it },
+                                label = { Text(stringResource(R.string.auth_register_confirm_password_label)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                singleLine = true,
+                                visualTransformation = if (regPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("reg_confirm_password_input")
+                            )
+                        } else {
+                            // Login Method Switcher (Account Number vs Email)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                                    .padding(4.dp)
+                                    .testTag("login_method_selector"),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = stringResource(R.string.auth_tab_email),
-                                    fontSize = 13.sp,
-                                    fontWeight = if (loginMethod == LoginMethod.EMAIL) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Dynamic Input Field (Account Number or Email)
-                        val inputLabel = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                            stringResource(R.string.auth_account_or_email_label)
-                        } else {
-                            stringResource(R.string.auth_email_label)
-                        }
-                        val inputPlaceholder = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                            stringResource(R.string.auth_account_placeholder)
-                        } else {
-                            stringResource(R.string.auth_email_placeholder)
-                        }
-                        val inputIcon = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                            Icons.Default.Badge
-                        } else {
-                            Icons.Default.Email
-                        }
-                        val inputKeyboardType = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                            KeyboardType.Text
-                        } else {
-                            KeyboardType.Email
-                        }
-
-                        OutlinedTextField(
-                            value = accountOrEmail,
-                            onValueChange = { accountOrEmail = it },
-                            label = { Text(inputLabel) },
-                            placeholder = { Text(inputPlaceholder) },
-                            leadingIcon = {
-                                Icon(inputIcon, contentDescription = null, tint = WhatsAppTeal)
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = inputKeyboardType,
-                                imeAction = ImeAction.Next
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = WhatsAppTeal,
-                                focusedLabelColor = WhatsAppTeal
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("account_number_input")
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Password Input
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text(stringResource(R.string.auth_password_label)) },
-                            leadingIcon = {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                Button(
+                                    onClick = { loginMethod = LoginMethod.ACCOUNT_NUMBER },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .testTag("tab_account_number"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) WhatsAppTeal else Color.Transparent,
+                                        contentColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Color.White else Color(0xFF64748B)
+                                    ),
+                                    elevation = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                ) {
                                     Icon(
-                                        imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = "Toggle password visibility"
+                                        imageVector = Icons.Default.Badge,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.auth_tab_account_number),
+                                        fontSize = 13.sp,
+                                        fontWeight = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
-                            },
-                            singleLine = true,
-                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    keyboardController?.hide()
-                                    authViewModel.login(accountOrEmail, password, rememberMe)
+
+                                Button(
+                                    onClick = { loginMethod = LoginMethod.EMAIL },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .testTag("tab_email"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (loginMethod == LoginMethod.EMAIL) WhatsAppTeal else Color.Transparent,
+                                        contentColor = if (loginMethod == LoginMethod.EMAIL) Color.White else Color(0xFF64748B)
+                                    ),
+                                    elevation = if (loginMethod == LoginMethod.EMAIL) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Email,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.auth_tab_email),
+                                        fontSize = 13.sp,
+                                        fontWeight = if (loginMethod == LoginMethod.EMAIL) FontWeight.Bold else FontWeight.Normal
+                                    )
                                 }
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = WhatsAppTeal,
-                                focusedLabelColor = WhatsAppTeal
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("password_input")
-                        )
+                            }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                        // Remember Me Checkbox
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(checkedColor = WhatsAppGreen),
-                                modifier = Modifier.testTag("remember_me_checkbox")
+                            // Dynamic Input Field (Account Number or Email)
+                            val inputLabel = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                                stringResource(R.string.auth_account_or_email_label)
+                            } else {
+                                stringResource(R.string.auth_email_label)
+                            }
+                            val inputPlaceholder = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                                stringResource(R.string.auth_account_placeholder)
+                            } else {
+                                stringResource(R.string.auth_email_placeholder)
+                            }
+                            val inputIcon = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                                Icons.Default.Badge
+                            } else {
+                                Icons.Default.Email
+                            }
+                            val inputKeyboardType = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                                KeyboardType.Text
+                            } else {
+                                KeyboardType.Email
+                            }
+
+                            OutlinedTextField(
+                                value = accountOrEmail,
+                                onValueChange = { accountOrEmail = it },
+                                label = { Text(inputLabel) },
+                                placeholder = { Text(inputPlaceholder) },
+                                leadingIcon = {
+                                    Icon(inputIcon, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = inputKeyboardType,
+                                    imeAction = ImeAction.Next
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("account_number_input")
                             )
-                            Text(
-                                text = stringResource(R.string.auth_remember_me),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF334155)
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Password Input
+                            OutlinedTextField(
+                                value = password,
+                                onValueChange = { password = it },
+                                label = { Text(stringResource(R.string.auth_password_label)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                        Icon(
+                                            imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = "Toggle password visibility"
+                                        )
+                                    }
+                                },
+                                singleLine = true,
+                                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        authViewModel.login(accountOrEmail, password, rememberMe)
+                                    }
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("password_input")
                             )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Remember Me Checkbox
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = rememberMe,
+                                    onCheckedChange = { rememberMe = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = WhatsAppGreen),
+                                    modifier = Modifier.testTag("remember_me_checkbox")
+                                )
+                                Text(
+                                    text = stringResource(R.string.auth_remember_me),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF334155)
+                                )
+                            }
                         }
 
                         // Error message display
-                        if (!errorMessage.isNullOrBlank()) {
+                        val activeError = regValidationErr ?: errorMessage
+                        if (!activeError.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -340,8 +462,26 @@ fun LoginScreen(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
                             ) {
                                 Text(
-                                    text = errorMessage!!,
+                                    text = activeError,
                                     color = Color(0xFFB91C1C),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(12.dp),
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                        }
+
+                        // Success message display
+                        if (!successMessage.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
+                            ) {
+                                Text(
+                                    text = successMessage!!,
+                                    color = Color(0xFF15803D),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(12.dp),
                                     textAlign = TextAlign.Start
@@ -383,37 +523,106 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Login Button
-                        Button(
-                            onClick = {
-                                keyboardController?.hide()
-                                authViewModel.login(accountOrEmail, password, rememberMe)
-                            },
-                            enabled = !isLoading && accountOrEmail.isNotBlank() && password.isNotBlank(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .testTag("login_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = WhatsAppGreen,
-                                disabledContainerColor = Color(0xFFCBD5E1)
-                            )
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
+                        if (isRegisterMode) {
+                            // Register Button
+                            Button(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    regValidationErr = null
+                                    if (regPassword != regConfirmPassword) {
+                                        regValidationErr = "كلمتا المرور غير متطابقتين"
+                                        return@Button
+                                    }
+                                    if (regPassword.length < 6) {
+                                        regValidationErr = "يجب ألا تقل كلمة المرور عن 6 أحرف"
+                                        return@Button
+                                    }
+                                    authViewModel.registerUser(regFullName, regEmail, regPassword) {
+                                        isRegisterMode = false
+                                        regFullName = ""
+                                        regPassword = ""
+                                        regConfirmPassword = ""
+                                        accountOrEmail = regEmail
+                                    }
+                                },
+                                enabled = !isLoading && regFullName.isNotBlank() && regEmail.isNotBlank() && regPassword.isNotBlank() && regConfirmPassword.isNotBlank(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("register_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppGreen,
+                                    disabledContainerColor = Color(0xFFCBD5E1)
                                 )
-                            } else {
-                                Text(
-                                    text = stringResource(R.string.auth_login_button),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.auth_register_title),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                             }
+                        } else {
+                            // Login Button
+                            Button(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    authViewModel.login(accountOrEmail, password, rememberMe)
+                                },
+                                enabled = !isLoading && accountOrEmail.isNotBlank() && password.isNotBlank(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("login_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppGreen,
+                                    disabledContainerColor = Color(0xFFCBD5E1)
+                                )
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.auth_login_button),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Switch between Login and Register
+                        TextButton(
+                            onClick = {
+                                isRegisterMode = !isRegisterMode
+                                regValidationErr = null
+                                authViewModel.clearMessages()
+                            },
+                            modifier = Modifier.testTag("toggle_register_mode_btn")
+                        ) {
+                            Text(
+                                text = if (isRegisterMode) stringResource(R.string.auth_login_title) else stringResource(R.string.auth_register_prompt),
+                                color = WhatsAppTeal,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }

@@ -36,6 +36,15 @@ data class UserProfile(
     val fullName: String = ""
 )
 
+data class UserProfileWithMeta(
+    val id: String,
+    val email: String,
+    val fullName: String = "",
+    val role: UserRole = UserRole.USER,
+    val createdAt: String = "",
+    val updatedAt: String = ""
+)
+
 data class CustomerAccount(
     val id: String = UUID.randomUUID().toString(),
     val accountNumber: String,
@@ -84,12 +93,58 @@ data class AccountDevice(
     val lastActiveAt: String = ""
 )
 
+enum class CustomerActivationStatus(val displayText: String) {
+    UNACTIVATED("غير مفعّل"),
+    ACTIVE("نشط"),
+    INACTIVE("متوقف"),
+    EXPIRED("منتهي")
+}
+
+data class AdminCustomerItem(
+    val profileId: String,
+    val fullName: String,
+    val email: String,
+    val registrationDate: String = "",
+    val role: UserRole = UserRole.USER,
+    val account: CustomerAccount? = null
+) {
+    val accountNumber: String?
+        get() = account?.accountNumber
+
+    val status: CustomerActivationStatus
+        get() {
+            val acc = account ?: return CustomerActivationStatus.UNACTIVATED
+            return when {
+                acc.isExpired() -> CustomerActivationStatus.EXPIRED
+                acc.status == AccountStatus.INACTIVE -> CustomerActivationStatus.INACTIVE
+                acc.status == AccountStatus.ACTIVE -> CustomerActivationStatus.ACTIVE
+                else -> CustomerActivationStatus.INACTIVE
+            }
+        }
+
+    val statusDisplay: String
+        get() = status.displayText
+
+    val isActivated: Boolean
+        get() = account != null
+}
+
+data class AdminActionItem(
+    val id: String = UUID.randomUUID().toString(),
+    val adminId: String? = null,
+    val actionType: String,
+    val targetAccountId: String? = null,
+    val targetAccountNumber: String? = null,
+    val details: String = "",
+    val createdAt: String = ""
+)
+
 sealed class AuthState {
     object Initializing : AuthState()
     object Unauthenticated : AuthState()
     data class AuthenticatedUser(
         val profile: UserProfile,
-        val account: CustomerAccount
+        val account: CustomerAccount?
     ) : AuthState()
     data class AuthenticatedAdmin(
         val profile: UserProfile

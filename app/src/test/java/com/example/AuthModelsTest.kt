@@ -157,4 +157,95 @@ class AuthModelsTest {
         assertFalse(isAccountNumber("admin@example.com"))
         assertFalse(isAccountNumber("user@omx-store.com"))
     }
+
+    @Test
+    fun testAdminCustomerItemStatusMapping() {
+        // 1. Registered profile with NO account -> UNACTIVATED
+        val unactivated = AdminCustomerItem(
+            profileId = "prof-1",
+            fullName = "Customer 1",
+            email = "c1@test.com",
+            registrationDate = "2026-09-12",
+            role = UserRole.USER,
+            account = null
+        )
+        assertEquals(CustomerActivationStatus.UNACTIVATED, unactivated.status)
+        assertFalse(unactivated.isActivated)
+        assertEquals("غير مفعّل", unactivated.statusDisplay)
+
+        // 2. Profile with active non-expired account -> ACTIVE
+        val activeAccount = CustomerAccount(
+            id = "acc-1",
+            accountNumber = "OMX-100001",
+            customerName = "Customer 1",
+            email = "c1@test.com",
+            status = AccountStatus.ACTIVE,
+            expiresAt = "2099-01-01"
+        )
+        val activeCustomer = unactivated.copy(account = activeAccount)
+        assertEquals(CustomerActivationStatus.ACTIVE, activeCustomer.status)
+        assertTrue(activeCustomer.isActivated)
+        assertEquals("نشط", activeCustomer.statusDisplay)
+
+        // 3. Profile with inactive account -> INACTIVE
+        val inactiveAccount = activeAccount.copy(status = AccountStatus.INACTIVE)
+        val inactiveCustomer = unactivated.copy(account = inactiveAccount)
+        assertEquals(CustomerActivationStatus.INACTIVE, inactiveCustomer.status)
+        assertTrue(inactiveCustomer.isActivated)
+        assertEquals("متوقف", inactiveCustomer.statusDisplay)
+
+        // 4. Profile with expired account -> EXPIRED
+        val expiredAccount = activeAccount.copy(status = AccountStatus.ACTIVE, expiresAt = "2020-01-01")
+        val expiredCustomer = unactivated.copy(account = expiredAccount)
+        assertEquals(CustomerActivationStatus.EXPIRED, expiredCustomer.status)
+        assertTrue(expiredCustomer.isActivated)
+        assertEquals("منتهي", expiredCustomer.statusDisplay)
+    }
+
+    @Test
+    fun testLicenseStatusPermissions() {
+        assertTrue(LicenseStatus.Active.isSaveAllowed)
+        assertEquals("نشط", LicenseStatus.Active.displayStatusText)
+
+        val pending = LicenseStatus.PendingActivation()
+        assertFalse(pending.isSaveAllowed)
+        assertEquals("بانتظار التفعيل", pending.displayStatusText)
+
+        val stopped = LicenseStatus.Stopped()
+        assertFalse(stopped.isSaveAllowed)
+        assertEquals("متوقف", stopped.displayStatusText)
+
+        val expired = LicenseStatus.Expired()
+        assertFalse(expired.isSaveAllowed)
+        assertEquals("منتهي", expired.displayStatusText)
+
+        val limitExceeded = LicenseStatus.DeviceLimitExceeded()
+        assertFalse(limitExceeded.isSaveAllowed)
+        assertEquals("تجاوز حد الأجهزة", limitExceeded.displayStatusText)
+    }
+
+    @Test
+    fun testGenerateNextAccountNumber() {
+        val adminRepo = AdminRepository(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+        val emptyList = emptyList<CustomerAccount>()
+        assertEquals("OMX-100001", adminRepo.generateNextAccountNumber(emptyList))
+
+        val existing = listOf(
+            CustomerAccount(
+                id = "1",
+                accountNumber = "OMX-100001",
+                customerName = "A",
+                email = "a@a.com",
+                status = AccountStatus.ACTIVE
+            ),
+            CustomerAccount(
+                id = "2",
+                accountNumber = "OMX-100005",
+                customerName = "B",
+                email = "b@b.com",
+                status = AccountStatus.ACTIVE
+            )
+        )
+        assertEquals("OMX-100006", adminRepo.generateNextAccountNumber(existing))
+    }
 }

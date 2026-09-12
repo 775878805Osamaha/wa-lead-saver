@@ -352,8 +352,28 @@ ALTER TABLE public.account_devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------------------------
--- PROFILES POLICIES
+-- PROFILES POLICIES & ROLE PROTECTION TRIGGER
 -- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.prevent_unauthorized_role_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF (OLD.role IS DISTINCT FROM NEW.role) AND NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Unauthorized: Only administrators can modify user roles';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_role_change ON public.profiles;
+CREATE TRIGGER trg_prevent_role_change
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_unauthorized_role_change();
+
 DROP POLICY IF EXISTS "profiles_select_policy" ON public.profiles;
 CREATE POLICY "profiles_select_policy"
 ON public.profiles
@@ -374,7 +394,11 @@ ON public.profiles
 FOR UPDATE
 TO authenticated
 USING (id = auth.uid() OR public.is_admin())
-WITH CHECK (id = auth.uid() OR public.is_admin());
+WITH CHECK (
+    public.is_admin() OR (
+        id = auth.uid() AND (role = (SELECT p.role FROM public.profiles p WHERE p.id = auth.uid()))
+    )
+);
 
 DROP POLICY IF EXISTS "profiles_delete_policy" ON public.profiles;
 CREATE POLICY "profiles_delete_policy"
@@ -416,8 +440,35 @@ TO authenticated
 USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
--- ACCOUNT_DEVICES POLICIES
+-- ACCOUNT_DEVICES POLICIES & INSERT TRIGGER
 -- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.enforce_device_limit_on_insert()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_max INT;
+    v_count INT;
+BEGIN
+    IF NOT public.is_admin() THEN
+        SELECT max_devices INTO v_max FROM public.accounts WHERE id = NEW.account_id;
+        SELECT count(*) INTO v_count FROM public.account_devices WHERE account_id = NEW.account_id AND device_id <> NEW.device_id;
+        IF v_count >= COALESCE(v_max, 1) THEN
+            RAISE EXCEPTION 'Device limit reached for this account';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_enforce_device_limit ON public.account_devices;
+CREATE TRIGGER trg_enforce_device_limit
+BEFORE INSERT ON public.account_devices
+FOR EACH ROW
+EXECUTE FUNCTION public.enforce_device_limit_on_insert();
+
 DROP POLICY IF EXISTS "devices_select_policy" ON public.account_devices;
 CREATE POLICY "devices_select_policy"
 ON public.account_devices

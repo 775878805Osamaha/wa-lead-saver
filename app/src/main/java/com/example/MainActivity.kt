@@ -9,14 +9,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -26,6 +34,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,17 +44,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.auth.AuthState
+import com.example.data.auth.LicenseStatus
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
 import com.example.ui.components.AppTopBar
@@ -145,6 +158,7 @@ fun MainScreen(
     val userMessage by viewModel.userMessage.collectAsStateWithLifecycle(null)
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle(emptyList())
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle(false)
+    val licenseStatus by viewModel.licenseStatus.collectAsStateWithLifecycle(LicenseStatus.Active)
 
     val permissionsToRequest = remember {
         buildList {
@@ -255,61 +269,102 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
-        Crossfade(
-            targetState = currentTab,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            label = "TabTransition"
-        ) { tab ->
-            when (tab) {
-                AppTab.DASHBOARD -> DashboardScreen(
-                    totalSaved = totalSaved,
-                    inQueue = queueCount,
-                    settings = settings,
-                    onExportHistory = { exportHistory() },
-                    onViewQueue = { currentTab = AppTab.QUEUE },
-                    onOpenSaveExistingContacts = { showSaveExistingDialog = true },
-                    onSnapAndSave = { showPhotoScanDialog = true },
-                    onPrefixChange = { viewModel.setContactPrefix(it) },
-                    onAutoSaveChange = { viewModel.setAutoSave(it) },
-                    onSimulateIncomingLead = {
-                        scope.launch {
-                            val dummyNum = "+96777178691"
-                            viewModel.repository.processIncomingPhoneCandidate(dummyNum, "Simulation")
-                        }
+                .padding(innerPadding)
+        ) {
+            if (!licenseStatus.isSaveAllowed) {
+                val (bgColor, textColor) = when (licenseStatus) {
+                    is LicenseStatus.PendingActivation, is LicenseStatus.DeviceLimitExceeded ->
+                        Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
+                    else ->
+                        Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
+                }
+                Surface(
+                    color = bgColor,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("license_status_banner")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (licenseStatus is LicenseStatus.PendingActivation) Icons.Default.Warning else Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = licenseStatus.message,
+                            color = textColor,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                )
+                }
+            }
 
-                AppTab.QUEUE -> QueueScreen(
-                    queuedLeads = queuedLeads,
-                    onSaveLead = { viewModel.saveLead(it) },
-                    onRemoveLead = { viewModel.removeLead(it) },
-                    onWhatsAppClick = { WhatsAppHelper.openChat(context, it.normalizedNumber) },
-                    onEditLeadName = { leadToEdit = it },
-                    onSaveAll = { viewModel.saveAllQueued() },
-                    onClearAll = { viewModel.clearQueue() }
-                )
+            Crossfade(
+                targetState = currentTab,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                label = "TabTransition"
+            ) { tab ->
+                when (tab) {
+                    AppTab.DASHBOARD -> DashboardScreen(
+                        totalSaved = totalSaved,
+                        inQueue = queueCount,
+                        settings = settings,
+                        onExportHistory = { exportHistory() },
+                        onViewQueue = { currentTab = AppTab.QUEUE },
+                        onOpenSaveExistingContacts = { showSaveExistingDialog = true },
+                        onSnapAndSave = { showPhotoScanDialog = true },
+                        onPrefixChange = { viewModel.setContactPrefix(it) },
+                        onAutoSaveChange = { viewModel.setAutoSave(it) },
+                        onSimulateIncomingLead = {
+                            scope.launch {
+                                val dummyNum = "+96777178691"
+                                viewModel.repository.processIncomingPhoneCandidate(dummyNum, "Simulation")
+                            }
+                        }
+                    )
 
-                AppTab.HISTORY -> HistoryScreen(
-                    historyList = historyList,
-                    onExportHistory = { exportHistory() },
-                    onClearHistory = { viewModel.clearHistory() }
-                )
+                    AppTab.QUEUE -> QueueScreen(
+                        queuedLeads = queuedLeads,
+                        onSaveLead = { viewModel.saveLead(it) },
+                        onRemoveLead = { viewModel.removeLead(it) },
+                        onWhatsAppClick = { WhatsAppHelper.openChat(context, it.normalizedNumber) },
+                        onEditLeadName = { leadToEdit = it },
+                        onSaveAll = { viewModel.saveAllQueued() },
+                        onClearAll = { viewModel.clearQueue() }
+                    )
 
-                AppTab.SETTINGS -> SettingsScreen(
-                    settings = settings,
-                    onAutoSaveChange = { viewModel.setAutoSave(it) },
-                    onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
-                    onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
-                    onPrefixChange = { viewModel.setContactPrefix(it) },
-                    onCountryCodeChange = { viewModel.setCountryCode(it) },
-                    onDefaultContactNameChange = { viewModel.setDefaultContactName(it) },
-                    onRequestContactsPermission = {
-                        permissionLauncher.launch(permissionsToRequest.toTypedArray())
-                    },
-                    onOpenSamsungGuide = { showSamsungGuideDialog = true }
-                )
+                    AppTab.HISTORY -> HistoryScreen(
+                        historyList = historyList,
+                        onExportHistory = { exportHistory() },
+                        onClearHistory = { viewModel.clearHistory() }
+                    )
+
+                    AppTab.SETTINGS -> SettingsScreen(
+                        settings = settings,
+                        onAutoSaveChange = { viewModel.setAutoSave(it) },
+                        onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
+                        onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
+                        onPrefixChange = { viewModel.setContactPrefix(it) },
+                        onCountryCodeChange = { viewModel.setCountryCode(it) },
+                        onDefaultContactNameChange = { viewModel.setDefaultContactName(it) },
+                        onRequestContactsPermission = {
+                            permissionLauncher.launch(permissionsToRequest.toTypedArray())
+                        },
+                        onOpenSamsungGuide = { showSamsungGuideDialog = true }
+                    )
+                }
             }
         }
     }
