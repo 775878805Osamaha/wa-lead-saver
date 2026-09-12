@@ -136,4 +136,25 @@ class AuthModelsTest {
         assertEquals("active", account.status.value)
         assertEquals(3, account.maxDevices)
     }
+
+    @Test
+    fun testUserRoleParsingFromDatabase() {
+        assertEquals(UserRole.ADMIN, UserRole.fromString("admin"))
+        assertEquals(UserRole.ADMIN, UserRole.fromString("ADMIN"))
+        assertEquals(UserRole.USER, UserRole.fromString("user"))
+        assertEquals(UserRole.USER, UserRole.fromString("USER"))
+        assertEquals(UserRole.USER, UserRole.fromString(null))
+        assertEquals(UserRole.USER, UserRole.fromString("other"))
+    }
+
+    @Test
+    fun testLoginInputClassification() {
+        fun isAccountNumber(input: String): Boolean = !input.trim().contains("@")
+
+        assertTrue(isAccountNumber("OMX-100001"))
+        assertTrue(isAccountNumber("omx-100001"))
+        assertTrue(isAccountNumber("100001"))
+        assertFalse(isAccountNumber("admin@example.com"))
+        assertFalse(isAccountNumber("user@omx-store.com"))
+    }
 }

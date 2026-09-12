@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -84,6 +86,7 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
+    var loginMethod by remember { mutableStateOf(LoginMethod.ACCOUNT_NUMBER) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -157,20 +160,105 @@ fun LoginScreen(
                             textAlign = TextAlign.Start
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // Account Number Input
+                        // Login Method Switcher (Account Number vs Email)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                                .padding(4.dp)
+                                .testTag("login_method_selector"),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Button(
+                                onClick = { loginMethod = LoginMethod.ACCOUNT_NUMBER },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .testTag("tab_account_number"),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) WhatsAppTeal else Color.Transparent,
+                                    contentColor = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Color.White else Color(0xFF64748B)
+                                ),
+                                elevation = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Badge,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.auth_tab_account_number),
+                                    fontSize = 13.sp,
+                                    fontWeight = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+
+                            Button(
+                                onClick = { loginMethod = LoginMethod.EMAIL },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .testTag("tab_email"),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (loginMethod == LoginMethod.EMAIL) WhatsAppTeal else Color.Transparent,
+                                    contentColor = if (loginMethod == LoginMethod.EMAIL) Color.White else Color(0xFF64748B)
+                                ),
+                                elevation = if (loginMethod == LoginMethod.EMAIL) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.auth_tab_email),
+                                    fontSize = 13.sp,
+                                    fontWeight = if (loginMethod == LoginMethod.EMAIL) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Dynamic Input Field (Account Number or Email)
+                        val inputLabel = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                            stringResource(R.string.auth_account_or_email_label)
+                        } else {
+                            stringResource(R.string.auth_email_label)
+                        }
+                        val inputPlaceholder = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                            stringResource(R.string.auth_account_placeholder)
+                        } else {
+                            stringResource(R.string.auth_email_placeholder)
+                        }
+                        val inputIcon = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                            Icons.Default.Badge
+                        } else {
+                            Icons.Default.Email
+                        }
+                        val inputKeyboardType = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
+                            KeyboardType.Text
+                        } else {
+                            KeyboardType.Email
+                        }
+
                         OutlinedTextField(
                             value = accountOrEmail,
                             onValueChange = { accountOrEmail = it },
-                            label = { Text(stringResource(R.string.auth_account_or_email_label)) },
-                            placeholder = { Text(stringResource(R.string.auth_account_placeholder)) },
+                            label = { Text(inputLabel) },
+                            placeholder = { Text(inputPlaceholder) },
                             leadingIcon = {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = WhatsAppTeal)
+                                Icon(inputIcon, contentDescription = null, tint = WhatsAppTeal)
                             },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email,
+                                keyboardType = inputKeyboardType,
                                 imeAction = ImeAction.Next
                             ),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -347,4 +435,9 @@ fun StatusAlertCard(title: String, message: String, bgColor: Color, textColor: C
             Text(text = message, color = textColor, style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+enum class LoginMethod {
+    ACCOUNT_NUMBER,
+    EMAIL
 }

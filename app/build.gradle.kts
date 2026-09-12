@@ -26,15 +26,17 @@ android {
             FileInputStream(envFile).use { envProps.load(it) }
         }
         val envSupabaseUrl = (project.findProperty("SUPABASE_URL") as? String)
-            ?: envProps.getProperty("SUPABASE_URL")
             ?: System.getenv("SUPABASE_URL")
+            ?: envProps.getProperty("SUPABASE_URL")
             ?: ""
         val envSupabaseAnonKey = (project.findProperty("SUPABASE_ANON_KEY") as? String)
-            ?: envProps.getProperty("SUPABASE_ANON_KEY")
             ?: System.getenv("SUPABASE_ANON_KEY")
+            ?: envProps.getProperty("SUPABASE_ANON_KEY")
             ?: ""
-        buildConfigField("String", "SUPABASE_URL", "\"$envSupabaseUrl\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$envSupabaseAnonKey\"")
+        val trimmedUrl = envSupabaseUrl.trim().removeSuffix("/")
+        val trimmedKey = envSupabaseAnonKey.trim()
+        buildConfigField("String", "SUPABASE_URL", "\"$trimmedUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$trimmedKey\"")
     }
 
     buildTypes {

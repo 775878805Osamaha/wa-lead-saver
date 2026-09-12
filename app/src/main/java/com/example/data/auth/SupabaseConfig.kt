@@ -18,25 +18,25 @@ object SupabaseConfig {
     private val KEY_CUSTOM_ANON_KEY = stringPreferencesKey("supabase_custom_anon_key")
 
     suspend fun getUrl(context: Context): String {
+        if (BuildConfig.SUPABASE_URL.isNotBlank()) {
+            return BuildConfig.SUPABASE_URL.trim().removeSuffix("/")
+        }
         val prefs = context.supabaseConfigDataStore.data.first()
         val customUrl = prefs[KEY_CUSTOM_URL]?.trim()?.removeSuffix("/")
         if (!customUrl.isNullOrBlank()) {
             return customUrl
         }
-        if (BuildConfig.SUPABASE_URL.isNotBlank()) {
-            return BuildConfig.SUPABASE_URL.trim().removeSuffix("/")
-        }
         return DEFAULT_URL
     }
 
     suspend fun getAnonKey(context: Context): String {
+        if (BuildConfig.SUPABASE_ANON_KEY.isNotBlank()) {
+            return BuildConfig.SUPABASE_ANON_KEY.trim()
+        }
         val prefs = context.supabaseConfigDataStore.data.first()
         val customKey = prefs[KEY_CUSTOM_ANON_KEY]?.trim()
         if (!customKey.isNullOrBlank()) {
             return customKey
-        }
-        if (BuildConfig.SUPABASE_ANON_KEY.isNotBlank()) {
-            return BuildConfig.SUPABASE_ANON_KEY.trim()
         }
         return DEFAULT_ANON_KEY
     }

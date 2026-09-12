@@ -38,11 +38,21 @@ class AuthRepository(
         if (cachedSession.role == UserRole.ADMIN) {
             val profileRes = supabaseClient.getProfile(cachedSession.userId, cachedSession.accessToken)
             if (profileRes.isSuccess && profileRes.getOrNull()?.role == UserRole.ADMIN) {
+                sessionManager.saveSession(
+                    accessToken = cachedSession.accessToken,
+                    refreshToken = cachedSession.refreshToken,
+                    userId = cachedSession.userId,
+                    email = cachedSession.email,
+                    role = UserRole.ADMIN,
+                    accountNumber = null,
+                    account = null,
+                    lastValidatedTimestamp = System.currentTimeMillis()
+                )
                 val state = AuthState.AuthenticatedAdmin(profileRes.getOrNull()!!)
                 _authState.value = state
                 return state
             } else if (cachedSession.isOfflineGraceValid()) {
-                // Allow admin in grace period if server unreachable
+                // Allow admin in offline grace period (max 48 hours) if server unreachable
                 val state = AuthState.AuthenticatedAdmin(
                     UserProfile(id = cachedSession.userId, email = cachedSession.email, role = UserRole.ADMIN)
                 )
@@ -50,8 +60,11 @@ class AuthRepository(
                 return state
             } else {
                 sessionManager.clearSession()
-                _authState.value = AuthState.Unauthenticated
-                return AuthState.Unauthenticated
+                _authState.value = AuthState.AccountExpired(
+                    "Admin",
+                    "انتهت مهلة العمل بدون اتصال (الحد الأقصى 48 ساعة). يُرجى الاتصال بالإنترنت لتسجيل الدخول."
+                )
+                return _authState.value
             }
         }
 
@@ -63,7 +76,7 @@ class AuthRepository(
             val account = accountRes.getOrNull()
             if (account == null) {
                 // If no account row attached, check cached
-                if (cachedSession.cachedAccount != null) {
+                if (cachedSession.cachedAccount != null && cachedSession.isOfflineGraceValid()) {
                     return validateAccountState(
                         UserProfile(id = cachedSession.userId, email = cachedSession.email),
                         cachedSession.cachedAccount
@@ -74,7 +87,7 @@ class AuthRepository(
                 return state
             }
 
-            // Save refreshed account
+            // Save refreshed account with updated online validation timestamp
             sessionManager.saveSession(
                 accessToken = cachedSession.accessToken,
                 refreshToken = cachedSession.refreshToken,
@@ -82,7 +95,8 @@ class AuthRepository(
                 email = cachedSession.email,
                 role = UserRole.USER,
                 accountNumber = account.accountNumber,
-                account = account
+                account = account,
+                lastValidatedTimestamp = System.currentTimeMillis()
             )
 
             return validateAccountState(
@@ -90,17 +104,17 @@ class AuthRepository(
                 account
             )
         } else {
-            // Network failure: check offline grace period
+            // Network failure: check offline grace period (max 48 hours)
             if (cachedSession.isOfflineGraceValid() && cachedSession.cachedAccount != null) {
                 return validateAccountState(
                     UserProfile(id = cachedSession.userId, email = cachedSession.email),
                     cachedSession.cachedAccount
                 )
             } else {
-                // Expired or offline beyond grace
+                // Expired or offline beyond 48 hours grace
                 _authState.value = AuthState.AccountExpired(
                     cachedSession.accountNumber.orEmpty(),
-                    "انتهت صلاحية التحقق من الحساب أو يلزم الاتصال بالإنترنت."
+                    "انتهت مهلة العمل بدون اتصال (الحد الأقصى 48 ساعة). يُرجى الاتصال بالإنترنت لتأكيد الحساب."
                 )
                 return _authState.value
             }
@@ -117,7 +131,9 @@ class AuthRepository(
         }
 
         if (!SupabaseConfig.isConfigured(context)) {
-            return AuthResult.Error("خدمة الخادم غير متوفرة حالياً، يرجى مراجعة المسؤول.")
+            return AuthResult.Error(
+                context.getString(com.example.R.string.auth_server_not_configured_error)
+            )
         }
 
         val emailToUse: String
@@ -127,7 +143,15 @@ class AuthRepository(
             // Look up email associated with account number
             val emailRes = supabaseClient.getAccountEmailByNumber(trimmedInput)
             if (emailRes.isFailure) {
-                return AuthResult.Error(emailRes.exceptionOrNull()?.message ?: "رقم الحساب غير مسجل في النظام")
+                val err = emailRes.exceptionOrNull()?.message.orEmpty()
+                val cleanMsg = when {
+                    err.contains("Failed to connect", ignoreCase = true) ||
+                    err.contains("Unable to resolve host", ignoreCase = true) ->
+                        "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت"
+                    err.isNotBlank() -> err
+                    else -> "رقم الحساب غير مسجل في النظام"
+                }
+                return AuthResult.Error(cleanMsg)
             }
             emailToUse = emailRes.getOrThrow()
         } else {
@@ -138,10 +162,15 @@ class AuthRepository(
         val authRes = supabaseClient.signInWithEmail(emailToUse, password)
         if (authRes.isFailure) {
             val rawErr = authRes.exceptionOrNull()?.message.orEmpty()
-            val cleanErr = if (rawErr.contains("Invalid login", ignoreCase = true) || rawErr.contains("invalid_grant", ignoreCase = true)) {
-                "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور"
-            } else {
-                rawErr
+            val cleanErr = when {
+                rawErr.contains("Invalid login", ignoreCase = true) ||
+                rawErr.contains("invalid_grant", ignoreCase = true) ->
+                    "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور"
+                rawErr.contains("Failed to connect", ignoreCase = true) ||
+                rawErr.contains("Unable to resolve host", ignoreCase = true) ->
+                    "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت"
+                rawErr.isNotBlank() -> rawErr
+                else -> "فشل تسجيل الدخول. يرجى التحقق من البيانات والمحاولة لاحقاً."
             }
             return AuthResult.Error(cleanErr)
         }
@@ -242,5 +271,9 @@ class AuthRepository(
         currentAccessToken = null
         sessionManager.clearSession()
         _authState.value = AuthState.Unauthenticated
+    }
+
+    suspend fun testServerConnection(): Result<Boolean> {
+        return supabaseClient.testConnection()
     }
 }

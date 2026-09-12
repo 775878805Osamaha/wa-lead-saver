@@ -38,7 +38,33 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
+      - name: Check Supabase Build Configuration
+        run: |
+          echo "=== Checking Supabase Configuration in Build Environment ==="
+          if [ -n "$SUPABASE_URL" ]; then
+            echo "✅ SUPABASE_URL is configured (length: ${#SUPABASE_URL})"
+          else
+            echo "::warning title=Missing SUPABASE_URL::SUPABASE_URL is not set in GitHub Secrets/Variables. The APK will display a configuration reminder."
+          fi
+          if [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo "✅ SUPABASE_ANON_KEY is configured (length: ${#SUPABASE_ANON_KEY})"
+          else
+            echo "::warning title=Missing SUPABASE_ANON_KEY::SUPABASE_ANON_KEY is not set in GitHub Secrets/Variables."
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+
+      - name: Run Unit Tests
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: ./gradlew testDebugUnitTest
+
       - name: Build Debug APK
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
         run: ./gradlew assembleDebug
 
       - name: Verify APK exists

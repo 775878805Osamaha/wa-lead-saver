@@ -25,6 +25,47 @@ class SupabaseClient(private val context: Context) {
     suspend fun getBaseUrl(): String = SupabaseConfig.getUrl(context)
     suspend fun getAnonKey(): String = SupabaseConfig.getAnonKey(context)
 
+    /**
+     * Checks if Supabase server is reachable and active.
+     */
+    suspend fun testConnection(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            if (baseUrl.isBlank() || anonKey.isBlank()) {
+                return@withContext Result.failure(Exception("رابط خادم Supabase أو مفتاح الوصول العام غير محدد."))
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/auth/v1/health")
+                .addHeader("apikey", anonKey)
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful || response.code in 200..299) {
+                    Result.success(true)
+                } else {
+                    // Also check rest root as alternative health verification
+                    val restReq = Request.Builder()
+                        .url("$baseUrl/rest/v1/")
+                        .addHeader("apikey", anonKey)
+                        .get()
+                        .build()
+                    httpClient.newCall(restReq).execute().use { restResp ->
+                        if (restResp.isSuccessful || restResp.code in 200..399) {
+                            Result.success(true)
+                        } else {
+                            Result.failure(Exception("استجاب الخادم برمز: ${response.code}"))
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // ==========================================
     // Supabase Auth Endpoints
     // ==========================================
