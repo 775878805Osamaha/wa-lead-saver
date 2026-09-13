@@ -482,5 +482,74 @@
     <string name="settings_default_contact_name_placeholder">e.g. زبون متجر أومكس or OMX Customer</string>
     <string name="settings_default_contact_name_empty_error">Default Contact Name cannot be empty</string>
     <string name="settings_default_contact_name_invalid_error">Invalid contact name. Cannot be self-referential (\"You\", \"Me\") or system text.</string>
+
+    <!-- Lead Management V1 Strings -->
+    <string name="status_new">New</string>
+    <string name="status_contacted">Contacted</string>
+    <string name="status_interested">Interested</string>
+    <string name="status_follow_up">Follow-up</string>
+    <string name="status_sold">Sold</string>
+    <string name="status_not_interested">Not Interested</string>
+
+    <string name="source_whatsapp">WhatsApp</string>
+    <string name="source_manual">Manual</string>
+    <string name="source_scan">Scan</string>
+    <string name="source_import">Import</string>
+
+    <string name="filter_today">Today</string>
+    <string name="filter_last_7_days">Last 7 days</string>
+    <string name="filter_last_30_days">Last 30 days</string>
+    <string name="filter_all_statuses">All Statuses</string>
+    <string name="filter_all_sources">All Sources</string>
+
+    <string name="sort_newest">Newest</string>
+    <string name="sort_oldest">Oldest</string>
+    <string name="sort_last_updated">Last Updated</string>
+    <string name="sort_last_contacted">Last Contacted</string>
+    <string name="sort_name_az">Name (A-Z)</string>
+
+    <string name="leads_title">Leads Management</string>
+    <string name="tab_leads">Leads</string>
+    <string name="add_lead">Add Lead</string>
+    <string name="edit_lead">Edit Lead</string>
+    <string name="lead_details">Customer Details</string>
+    <string name="delete_lead_confirm">Are you sure you want to delete this customer?</string>
+    <string name="call_action">Call</string>
+    <string name="whatsapp_action">Open WhatsApp</string>
+    <string name="change_status">Change Status</string>
+    <string name="add_note">Add Note</string>
+    <string name="edit_note">Edit Note</string>
+    <string name="add_tag">Add Tag</string>
+    <string name="notes_label">Notes</string>
+    <string name="tags_label">Tags</string>
+    <string name="notes_hint">Write customer notes here…</string>
+    <string name="tags_hint">Add tag (e.g. VIP, Interested)…</string>
+    <string name="display_name_label">Customer Name</string>
+    <string name="phone_number_label">Phone Number</string>
+    <string name="created_at_label">Created At</string>
+    <string name="updated_at_label">Last Updated</string>
+    <string name="last_contact_label">Last Contact</string>
+    <string name="no_contact_yet">No contact yet</string>
+    <string name="search_leads_hint">Search by name, phone or notes…</string>
+    <string name="empty_leads_title">No Leads Yet</string>
+    <string name="empty_leads_desc">Leads will be saved automatically from WhatsApp when this feature is active.</string>
+    <string name="empty_leads_pending_desc">Your account is pending activation. Saving leads is available after activation.</string>
+    <string name="empty_leads_inactive_desc">Your account is inactive. Please contact admin to enable saving leads.</string>
+    <string name="lead_saved_success">Lead created successfully</string>
+    <string name="lead_updated_success">Lead updated successfully</string>
+    <string name="lead_deleted_success">Lead deleted</string>
+    <string name="duplicate_phone_error">A lead with this phone number already exists</string>
+    <string name="whatsapp_not_installed">WhatsApp is not installed on this device</string>
+    <string name="quick_tags">Quick Tags</string>
+    <string name="tag_new_customer">New Customer</string>
+    <string name="tag_interested">Interested</string>
+    <string name="tag_price_request">Price Request</string>
+    <string name="tag_product_request">Product Request</string>
+    <string name="tag_follow_up">Follow-up</string>
+    <string name="tag_vip">VIP</string>
+    <string name="status_label">Status</string>
+    <string name="source_label">Source</string>
+    <string name="save_changes">Save Changes</string>
+
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar"/>
 </resources>

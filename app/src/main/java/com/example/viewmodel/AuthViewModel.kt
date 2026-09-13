@@ -34,6 +34,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _unconfirmedEmail = MutableStateFlow<String?>(null)
+    val unconfirmedEmail: StateFlow<String?> = _unconfirmedEmail.asStateFlow()
+
+    private val _registrationSuccessMessage = MutableStateFlow<String?>(null)
+    val registrationSuccessMessage: StateFlow<String?> = _registrationSuccessMessage.asStateFlow()
+
+    private val _registrationErrorMessage = MutableStateFlow<String?>(null)
+    val registrationErrorMessage: StateFlow<String?> = _registrationErrorMessage.asStateFlow()
+
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
@@ -121,10 +130,24 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+            _unconfirmedEmail.value = null
+            // Clear prior registration message when user initiates login
+            _registrationSuccessMessage.value = null
+            _successMessage.value = null
             try {
-                val result = authRepository.login(accountOrEmail, password, rememberMe)
-                if (result is AuthResult.Error) {
-                    _errorMessage.value = result.message
+                when (val result = authRepository.login(accountOrEmail, password, rememberMe)) {
+                    is AuthResult.Success -> {
+                        _errorMessage.value = null
+                        _unconfirmedEmail.value = null
+                    }
+                    is AuthResult.Error -> {
+                        _errorMessage.value = result.message
+                        _unconfirmedEmail.value = null
+                    }
+                    is AuthResult.EmailNotConfirmed -> {
+                        _errorMessage.value = result.message
+                        _unconfirmedEmail.value = result.email
+                    }
                 }
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "حدث خطأ غير متوقع أثناء تسجيل الدخول"
@@ -143,16 +166,44 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+            _registrationErrorMessage.value = null
+            _registrationSuccessMessage.value = null
+            _unconfirmedEmail.value = null
             try {
                 val res = authRepository.registerCustomer(fullName, email, password)
                 if (res.isSuccess) {
-                    _successMessage.value = "تم إنشاء الحساب بنجاح! حسابك بانتظار تفعيل المسؤول (غير مفعّل)."
+                    val msg = "تم إنشاء الحساب بنجاح.\nيرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
+                    _registrationSuccessMessage.value = msg
+                    _successMessage.value = msg
                     onSuccess()
                 } else {
-                    _errorMessage.value = res.exceptionOrNull()?.message ?: "فشل إنشاء الحساب"
+                    val err = res.exceptionOrNull()?.message ?: "فشل إنشاء الحساب"
+                    _registrationErrorMessage.value = err
+                    _errorMessage.value = err
                 }
             } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "حدث خطأ أثناء التسجيل"
+                val err = e.message ?: "حدث خطأ أثناء التسجيل"
+                _registrationErrorMessage.value = err
+                _errorMessage.value = err
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun resendConfirmationEmail(email: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val res = authRepository.resendConfirmationEmail(email)
+                if (res.isSuccess) {
+                    _successMessage.value = "تمت إعادة إرسال رسالة التأكيد بنجاح إلى $email. يرجى مراجعة بريدك."
+                } else {
+                    _errorMessage.value = res.exceptionOrNull()?.message ?: "فشل إعادة إرسال رسالة التأكيد"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "حدث خطأ أثناء إرسال البريد"
             } finally {
                 _isLoading.value = false
             }
@@ -173,9 +224,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun clearLoginError() {
+        _errorMessage.value = null
+        _unconfirmedEmail.value = null
+    }
+
+    fun clearRegistrationMessages() {
+        _registrationSuccessMessage.value = null
+        _registrationErrorMessage.value = null
+    }
+
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
+        _unconfirmedEmail.value = null
+        _registrationSuccessMessage.value = null
+        _registrationErrorMessage.value = null
     }
 
     // ==========================================

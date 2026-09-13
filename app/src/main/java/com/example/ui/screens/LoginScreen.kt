@@ -82,6 +82,9 @@ fun LoginScreen(
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
     val successMessage by authViewModel.successMessage.collectAsStateWithLifecycle()
+    val unconfirmedEmail by authViewModel.unconfirmedEmail.collectAsStateWithLifecycle()
+    val registrationSuccessMessage by authViewModel.registrationSuccessMessage.collectAsStateWithLifecycle()
+    val registrationErrorMessage by authViewModel.registrationErrorMessage.collectAsStateWithLifecycle()
 
     var isRegisterMode by remember { mutableStateOf(false) }
 
@@ -452,40 +455,114 @@ fun LoginScreen(
                             }
                         }
 
-                        // Error message display
-                        val activeError = regValidationErr ?: errorMessage
-                        if (!activeError.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
-                            ) {
-                                Text(
-                                    text = activeError,
-                                    color = Color(0xFFB91C1C),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(12.dp),
-                                    textAlign = TextAlign.Start
-                                )
+                        // Registration mode messages
+                        if (isRegisterMode) {
+                            val activeRegError = regValidationErr ?: registrationErrorMessage
+                            if (!activeRegError.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("register_error_card"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
+                                ) {
+                                    Text(
+                                        text = activeRegError,
+                                        color = Color(0xFFB91C1C),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
                             }
-                        }
+                        } else {
+                            // Login mode messages:
+                            // 1. Show registration success banner if user just registered
+                            if (!registrationSuccessMessage.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("registration_success_card"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
+                                ) {
+                                    Text(
+                                        text = registrationSuccessMessage!!,
+                                        color = Color(0xFF15803D),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
+                            }
 
-                        // Success message display
-                        if (!successMessage.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
-                            ) {
-                                Text(
-                                    text = successMessage!!,
-                                    color = Color(0xFF15803D),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(12.dp),
-                                    textAlign = TextAlign.Start
-                                )
+                            // 2. Email confirmation required banner with resend button
+                            if (!unconfirmedEmail.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("unconfirmed_email_card"),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7))
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = "تأكيد البريد الإلكتروني مطلوب",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFB45309),
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "يجب تأكيد البريد الإلكتروني أولًا. تحقق من بريدك الإلكتروني.",
+                                            color = Color(0xFF92400E),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        OutlinedButton(
+                                            onClick = {
+                                                authViewModel.resendConfirmationEmail(unconfirmedEmail ?: accountOrEmail)
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .testTag("resend_confirmation_button"),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB45309))
+                                        ) {
+                                            Text(text = "إعادة إرسال رسالة التأكيد", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                }
+                            } else if (!errorMessage.isNullOrBlank()) {
+                                // 3. Standard Login error (invalid credentials, network error, etc.)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("login_error_card"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
+                                ) {
+                                    Text(
+                                        text = errorMessage!!,
+                                        color = Color(0xFFB91C1C),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
+                            }
+
+                            // 4. Other success messages (e.g. resend confirmation email success)
+                            if (!successMessage.isNullOrBlank() && registrationSuccessMessage.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
+                                ) {
+                                    Text(
+                                        text = successMessage!!,
+                                        color = Color(0xFF15803D),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
                             }
                         }
 
@@ -539,10 +616,11 @@ fun LoginScreen(
                                     }
                                     authViewModel.registerUser(regFullName, regEmail, regPassword) {
                                         isRegisterMode = false
+                                        loginMethod = LoginMethod.EMAIL
+                                        accountOrEmail = regEmail
                                         regFullName = ""
                                         regPassword = ""
                                         regConfirmPassword = ""
-                                        accountOrEmail = regEmail
                                     }
                                 },
                                 enabled = !isLoading && regFullName.isNotBlank() && regEmail.isNotBlank() && regPassword.isNotBlank() && regConfirmPassword.isNotBlank(),

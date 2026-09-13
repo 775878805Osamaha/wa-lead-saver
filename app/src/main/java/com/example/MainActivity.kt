@@ -61,6 +61,10 @@ import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseStatus
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
+import com.example.data.model.DateFilter
+import com.example.data.model.LeadSource
+import com.example.data.model.LeadStatus
+import com.example.data.model.SortOrder
 import com.example.ui.components.AppTopBar
 import com.example.ui.dialogs.EditNameDialog
 import com.example.ui.dialogs.PhotoScanDialog
@@ -69,6 +73,8 @@ import com.example.ui.dialogs.SaveExistingContactsDialog
 import com.example.ui.screens.AdminDashboardScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.HistoryScreen
+import com.example.ui.screens.LeadDetailsScreen
+import com.example.ui.screens.LeadsScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.QueueScreen
 import com.example.ui.screens.SettingsScreen
@@ -151,6 +157,14 @@ fun MainScreen(
     val totalSaved by viewModel.totalSavedCount.collectAsStateWithLifecycle(0)
     val queueCount by viewModel.queueCount.collectAsStateWithLifecycle(0)
     val historyList by viewModel.historyList.collectAsStateWithLifecycle(emptyList())
+    val allLeads by viewModel.allLeads.collectAsStateWithLifecycle(emptyList())
+    val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle(emptyList())
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle("")
+    val selectedStatus by viewModel.selectedStatusFilter.collectAsStateWithLifecycle(null)
+    val selectedSource by viewModel.selectedSourceFilter.collectAsStateWithLifecycle(null)
+    val selectedDateFilter by viewModel.selectedDateFilter.collectAsStateWithLifecycle(DateFilter.ALL)
+    val selectedSortOrder by viewModel.selectedSortOrder.collectAsStateWithLifecycle(SortOrder.NEWEST)
+    val selectedLead by viewModel.selectedLead.collectAsStateWithLifecycle(null)
     val settings by viewModel.settings.collectAsStateWithLifecycle(AppSettings())
     val isListenerActive by viewModel.isNotificationListenerActive.collectAsStateWithLifecycle(false)
     val hasContactsPermission by viewModel.hasContactsPermission.collectAsStateWithLifecycle(false)
@@ -159,6 +173,10 @@ fun MainScreen(
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle(emptyList())
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle(false)
     val licenseStatus by viewModel.licenseStatus.collectAsStateWithLifecycle(LicenseStatus.Active)
+
+    androidx.activity.compose.BackHandler(enabled = selectedLead != null) {
+        viewModel.selectLead(null)
+    }
 
     val permissionsToRequest = remember {
         buildList {
@@ -229,14 +247,20 @@ fun MainScreen(
                     val isSelected = currentTab == tab
                     NavigationBarItem(
                         selected = isSelected,
-                        onClick = { currentTab = tab },
+                        onClick = {
+                            currentTab = tab
+                            if (tab != AppTab.LEADS) {
+                                viewModel.selectLead(null)
+                            }
+                        },
                         icon = {
-                            if (tab == AppTab.QUEUE && queueCount > 0) {
-                                BadgedBox(badge = { Badge { Text("$queueCount") } }) {
+                            val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
+                            if (badgeCount > 0) {
+                                BadgedBox(badge = { Badge { Text("$badgeCount") } }) {
                                     Icon(
                                         imageVector = when (tab) {
                                             AppTab.DASHBOARD -> Icons.Default.Dashboard
-                                            AppTab.QUEUE -> Icons.Default.People
+                                            AppTab.LEADS -> Icons.Default.People
                                             AppTab.HISTORY -> Icons.Default.History
                                             AppTab.SETTINGS -> Icons.Default.Settings
                                         },
@@ -247,7 +271,7 @@ fun MainScreen(
                                 Icon(
                                     imageVector = when (tab) {
                                         AppTab.DASHBOARD -> Icons.Default.Dashboard
-                                        AppTab.QUEUE -> Icons.Default.People
+                                        AppTab.LEADS -> Icons.Default.People
                                         AppTab.HISTORY -> Icons.Default.History
                                         AppTab.SETTINGS -> Icons.Default.Settings
                                     },
@@ -322,7 +346,7 @@ fun MainScreen(
                         inQueue = queueCount,
                         settings = settings,
                         onExportHistory = { exportHistory() },
-                        onViewQueue = { currentTab = AppTab.QUEUE },
+                        onViewQueue = { currentTab = AppTab.LEADS },
                         onOpenSaveExistingContacts = { showSaveExistingDialog = true },
                         onSnapAndSave = { showPhotoScanDialog = true },
                         onPrefixChange = { viewModel.setContactPrefix(it) },
@@ -335,15 +359,43 @@ fun MainScreen(
                         }
                     )
 
-                    AppTab.QUEUE -> QueueScreen(
-                        queuedLeads = queuedLeads,
-                        onSaveLead = { viewModel.saveLead(it) },
-                        onRemoveLead = { viewModel.removeLead(it) },
-                        onWhatsAppClick = { WhatsAppHelper.openChat(context, it.normalizedNumber) },
-                        onEditLeadName = { leadToEdit = it },
-                        onSaveAll = { viewModel.saveAllQueued() },
-                        onClearAll = { viewModel.clearQueue() }
-                    )
+                    AppTab.LEADS -> {
+                        if (selectedLead != null) {
+                            LeadDetailsScreen(
+                                lead = selectedLead!!,
+                                onBackClick = { viewModel.selectLead(null) },
+                                onCallClick = { viewModel.openPhoneDialer(context, selectedLead!!) },
+                                onWhatsAppClick = { viewModel.openWhatsAppChat(context, selectedLead!!) },
+                                onUpdateLead = { updated -> viewModel.updateLead(updated) { _, _ -> } },
+                                onUpdateStatus = { st -> viewModel.updateLeadStatus(selectedLead!!.id, st) },
+                                onUpdateNotes = { nt -> viewModel.updateLeadNotes(selectedLead!!.id, nt) },
+                                onUpdateTags = { tg -> viewModel.updateLeadTags(selectedLead!!.id, tg) },
+                                onDeleteLead = { viewModel.deleteLead(selectedLead!!.id) { viewModel.selectLead(null) } }
+                            )
+                        } else {
+                            LeadsScreen(
+                                leads = filteredLeads,
+                                totalCount = allLeads.size,
+                                searchQuery = searchQuery,
+                                selectedStatus = selectedStatus,
+                                selectedSource = selectedSource,
+                                selectedDateFilter = selectedDateFilter,
+                                selectedSortOrder = selectedSortOrder,
+                                onSearchChange = { viewModel.setSearchQuery(it) },
+                                onStatusFilterChange = { viewModel.setStatusFilter(it) },
+                                onSourceFilterChange = { viewModel.setSourceFilter(it) },
+                                onDateFilterChange = { viewModel.setDateFilter(it) },
+                                onSortOrderChange = { viewModel.setSortOrder(it) },
+                                onLeadClick = { viewModel.selectLead(it) },
+                                onCallClick = { viewModel.openPhoneDialer(context, it) },
+                                onWhatsAppClick = { viewModel.openWhatsAppChat(context, it) },
+                                onUpdateStatus = { id, st -> viewModel.updateLeadStatus(id, st) },
+                                onCreateLead = { phone, name, src, st, notes, tags ->
+                                    viewModel.createLead(phone, name, src, st, notes, tags) { _, _ -> }
+                                }
+                            )
+                        }
+                    }
 
                     AppTab.HISTORY -> HistoryScreen(
                         historyList = historyList,

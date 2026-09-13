@@ -74,11 +74,15 @@ class SupabaseClient(private val context: Context) {
         try {
             val baseUrl = getBaseUrl()
             val anonKey = getAnonKey()
+            val trimmedEmail = email.trim()
             val url = "$baseUrl/auth/v1/token?grant_type=password"
             val bodyJson = JSONObject().apply {
-                put("email", email.trim())
+                put("email", trimmedEmail)
                 put("password", password)
             }
+
+            // Safe logging during development: Log email and endpoint without secrets/passwords
+            android.util.Log.d("AuthDev", "signInWithEmail: attempting login for email=$trimmedEmail")
 
             val request = Request.Builder()
                 .url(url)
@@ -89,14 +93,93 @@ class SupabaseClient(private val context: Context) {
 
             httpClient.newCall(request).execute().use { response ->
                 val respStr = response.body?.string().orEmpty()
+                val code = response.code
+
                 if (response.isSuccessful) {
+                    android.util.Log.d("AuthDev", "signInWithEmail: success for email=$trimmedEmail (HTTP $code)")
                     Result.success(JSONObject(respStr))
                 } else {
-                    val errMsg = parseErrorMessage(respStr, "فشل تسجيل الدخول. يرجى التحقق من البيانات.")
+                    val json = try { JSONObject(respStr) } catch (_: Exception) { null }
+                    val errorCode = json?.optString("error_code")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("error")?.takeIf { it.isNotBlank() }
+                    val rawDesc = json?.optString("error_description")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("msg")?.takeIf { it.isNotBlank() }
+                        ?: ""
+
+                    val isEmailNotConfirmed = (errorCode != null && errorCode.contains("email_not_confirmed", ignoreCase = true)) ||
+                        rawDesc.contains("Email not confirmed", ignoreCase = true) ||
+                        rawDesc.contains("not confirmed", ignoreCase = true)
+
+                    val isRateLimit = code == 429 ||
+                        (errorCode != null && errorCode.contains("rate_limit", ignoreCase = true)) ||
+                        rawDesc.contains("rate limit", ignoreCase = true) ||
+                        rawDesc.contains("Too many requests", ignoreCase = true)
+
+                    val isUserDisabled = (errorCode != null && (errorCode.contains("user_banned", ignoreCase = true) || errorCode.contains("user_disabled", ignoreCase = true))) ||
+                        rawDesc.contains("User is banned", ignoreCase = true) ||
+                        rawDesc.contains("Account disabled", ignoreCase = true)
+
+                    val isInvalidCredentials = (errorCode != null && (errorCode.contains("invalid_grant", ignoreCase = true) || errorCode.contains("invalid_credentials", ignoreCase = true))) ||
+                        rawDesc.contains("Invalid login credentials", ignoreCase = true) ||
+                        rawDesc.contains("invalid_grant", ignoreCase = true)
+
+                    // Safe logging without passwords or tokens
+                    android.util.Log.w(
+                        "AuthDev",
+                        "signInWithEmail failed: HTTP $code, errorCode=$errorCode, desc=$rawDesc, unconfirmed=$isEmailNotConfirmed"
+                    )
+
+                    val authEx = SupabaseAuthException(
+                        statusCode = code,
+                        errorCode = errorCode,
+                        errorDesc = rawDesc,
+                        isEmailNotConfirmed = isEmailNotConfirmed,
+                        isRateLimit = isRateLimit,
+                        isInvalidCredentials = isInvalidCredentials && !isEmailNotConfirmed,
+                        isUserDisabled = isUserDisabled
+                    )
+                    Result.failure(authEx)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthDev", "signInWithEmail network error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun resendConfirmationEmail(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val trimmedEmail = email.trim()
+            val url = "$baseUrl/auth/v1/resend"
+            val bodyJson = JSONObject().apply {
+                put("type", "signup")
+                put("email", trimmedEmail)
+            }
+
+            android.util.Log.d("AuthDev", "resendConfirmationEmail: sending to $trimmedEmail")
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                android.util.Log.d("AuthDev", "resendConfirmationEmail response: HTTP ${response.code}")
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val errMsg = parseErrorMessage(respStr, "فشل إعادة إرسال رسالة التأكيد")
                     Result.failure(Exception(errMsg))
                 }
             }
         } catch (e: Exception) {
+            android.util.Log.e("AuthDev", "resendConfirmationEmail error: ${e.message}")
             Result.failure(e)
         }
     }
@@ -838,3 +921,14 @@ class SupabaseClient(private val context: Context) {
         }
     }
 }
+
+class SupabaseAuthException(
+    val statusCode: Int,
+    val errorCode: String?,
+    val errorDesc: String,
+    val isEmailNotConfirmed: Boolean = false,
+    val isRateLimit: Boolean = false,
+    val isInvalidCredentials: Boolean = false,
+    val isUserDisabled: Boolean = false
+) : Exception(errorDesc)
+

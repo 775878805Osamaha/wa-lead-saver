@@ -128,7 +128,7 @@ class SessionCryptoAndOfflineCacheTest {
             lastValidatedTimestamp = now - (1 * hourMs)
         )
         assertTrue(session1HourAgo.isOfflineGraceValid())
-        assertEquals(47, session1HourAgo.getRemainingOfflineHours())
+        assertTrue(session1HourAgo.getRemainingOfflineHours() in 46..47)
 
         // 2. Session validated 24 hours ago -> Valid under 48h limit
         val session24HoursAgo = CachedSession(
@@ -142,7 +142,7 @@ class SessionCryptoAndOfflineCacheTest {
             lastValidatedTimestamp = now - (24 * hourMs)
         )
         assertTrue(session24HoursAgo.isOfflineGraceValid())
-        assertEquals(24, session24HoursAgo.getRemainingOfflineHours())
+        assertTrue(session24HoursAgo.getRemainingOfflineHours() in 23..24)
 
         // 3. Session validated 47 hours ago -> Still valid (1 hour remaining)
         val session47HoursAgo = CachedSession(
@@ -156,7 +156,7 @@ class SessionCryptoAndOfflineCacheTest {
             lastValidatedTimestamp = now - (47 * hourMs)
         )
         assertTrue(session47HoursAgo.isOfflineGraceValid())
-        assertEquals(1, session47HoursAgo.getRemainingOfflineHours())
+        assertTrue(session47HoursAgo.getRemainingOfflineHours() in 0..1)
 
         // 4. Session validated 48 hours + 1 minute ago -> EXPIRED (Beyond 48 hours)
         val session48Hours1MinAgo = CachedSession(

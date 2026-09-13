@@ -1,9 +1,13 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +18,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -24,6 +30,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,14 +39,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.database.entity.LeadEntity
+import com.example.data.model.LeadSource
+import com.example.data.model.LeadStatus
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.TealBadgeLight
-import com.example.ui.theme.TealDark
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -48,6 +59,218 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CrmLeadCard(
+    lead: LeadEntity,
+    onClick: () -> Unit,
+    onCallClick: () -> Unit,
+    onWhatsAppClick: () -> Unit,
+    onChangeStatusClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val status = LeadStatus.fromString(lead.status)
+    val source = LeadSource.fromString(lead.source)
+    val tags = lead.getTagList()
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag("lead_card_${lead.id}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header: Status Badge, Source Badge, and Relative Time
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LeadStatusBadge(status = status)
+                    LeadSourceBadge(source = source)
+                }
+
+                Text(
+                    text = formatRelativeTime(lead.createdAt),
+                    color = TextMuted,
+                    fontSize = 11.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Main Info: Display Name & Phone Number
+            Text(
+                text = lead.effectiveName,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = lead.phoneNumber,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextSecondary
+            )
+
+            // Notes Preview if present
+            if (lead.notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notes,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = lead.notes,
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Tags chips if present
+            if (tags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    tags.take(4).forEach { tag ->
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(0.5.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Text(
+                                text = tag,
+                                fontSize = 10.sp,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    if (tags.size > 4) {
+                        Text(
+                            text = "+${tags.size - 4}",
+                            fontSize = 10.sp,
+                            color = TextMuted,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action Buttons: Call, WhatsApp, Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onCallClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
+                        .testTag("button_call_lead_${lead.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = stringResource(R.string.call_action),
+                        modifier = Modifier.size(15.dp),
+                        tint = WhatsAppTeal
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.call_action),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WhatsAppTeal
+                    )
+                }
+
+                Button(
+                    onClick = onWhatsAppClick,
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .height(38.dp)
+                        .testTag("button_whatsapp_lead_${lead.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE8F5E9),
+                        contentColor = WhatsAppTeal
+                    ),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Chat,
+                        contentDescription = stringResource(R.string.whatsapp_action),
+                        modifier = Modifier.size(15.dp),
+                        tint = WhatsAppGreen
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.whatsapp_action),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WhatsAppTeal
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onChangeStatusClick,
+                    modifier = Modifier
+                        .height(38.dp)
+                        .testTag("button_status_lead_${lead.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.status_label),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Backwards compatibility overload for QueueScreen
+ */
 @Composable
 fun LeadCard(
     lead: LeadEntity,
@@ -77,19 +300,7 @@ fun LeadCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(TealBadgeLight)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = lead.status,
-                        color = TealDark,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                LeadStatusBadge(status = LeadStatus.fromString(lead.status))
 
                 Text(
                     text = relativeTime,
@@ -113,7 +324,7 @@ fun LeadCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = lead.contactName,
+                    text = lead.effectiveName,
                     fontSize = 14.sp,
                     color = TextSecondary,
                     modifier = Modifier.weight(1f, fill = false)
@@ -137,7 +348,7 @@ fun LeadCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Found in: ${lead.source}",
+                text = "Source: ${lead.source}",
                 fontSize = 12.sp,
                 color = TextMuted
             )
@@ -157,7 +368,7 @@ fun LeadCard(
                         .testTag("button_save_lead_${lead.id}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = TealDark,
+                        containerColor = WhatsAppTeal,
                         contentColor = Color.White
                     ),
                     contentPadding = PaddingValues(horizontal = 8.dp)

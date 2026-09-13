@@ -2,7 +2,7 @@ package com.example
 
 enum class AppTab(val title: String) {
     DASHBOARD("Dashboard"),
-    QUEUE("Queue"),
+    LEADS("Leads"),
     HISTORY("History"),
     SETTINGS("Settings")
 }

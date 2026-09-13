@@ -475,4 +475,72 @@
     <string name="settings_default_contact_name_placeholder">مثال: زبون متجر أومكس أو عميل أومكس</string>
     <string name="settings_default_contact_name_empty_error">لا يمكن أن يكون اسم جهة الاتصال الافتراضي فارغاً</string>
     <string name="settings_default_contact_name_invalid_error">اسم جهة اتصال غير صالح. لا يمكن استخدام أسماء تشير للنفس (\"أنت\"، \"أنا\") أو نصوص النظام.</string>
+
+    <!-- Lead Management V1 Strings (Arabic) -->
+    <string name="status_new">جديد</string>
+    <string name="status_contacted">تم التواصل</string>
+    <string name="status_interested">مهتم</string>
+    <string name="status_follow_up">متابعة</string>
+    <string name="status_sold">تم البيع</string>
+    <string name="status_not_interested">غير مهتم</string>
+
+    <string name="source_whatsapp">WhatsApp</string>
+    <string name="source_manual">إضافة يدوية</string>
+    <string name="source_scan">مسح صورة/نص</string>
+    <string name="source_import">استيراد</string>
+
+    <string name="filter_today">اليوم</string>
+    <string name="filter_last_7_days">آخر 7 أيام</string>
+    <string name="filter_last_30_days">آخر 30 يوم</string>
+    <string name="filter_all_statuses">كل الحالات</string>
+    <string name="filter_all_sources">كل المصادر</string>
+
+    <string name="sort_newest">الأحدث</string>
+    <string name="sort_oldest">الأقدم</string>
+    <string name="sort_last_updated">آخر تحديث</string>
+    <string name="sort_last_contacted">آخر تواصل</string>
+    <string name="sort_name_az">الاسم</string>
+
+    <string name="leads_title">إدارة العملاء</string>
+    <string name="tab_leads">العملاء</string>
+    <string name="add_lead">إضافة عميل</string>
+    <string name="edit_lead">تعديل العميل</string>
+    <string name="lead_details">تفاصيل العميل</string>
+    <string name="delete_lead_confirm">هل أنت متأكد من رغبتك في حذف هذا العميل؟</string>
+    <string name="call_action">اتصال</string>
+    <string name="whatsapp_action">فتح WhatsApp</string>
+    <string name="change_status">تغيير الحالة</string>
+    <string name="add_note">إضافة ملاحظة</string>
+    <string name="edit_note">تعديل الملاحظة</string>
+    <string name="add_tag">إضافة وسم</string>
+    <string name="notes_label">الملاحظات</string>
+    <string name="tags_label">الوسوم</string>
+    <string name="notes_hint">اكتب ملاحظات العميل هنا…</string>
+    <string name="tags_hint">أضف وسمًا (مثل: مهتم، VIP)…</string>
+    <string name="display_name_label">اسم العميل</string>
+    <string name="phone_number_label">رقم الهاتف</string>
+    <string name="created_at_label">تاريخ الإضافة</string>
+    <string name="updated_at_label">آخر تحديث</string>
+    <string name="last_contact_label">آخر تواصل</string>
+    <string name="no_contact_yet">لم يتم التواصل بعد</string>
+    <string name="search_leads_hint">بحث بالاسم أو الرقم أو الملاحظات…</string>
+    <string name="empty_leads_title">لا يوجد عملاء بعد</string>
+    <string name="empty_leads_desc">سيتم حفظ العملاء تلقائيًا من WhatsApp عند تفعيل هذه الميزة.</string>
+    <string name="empty_leads_pending_desc">حسابك بانتظار التفعيل. حفظ العملاء متاح بعد تفعيل الحساب.</string>
+    <string name="empty_leads_inactive_desc">حسابك غير نشط. يرجى التواصل مع الإدارة لتفعيل حفظ العملاء.</string>
+    <string name="lead_saved_success">تمت إضافة العميل بنجاح</string>
+    <string name="lead_updated_success">تم تحديث بيانات العميل بنجاح</string>
+    <string name="lead_deleted_success">تم حذف العميل</string>
+    <string name="duplicate_phone_error">يوجد عميل مسجل بهذا الرقم بالفعل</string>
+    <string name="whatsapp_not_installed">تطبيق WhatsApp غير مثبت على هذا الجهاز</string>
+    <string name="quick_tags">وسوم سريعة</string>
+    <string name="tag_new_customer">عميل جديد</string>
+    <string name="tag_interested">مهتم</string>
+    <string name="tag_price_request">طلب سعر</string>
+    <string name="tag_product_request">طلب منتج</string>
+    <string name="tag_follow_up">متابعة</string>
+    <string name="tag_vip">VIP</string>
+    <string name="status_label">الحالة</string>
+    <string name="source_label">المصدر</string>
+    <string name="save_changes">حفظ التغييرات</string>
 </resources>

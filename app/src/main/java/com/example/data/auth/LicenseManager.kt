@@ -12,7 +12,7 @@ sealed class LicenseStatus {
         override val message: String = "الحساب نشط ومفعّل"
     }
     data class PendingActivation(
-        override val message: String = "حسابك غير مفعّل بعد. يرجى انتظار تفعيل الحساب من الإدارة."
+        override val message: String = "حسابك غير مفعّل بعد. يمكنك استخدام التطبيق، لكن حفظ العملاء متاح بعد تفعيل الحساب."
     ) : LicenseStatus()
     data class Stopped(
         override val message: String = "تم إيقاف حسابك. يرجى التواصل مع الإدارة."

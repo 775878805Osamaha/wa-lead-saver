@@ -9,18 +9,28 @@ import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
+import com.example.data.model.DateFilter
+import com.example.data.model.LeadSource
+import com.example.data.model.LeadStatus
+import com.example.data.model.SortOrder
 import com.example.data.repository.LeadRepository
 import com.example.data.repository.ProcessResult
 import com.example.data.repository.SaveLeadResult
 import com.example.util.ContactsHelper
 import com.example.util.PermissionHelper
 import com.example.util.PhoneNumberHelper
+import com.example.util.WhatsAppHelper
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -31,6 +41,92 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val queuedLeads: StateFlow<List<LeadEntity>> = repository.queuedLeads
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val allLeads: StateFlow<List<LeadEntity>> = repository.allLeads
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+    val searchQuery = MutableStateFlow("")
+    val selectedStatusFilter = MutableStateFlow<LeadStatus?>(null)
+    val selectedSourceFilter = MutableStateFlow<LeadSource?>(null)
+    val selectedDateFilter = MutableStateFlow(DateFilter.ALL)
+    val selectedSortOrder = MutableStateFlow(SortOrder.NEWEST)
+
+    val selectedLead = MutableStateFlow<LeadEntity?>(null)
+
+    private data class CrmFilterParams(
+        val query: String,
+        val status: LeadStatus?,
+        val source: LeadSource?,
+        val dateFilter: DateFilter,
+        val sortOrder: SortOrder
+    )
+
+    private val filterParams = combine(
+        searchQuery,
+        selectedStatusFilter,
+        selectedSourceFilter,
+        selectedDateFilter,
+        selectedSortOrder
+    ) { query, status, source, dateFilter, sortOrder ->
+        CrmFilterParams(query, status, source, dateFilter, sortOrder)
+    }
+
+    val filteredLeads: StateFlow<List<LeadEntity>> = combine(
+        allLeads,
+        filterParams
+    ) { leads, params ->
+        var list = leads
+
+        val q = params.query.trim().lowercase()
+        if (q.isNotEmpty()) {
+            list = list.filter { lead ->
+                lead.displayName.lowercase().contains(q) ||
+                lead.contactName.lowercase().contains(q) ||
+                lead.phoneNumber.lowercase().contains(q) ||
+                lead.notes.lowercase().contains(q) ||
+                lead.tags.lowercase().contains(q)
+            }
+        }
+
+        if (params.status != null) {
+            list = list.filter { it.status.equals(params.status.name, ignoreCase = true) }
+        }
+
+        if (params.source != null) {
+            list = list.filter { it.source.equals(params.source.name, ignoreCase = true) }
+        }
+
+        val now = System.currentTimeMillis()
+        when (params.dateFilter) {
+            DateFilter.ALL -> Unit
+            DateFilter.TODAY -> {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val startOfToday = cal.timeInMillis
+                list = list.filter { it.createdAt >= startOfToday }
+            }
+            DateFilter.LAST_7_DAYS -> {
+                val cutoff = now - (7L * 24 * 60 * 60 * 1000)
+                list = list.filter { it.createdAt >= cutoff }
+            }
+            DateFilter.LAST_30_DAYS -> {
+                val cutoff = now - (30L * 24 * 60 * 60 * 1000)
+                list = list.filter { it.createdAt >= cutoff }
+            }
+        }
+
+        when (params.sortOrder) {
+            SortOrder.NEWEST -> list.sortedByDescending { it.createdAt }
+            SortOrder.OLDEST -> list.sortedBy { it.createdAt }
+            SortOrder.LAST_UPDATED -> list.sortedByDescending { it.updatedAt }
+            SortOrder.LAST_CONTACTED -> list.sortedByDescending { it.lastContactAt ?: 0L }
+            SortOrder.NAME_AZ -> list.sortedBy { it.effectiveName.lowercase() }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val totalSavedCount: StateFlow<Int> = repository.totalSavedCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
@@ -262,5 +358,154 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearScannedResults() {
         _scannedNumbers.value = emptyList()
+    }
+
+    fun setSearchQuery(query: String) {
+        searchQuery.value = query
+    }
+
+    fun setStatusFilter(status: LeadStatus?) {
+        selectedStatusFilter.value = status
+    }
+
+    fun setSourceFilter(source: LeadSource?) {
+        selectedSourceFilter.value = source
+    }
+
+    fun setDateFilter(filter: DateFilter) {
+        selectedDateFilter.value = filter
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        selectedSortOrder.value = order
+    }
+
+    fun selectLead(lead: LeadEntity?) {
+        selectedLead.value = lead
+    }
+
+    fun createLead(
+        phoneNumber: String,
+        displayName: String,
+        source: LeadSource,
+        status: LeadStatus,
+        notes: String,
+        tags: String,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.createLead(
+                phoneNumber = phoneNumber,
+                displayName = displayName,
+                source = source,
+                status = status,
+                notes = notes,
+                tags = tags
+            )
+            if (res.isSuccess) {
+                _userMessage.value = "تمت إضافة العميل بنجاح"
+                onResult(true, null)
+            } else {
+                val err = res.exceptionOrNull()?.message ?: "حدث خطأ أثناء إضافة العميل"
+                _userMessage.value = err
+                onResult(false, err)
+            }
+        }
+    }
+
+    fun updateLead(
+        lead: LeadEntity,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.updateLead(lead)
+            if (res.isSuccess) {
+                _userMessage.value = "تم تحديث بيانات العميل بنجاح"
+                if (selectedLead.value?.id == lead.id) {
+                    selectedLead.value = lead
+                }
+                onResult(true, null)
+            } else {
+                val err = res.exceptionOrNull()?.message ?: "حدث خطأ أثناء التحديث"
+                _userMessage.value = err
+                onResult(false, err)
+            }
+        }
+    }
+
+    fun updateLeadStatus(id: Long, newStatus: LeadStatus) {
+        viewModelScope.launch {
+            repository.updateLeadStatus(id, newStatus)
+            selectedLead.value?.let { current ->
+                if (current.id == id) {
+                    selectedLead.value = current.copy(status = newStatus.name, updatedAt = System.currentTimeMillis())
+                }
+            }
+        }
+    }
+
+    fun updateLeadNotes(id: Long, notes: String) {
+        viewModelScope.launch {
+            repository.updateLeadNotes(id, notes)
+            selectedLead.value?.let { current ->
+                if (current.id == id) {
+                    selectedLead.value = current.copy(notes = notes, updatedAt = System.currentTimeMillis())
+                }
+            }
+        }
+    }
+
+    fun updateLeadTags(id: Long, tags: String) {
+        viewModelScope.launch {
+            repository.updateLeadTags(id, tags)
+            selectedLead.value?.let { current ->
+                if (current.id == id) {
+                    selectedLead.value = current.copy(tags = tags, updatedAt = System.currentTimeMillis())
+                }
+            }
+        }
+    }
+
+    fun deleteLead(id: Long, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.deleteLead(id)
+            if (selectedLead.value?.id == id) {
+                selectedLead.value = null
+            }
+            _userMessage.value = "تم حذف العميل"
+            onDone()
+        }
+    }
+
+    fun openWhatsAppChat(context: Context, lead: LeadEntity) {
+        viewModelScope.launch {
+            repository.recordContactInteraction(lead.id)
+            selectedLead.value?.let { current ->
+                if (current.id == lead.id) {
+                    selectedLead.value = current.copy(lastContactAt = System.currentTimeMillis())
+                }
+            }
+        }
+        val target = lead.normalizedNumber.ifBlank { lead.phoneNumber }
+        WhatsAppHelper.openChat(context, target)
+    }
+
+    fun openPhoneDialer(context: Context, lead: LeadEntity) {
+        viewModelScope.launch {
+            repository.recordContactInteraction(lead.id)
+            selectedLead.value?.let { current ->
+                if (current.id == lead.id) {
+                    selectedLead.value = current.copy(lastContactAt = System.currentTimeMillis())
+                }
+            }
+        }
+        try {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${lead.phoneNumber}")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "لا يمكن فتح تطبيق الاتصال", Toast.LENGTH_SHORT).show()
+        }
     }
 }

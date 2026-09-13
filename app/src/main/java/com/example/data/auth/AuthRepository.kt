@@ -102,17 +102,17 @@ class AuthRepository(
             )
         } else {
             // Network failure: check offline grace period (max 48 hours)
-            if (cachedSession.isOfflineGraceValid() && cachedSession.cachedAccount != null) {
-                return validateAccountState(
-                    UserProfile(id = cachedSession.userId, email = cachedSession.email),
+            if (cachedSession.isOfflineGraceValid()) {
+                val state = AuthState.AuthenticatedUser(
+                    profileRes.getOrNull() ?: UserProfile(id = cachedSession.userId, email = cachedSession.email),
                     cachedSession.cachedAccount
                 )
+                _authState.value = state
+                return state
             } else {
                 // Expired or offline beyond 48 hours grace
-                _authState.value = AuthState.AccountExpired(
-                    cachedSession.accountNumber.orEmpty(),
-                    "انتهت مهلة العمل بدون اتصال (الحد الأقصى 48 ساعة). يُرجى الاتصال بالإنترنت لتأكيد الحساب."
-                )
+                sessionManager.clearSession()
+                _authState.value = AuthState.Unauthenticated
                 return _authState.value
             }
         }
@@ -155,17 +155,49 @@ class AuthRepository(
             emailToUse = trimmedInput
         }
 
-        // Authenticate via Supabase Auth
+        // Authenticate via Supabase Auth with safe logging and precise error parsing
         val authRes = supabaseClient.signInWithEmail(emailToUse, password)
         if (authRes.isFailure) {
-            val rawErr = authRes.exceptionOrNull()?.message.orEmpty()
+            val ex = authRes.exceptionOrNull()
+            if (ex is SupabaseAuthException) {
+                if (ex.isEmailNotConfirmed) {
+                    return AuthResult.EmailNotConfirmed(
+                        email = emailToUse,
+                        message = "يجب تأكيد البريد الإلكتروني أولًا. تحقق من بريدك الإلكتروني."
+                    )
+                }
+                if (ex.isRateLimit) {
+                    return AuthResult.Error("تم تجاوز عدد المحاولات المسموح بها، يرجى المحاولة بعد قليل.")
+                }
+                if (ex.isUserDisabled) {
+                    return AuthResult.Error("تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة.")
+                }
+                if (ex.isInvalidCredentials) {
+                    return AuthResult.Error("بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور.")
+                }
+                if (ex.statusCode >= 500) {
+                    return AuthResult.Error("خطأ في خادم المصادقة، يرجى المحاولة لاحقاً.")
+                }
+                val rawMsg = ex.errorDesc.ifBlank { ex.message.orEmpty() }
+                return AuthResult.Error(rawMsg.ifBlank { "فشل تسجيل الدخول. يرجى التحقق من البيانات والمحاولة لاحقاً." })
+            }
+
+            val rawErr = ex?.message.orEmpty()
             val cleanErr = when {
+                rawErr.contains("Email not confirmed", ignoreCase = true) ||
+                rawErr.contains("not confirmed", ignoreCase = true) -> {
+                    return AuthResult.EmailNotConfirmed(
+                        email = emailToUse,
+                        message = "يجب تأكيد البريد الإلكتروني أولًا. تحقق من بريدك الإلكتروني."
+                    )
+                }
+                rawErr.contains("Failed to connect", ignoreCase = true) ||
+                rawErr.contains("Unable to resolve host", ignoreCase = true) ||
+                rawErr.contains("timeout", ignoreCase = true) ->
+                    "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت."
                 rawErr.contains("Invalid login", ignoreCase = true) ||
                 rawErr.contains("invalid_grant", ignoreCase = true) ->
-                    "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور"
-                rawErr.contains("Failed to connect", ignoreCase = true) ||
-                rawErr.contains("Unable to resolve host", ignoreCase = true) ->
-                    "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت"
+                    "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور."
                 rawErr.isNotBlank() -> rawErr
                 else -> "فشل تسجيل الدخول. يرجى التحقق من البيانات والمحاولة لاحقاً."
             }
@@ -209,6 +241,9 @@ class AuthRepository(
         val accountRes = supabaseClient.getCustomerAccount(userId, token)
         val account = accountRes.getOrNull()
 
+        // Rule 1 & 2: Lack of accounts row is NOT a failure. It is PENDING ACTIVATION.
+        // Rule 4: LicenseManager is a Save/Feature Access Guard, NOT a Login Gate.
+        // All users (Pending, Active, Stopped, Expired) enter as AuthenticatedUser.
         if (account == null) {
             try {
                 sessionManager.saveSession(
@@ -229,18 +264,12 @@ class AuthRepository(
             return AuthResult.Success(state)
         }
 
-        // Verify device limit
-        val deviceId = deviceManager.getOrCreateDeviceId()
-        val deviceName = deviceManager.getDeviceModelName()
-        val deviceRegRes = supabaseClient.validateAndRegisterDevice(account.id, deviceId, deviceName, token)
-        if (deviceRegRes.isFailure) {
-            val errMsg = deviceRegRes.exceptionOrNull()?.message ?: "تم الوصول إلى الحد الأقصى للأجهزة المسموح بها."
-            val state = AuthState.DeviceLimitExceeded(account.accountNumber, errMsg)
-            _authState.value = state
-            return AuthResult.Success(state)
-        }
-
-        val finalState = validateAccountState(profile, account)
+        // If account exists, attempt device registration (best-effort device count tracking)
+        try {
+            val deviceId = deviceManager.getOrCreateDeviceId()
+            val deviceName = deviceManager.getDeviceModelName()
+            supabaseClient.validateAndRegisterDevice(account.id, deviceId, deviceName, token)
+        } catch (_: Exception) {}
 
         try {
             sessionManager.saveSession(
@@ -257,7 +286,17 @@ class AuthRepository(
             android.util.Log.w("AuthRepository", "Failed to cache user session locally: ${e.message}")
         }
 
+        val finalState = AuthState.AuthenticatedUser(profile, account)
+        _authState.value = finalState
         return AuthResult.Success(finalState)
+    }
+
+    suspend fun resendConfirmationEmail(email: String): Result<Boolean> {
+        val trimmed = email.trim()
+        if (trimmed.isBlank() || !trimmed.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صحيح"))
+        }
+        return supabaseClient.resendConfirmationEmail(trimmed)
     }
 
     private suspend fun validateAccountState(profile: UserProfile, account: CustomerAccount?): AuthState {

@@ -6,6 +6,8 @@ import com.example.data.database.dao.HistoryDao
 import com.example.data.database.dao.LeadDao
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
+import com.example.data.model.LeadSource
+import com.example.data.model.LeadStatus
 import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
 import com.example.util.ContactsHelper
@@ -43,6 +45,7 @@ class LeadRepository(
     val licenseManager = com.example.data.auth.LicenseManager(context)
 
     val queuedLeads: Flow<List<LeadEntity>> = leadDao.getQueuedLeads()
+    val allLeads: Flow<List<LeadEntity>> = leadDao.getAllLeads()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
     val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
@@ -128,6 +131,9 @@ class LeadRepository(
             }
         }
 
+        val leadSource = LeadSource.fromString(source).name
+        val now = System.currentTimeMillis()
+
         // Check if auto-save enabled
         return if (currentSettings.autoSaveLeads) {
             val result = ContactsHelper.saveContact(context, contactName, normalized)
@@ -136,10 +142,14 @@ class LeadRepository(
                     LeadEntity(
                         phoneNumber = rawCandidate,
                         normalizedNumber = normalized,
+                        displayName = contactName,
                         contactName = contactName,
-                        source = source,
+                        source = leadSource,
+                        createdAt = now,
+                        updatedAt = now,
+                        detectedAt = now,
                         isSaved = true,
-                        status = "SAVED"
+                        status = LeadStatus.NEW.name
                     )
                 )
                 recordHistory(
@@ -155,10 +165,14 @@ class LeadRepository(
                     LeadEntity(
                         phoneNumber = rawCandidate,
                         normalizedNumber = normalized,
+                        displayName = contactName,
                         contactName = contactName,
-                        source = source,
+                        source = leadSource,
+                        createdAt = now,
+                        updatedAt = now,
+                        detectedAt = now,
                         isSaved = false,
-                        status = "NEW LEAD"
+                        status = LeadStatus.NEW.name
                     )
                 )
                 val err = result.exceptionOrNull()?.message ?: "Auto-save failed, added to queue"
@@ -176,10 +190,14 @@ class LeadRepository(
                 LeadEntity(
                     phoneNumber = rawCandidate,
                     normalizedNumber = normalized,
+                    displayName = contactName,
                     contactName = contactName,
-                    source = source,
+                    source = leadSource,
+                    createdAt = now,
+                    updatedAt = now,
+                    detectedAt = now,
                     isSaved = false,
-                    status = "NEW LEAD"
+                    status = LeadStatus.NEW.name
                 )
             )
             recordHistory(
@@ -379,6 +397,133 @@ class LeadRepository(
 
     suspend fun setDefaultContactName(name: String): Result<Unit> {
         return settingsDataStore.setDefaultContactName(name)
+    }
+
+    suspend fun createLead(
+        phoneNumber: String,
+        displayName: String = "",
+        source: LeadSource = LeadSource.MANUAL,
+        status: LeadStatus = LeadStatus.NEW,
+        notes: String = "",
+        tags: String = ""
+    ): Result<LeadEntity> {
+        val license = licenseManager.checkLicense()
+        if (!license.isSaveAllowed) {
+            val errMsg = when (license) {
+                is com.example.data.auth.LicenseStatus.PendingActivation -> license.message
+                is com.example.data.auth.LicenseStatus.Stopped -> license.message
+                is com.example.data.auth.LicenseStatus.Expired -> license.message
+                is com.example.data.auth.LicenseStatus.DeviceLimitExceeded -> license.message
+                is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
+                else -> "عملية الحفظ غير مصرح بها."
+            }
+            return Result.failure(IllegalStateException(errMsg))
+        }
+
+        val currentSettings = settings.first()
+        val normalized = PhoneNumberHelper.normalize(phoneNumber, currentSettings.countryCode)
+        if (!PhoneNumberHelper.isValidPhoneNumber(normalized)) {
+            return Result.failure(IllegalArgumentException("رقم الهاتف غير صالح"))
+        }
+
+        val existing = leadDao.findLeadByNormalizedNumber(normalized)
+        if (existing != null) {
+            return Result.failure(IllegalStateException("رقم الهاتف مسجل بالفعل"))
+        }
+
+        val effectiveName = displayName.trim().ifBlank { getEffectiveDefaultContactName() }
+        val now = System.currentTimeMillis()
+        val newLead = LeadEntity(
+            phoneNumber = phoneNumber.trim(),
+            normalizedNumber = normalized,
+            displayName = effectiveName,
+            contactName = effectiveName,
+            source = source.name,
+            status = status.name,
+            notes = notes.trim(),
+            tags = tags.trim(),
+            createdAt = now,
+            updatedAt = now,
+            lastContactAt = null,
+            detectedAt = now,
+            isSaved = false
+        )
+        val id = leadDao.insertLead(newLead)
+        recordHistory(
+            phoneNumber = normalized,
+            contactName = effectiveName,
+            source = source.name,
+            status = status.name,
+            details = "Lead created manually/via CRM"
+        )
+        return Result.success(newLead.copy(id = id))
+    }
+
+    suspend fun updateLead(lead: LeadEntity): Result<Unit> {
+        val currentSettings = settings.first()
+        val normalized = if (lead.phoneNumber.isNotBlank()) {
+            PhoneNumberHelper.normalize(lead.phoneNumber, currentSettings.countryCode)
+        } else lead.normalizedNumber
+
+        val duplicate = leadDao.findDuplicateExcludingId(normalized, lead.phoneNumber, lead.id)
+        if (duplicate != null) {
+            return Result.failure(IllegalStateException("رقم الهاتف مسجل بالفعل لعميل آخر"))
+        }
+
+        val now = System.currentTimeMillis()
+        val effectiveName = lead.displayName.ifBlank { lead.contactName }
+        val updated = lead.copy(
+            phoneNumber = lead.phoneNumber.trim(),
+            normalizedNumber = normalized,
+            displayName = effectiveName.trim(),
+            contactName = effectiveName.trim(),
+            notes = lead.notes.trim(),
+            tags = lead.tags.trim(),
+            updatedAt = now
+        )
+        leadDao.updateLead(updated)
+        return Result.success(Unit)
+    }
+
+    suspend fun updateLeadStatus(id: Long, newStatus: LeadStatus): Result<Unit> {
+        val now = System.currentTimeMillis()
+        leadDao.updateLeadStatus(id, newStatus.name, now)
+        return Result.success(Unit)
+    }
+
+    suspend fun updateLeadNotes(id: Long, notes: String): Result<Unit> {
+        val now = System.currentTimeMillis()
+        leadDao.updateLeadNotes(id, notes.trim(), now)
+        return Result.success(Unit)
+    }
+
+    suspend fun updateLeadTags(id: Long, tags: String): Result<Unit> {
+        val now = System.currentTimeMillis()
+        leadDao.updateLeadTags(id, tags.trim(), now)
+        return Result.success(Unit)
+    }
+
+    suspend fun recordContactInteraction(id: Long) {
+        val now = System.currentTimeMillis()
+        leadDao.updateLastContactAt(id, now, now)
+    }
+
+    suspend fun deleteLead(id: Long) {
+        val current = leadDao.getLeadById(id)
+        leadDao.deleteLeadById(id)
+        if (current != null) {
+            recordHistory(
+                phoneNumber = current.phoneNumber,
+                contactName = current.effectiveName,
+                source = current.source,
+                status = "Deleted",
+                details = "Lead deleted from CRM"
+            )
+        }
+    }
+
+    suspend fun getLeadById(id: Long): LeadEntity? {
+        return leadDao.getLeadById(id)
     }
 
     private suspend fun recordHistory(

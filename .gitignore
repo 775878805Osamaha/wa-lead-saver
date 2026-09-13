@@ -18,6 +18,9 @@ local.properties
 debug.keystore
 debug.keystore.base64
 *.apk
+*.jks
+*.keystore
+key.properties
 .build-outputs/
 app/build/
 public/*.apk
