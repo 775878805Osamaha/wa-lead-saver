@@ -278,9 +278,11 @@ fun LeadCard(
     onRemoveClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onEditNameClick: () -> Unit,
+    onToggleClassification: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val relativeTime = formatRelativeTime(lead.timestamp)
+    val isNeedsReview = lead.tags.contains("NEEDS_REVIEW")
 
     Card(
         modifier = modifier
@@ -293,33 +295,71 @@ fun LeadCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(16.dp)
         ) {
+            // Header: Status, 3-Tier Classification Badge, and Relative Time
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                LeadStatusBadge(status = LeadStatus.fromString(lead.status))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Classification Badge with manual correction capability
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isNeedsReview) Color(0xFFFEF3C7) else Color(0xFFDCFCE7))
+                            .clickable(enabled = onToggleClassification != null) {
+                                onToggleClassification?.invoke(!isNeedsReview)
+                            }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .testTag("badge_classification_${lead.id}")
+                    ) {
+                        Text(
+                            text = if (isNeedsReview) "يحتاج مراجعة (اضغط للتأكيد)" else "مؤكد (اضغط للمراجعة)",
+                            color = if (isNeedsReview) Color(0xFFB45309) else Color(0xFF15803D),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    LeadSourceBadge(source = LeadSource.fromString(lead.source))
+                }
 
                 Text(
                     text = relativeTime,
                     color = TextSecondary,
-                    fontSize = 12.sp
+                    fontSize = 11.sp
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Main Phone Number
             Text(
                 text = lead.phoneNumber,
-                fontSize = 20.sp,
+                fontSize = 19.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            // Normalized Number Preview if available
+            if (lead.normalizedNumber.isNotBlank() && lead.normalizedNumber != lead.phoneNumber) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Normalized: ${lead.normalizedNumber}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = WhatsAppTeal
+                )
+            }
 
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Contact Name & Edit button
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -340,21 +380,33 @@ fun LeadCard(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Contact Name",
                         tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            // Review Reason / Diagnostic Note
+            if (lead.notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isNeedsReview) Color(0xFFFFFBEB) else Color(0xFFF0FDF4))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "سبب الإدراج: ${lead.notes}",
+                        color = if (isNeedsReview) Color(0xFF92400E) else Color(0xFF166534),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
-            Text(
-                text = "Source: ${lead.source}",
-                fontSize = 12.sp,
-                color = TextMuted
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(14.dp))
-
+            // Action Buttons Row: Save, Remove, WhatsApp, Toggle Classification
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -364,24 +416,24 @@ fun LeadCard(
                     onClick = onSaveClick,
                     modifier = Modifier
                         .weight(1.0f)
-                        .height(42.dp)
+                        .height(40.dp)
                         .testTag("button_save_lead_${lead.id}"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = WhatsAppTeal,
                         contentColor = Color.White
                     ),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.PersonAdd,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Save",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -389,27 +441,27 @@ fun LeadCard(
                 Button(
                     onClick = onRemoveClick,
                     modifier = Modifier
-                        .weight(1.0f)
-                        .height(42.dp)
+                        .weight(0.9f)
+                        .height(40.dp)
                         .testTag("button_remove_lead_${lead.id}"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = RemoveRedLight,
                         contentColor = RemoveRed
                     ),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = null,
                         tint = RemoveRed,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Remove",
+                        text = "Dismiss",
                         color = RemoveRed,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -417,27 +469,27 @@ fun LeadCard(
                 Button(
                     onClick = onWhatsAppClick,
                     modifier = Modifier
-                        .weight(1.2f)
-                        .height(42.dp)
+                        .weight(1.1f)
+                        .height(40.dp)
                         .testTag("button_whatsapp_lead_${lead.id}"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE8F5E9),
                         contentColor = WhatsAppTeal
                     ),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
                         tint = WhatsAppGreen,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "WhatsApp",
+                        text = "Chat",
                         color = WhatsAppTeal,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }

@@ -39,6 +39,8 @@ import com.example.ui.theme.DarkTealHeaderDarker
 import com.example.ui.theme.StatusActiveGreen
 import com.example.ui.theme.WhatsAppGreen
 
+import androidx.compose.material.icons.filled.AccountCircle
+
 @Composable
 fun AppTopBar(
     isActive: Boolean,
@@ -47,6 +49,7 @@ fun AppTopBar(
     onExportClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onLoginClick: (() -> Unit)? = null,
     onLogoutClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -180,6 +183,19 @@ fun AppTopBar(
                             imageVector = Icons.Default.ExitToApp,
                             contentDescription = "Logout",
                             tint = Color(0xFFFCA5A5)
+                        )
+                    }
+                } else if (onLoginClick != null) {
+                    IconButton(
+                        onClick = onLoginClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("topbar_login_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Login",
+                            tint = Color.White
                         )
                     }
                 }

@@ -483,6 +483,24 @@
     <string name="settings_default_contact_name_empty_error">Default Contact Name cannot be empty</string>
     <string name="settings_default_contact_name_invalid_error">Invalid contact name. Cannot be self-referential (\"You\", \"Me\") or system text.</string>
 
+    <!-- Guest Mode, Account & Notification Access Dialog Strings -->
+    <string name="auth_continue_as_guest">Continue without Account</string>
+    <string name="auth_login_required_dialog_title">Account or License Required</string>
+    <string name="auth_login_reason_cloud_sync">Cloud synchronization and backup require logging in to an active account.</string>
+    <string name="auth_login_reason_saving">Saving customer contacts to phonebook requires an active account license.</string>
+    <string name="auth_login_reason_admin">Accessing admin controls requires logging in as administrator.</string>
+    <string name="auth_login_reason_general">This feature requires signing in with an authorized account or license.</string>
+    <string name="auth_login_now">Sign In / Register</string>
+    <string name="auth_account_section_title">ACCOUNT &amp; LICENSE</string>
+    <string name="auth_logged_in_as">Signed in as %1$s</string>
+    <string name="auth_guest_user">Browsing as Guest (Unauthenticated)</string>
+    <string name="auth_guest_user_desc">Sign in with your account or license to unlock contact saving and cloud sync.</string>
+    <string name="notification_permission_dialog_title">Notification Access Required</string>
+    <string name="notification_permission_dialog_message">To automatically capture phone numbers from WhatsApp chats, WA Lead Saver needs Notification Access from Android Settings.\n\nAndroid will never share your personal chat content; the app only reads incoming numbers to help you save leads easily.</string>
+    <string name="notification_permission_dialog_button">Open Android Settings</string>
+    <string name="notification_permission_not_granted_banner">Notification access is disabled. Incoming WhatsApp numbers cannot be captured automatically.</string>
+    <string name="enable_notification_access">Enable Access</string>
+
     <!-- Lead Management V1 Strings -->
     <string name="status_new">New</string>
     <string name="status_contacted">Contacted</string>
@@ -550,6 +568,20 @@
     <string name="status_label">Status</string>
     <string name="source_label">Source</string>
     <string name="save_changes">Save Changes</string>
+    <string name="ignore_group_messages_title">Ignore WhatsApp Groups</string>
+    <string name="ignore_group_messages_subtitle">Prevent saving random numbers, prices, and messages from groups</string>
+    <string name="group_messages_protection">Group Protection</string>
+    <string name="group_messages_protection_desc">Groups are ignored to safeguard your phonebook from noise</string>
+    <string name="dashboard_conversion_rate">Conversion Rate</string>
+    <string name="dashboard_total_leads">Total Leads</string>
+    <string name="dashboard_saved_leads">Saved Leads</string>
+    <string name="dashboard_queue_leads">In Queue</string>
+    <string name="queue_title">Capture Queue</string>
+    <string name="queue_subtitle">Review and save detected numbers to Android Contacts</string>
+    <string name="save_all_to_contacts">Save All to Contacts</string>
+    <string name="one_touch_save">Save</string>
+    <string name="open_whatsapp">WhatsApp</string>
+    <string name="dismiss_lead">Dismiss</string>
 
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar"/>
 </resources>

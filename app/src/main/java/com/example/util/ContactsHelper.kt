@@ -78,15 +78,13 @@ object ContactsHelper {
                     val normNum = if (normIdx >= 0) cursor.getString(normIdx) else null
                     val cand = normNum ?: rawNum ?: ""
                     val candDigits = cand.filter { it.isDigit() }
-
-                    if (candDigits == digitsOnly) {
+                    if (candDigits.isNotEmpty() && candDigits == digitsOnly) {
                         return true
                     }
-                    if (candDigits.length >= 8 && digitsOnly.length >= 8) {
-                        val minLen = minOf(8, candDigits.length, digitsOnly.length)
-                        if (candDigits.takeLast(minLen) == digitsOnly.takeLast(minLen)) {
-                            return true
-                        }
+
+                    val normalizedCand = PhoneNumberHelper.normalize(cand)
+                    if (normalizedCand.isNotEmpty() && normalizedCand == normalizedInput) {
+                        return true
                     }
                 }
             }

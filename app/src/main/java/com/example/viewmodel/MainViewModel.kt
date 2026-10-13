@@ -137,6 +137,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val historyList: StateFlow<List<HistoryEntity>> = repository.allHistory
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
+    val captureStats: StateFlow<com.example.data.model.CaptureStats> = repository.captureStats
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), com.example.data.model.CaptureStats())
+
+    val selectedAuditFilter = MutableStateFlow(com.example.data.model.AuditFilter.ALL)
+
+    val filteredHistory: StateFlow<List<HistoryEntity>> = combine(
+        repository.allHistory,
+        selectedAuditFilter
+    ) { history, filter ->
+        when (filter) {
+            com.example.data.model.AuditFilter.ALL -> history
+            com.example.data.model.AuditFilter.SAVED -> history.filter { it.status.equals("Saved", ignoreCase = true) }
+            com.example.data.model.AuditFilter.NEEDS_REVIEW -> history.filter { it.status.equals("Needs Review", ignoreCase = true) }
+            com.example.data.model.AuditFilter.GROUP_EXCLUDED -> history.filter { it.status.contains("Group", ignoreCase = true) }
+            com.example.data.model.AuditFilter.DUPLICATE -> history.filter { it.status.contains("Duplicate", ignoreCase = true) }
+            com.example.data.model.AuditFilter.EXCLUDED -> history.filter {
+                it.status.equals("Excluded", ignoreCase = true) ||
+                it.status.equals("Invalid Number", ignoreCase = true) ||
+                it.status.contains("System", ignoreCase = true) ||
+                it.status.contains("unavailable", ignoreCase = true)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
     val settings: StateFlow<AppSettings> = repository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AppSettings())
 
@@ -243,6 +267,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setMonitorWhatsAppBusiness(enabled: Boolean) {
         viewModelScope.launch {
             repository.setMonitorWhatsAppBusiness(enabled)
+        }
+    }
+
+    fun setIgnoreGroupMessages(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setIgnoreGroupMessages(enabled)
         }
     }
 
@@ -507,5 +537,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             Toast.makeText(context, "لا يمكن فتح تطبيق الاتصال", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun setAuditFilter(filter: com.example.data.model.AuditFilter) {
+        selectedAuditFilter.value = filter
+    }
+
+    fun updateLeadClassification(id: Long, decision: com.example.data.model.CaptureDecision, reason: String = "") {
+        viewModelScope.launch {
+            repository.updateLeadClassification(id, decision, reason)
+            _userMessage.value = if (decision == com.example.data.model.CaptureDecision.CONFIRMED) {
+                "تم تأكيد تصنيف الرقم كعميل محتمل"
+            } else {
+                "تم تصنيف الرقم كحالة تحتاج مراجعة"
+            }
+        }
+    }
+
+    fun dismissQueuedLead(id: Long, reason: String = "تم استبعاد الرقم يدوياً") {
+        viewModelScope.launch {
+            repository.dismissQueuedLead(id, reason)
+            _userMessage.value = "تم استبعاد الرقم من قائمة الانتظار"
+        }
+    }
+
+    fun runAccuracyBenchmark(): com.example.util.BenchmarkEvaluationResult {
+        val result = repository.runBenchmarkEvaluation()
+        _userMessage.value = "تم فحص دقة الالتقاط بنجاح: ${result.accuracyPercentage}% (${result.passedCases} من ${result.totalCases} حالة اختبار مصنفة)"
+        return result
     }
 }

@@ -53,6 +53,8 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     historyList: List<HistoryEntity>,
+    selectedFilter: com.example.data.model.AuditFilter = com.example.data.model.AuditFilter.ALL,
+    onFilterSelected: (com.example.data.model.AuditFilter) -> Unit = {},
     onExportHistory: () -> Unit,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier
@@ -70,7 +72,7 @@ fun HistoryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Activity Log (${historyList.size})",
+                text = "سجل المراقبة والتشخيص (${historyList.size})",
                 color = TextPrimary,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
@@ -86,7 +88,7 @@ fun HistoryScreen(
                         modifier = Modifier.testTag("button_clear_history_log")
                     ) {
                         Text(
-                            text = "Clear",
+                            text = "مسح",
                             color = RemoveRed,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -109,11 +111,39 @@ fun HistoryScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Export CSV",
+                        text = "تصدير CSV",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+        }
+
+        // Diagnostic Filter Chips Bar
+        androidx.compose.foundation.lazy.LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(com.example.data.model.AuditFilter.values()) { filter ->
+                val isSelected = filter == selectedFilter
+                androidx.compose.material3.FilterChip(
+                    selected = isSelected,
+                    onClick = { onFilterSelected(filter) },
+                    label = {
+                        Text(
+                            text = filter.title,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = WhatsAppTeal,
+                        selectedLabelColor = Color.White
+                    ),
+                    modifier = Modifier.testTag("filter_chip_${filter.name.lowercase()}")
+                )
             }
         }
 
@@ -241,10 +271,13 @@ fun StatusBadge(
     val (bg, textColor) = when (status) {
         "NEW LEAD", "Queued" -> Pair(Color(0xFFE0F2FE), Color(0xFF0369A1))
         "Saved" -> Pair(Color(0xFFDCFCE7), Color(0xFF15803D))
-        "Duplicate" -> Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
+        "Needs Review" -> Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
+        "Group Excluded" -> Pair(Color(0xFFE2E8F0), Color(0xFF334155))
+        "Duplicate" -> Pair(Color(0xFFFEF9C3), Color(0xFF854D0E))
         "Removed" -> Pair(RemoveRedLight, RemoveRed)
-        "Failed" -> Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
-        "Phone number unavailable" -> Pair(Color(0xFFF1E9FF), Color(0xFF6B21A8))
+        "Failed", "Invalid Number", "Excluded" -> Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
+        "System Excluded" -> Pair(Color(0xFFF1F5F9), Color(0xFF475569))
+        "Phone number unavailable" -> Pair(Color(0xFFF3E8FF), Color(0xFF7E22CE))
         else -> Pair(Color(0xFFF1F5F9), Color(0xFF334155))
     }
 

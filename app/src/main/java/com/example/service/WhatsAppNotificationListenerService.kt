@@ -46,10 +46,6 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
         val source = if (isBusinessWhatsApp) "WhatsApp Business" else "WhatsApp"
 
         serviceScope.launch {
-            if (!repository.licenseManager.checkLicense().isSaveAllowed) {
-                return@launch
-            }
-
             val settings = settingsDataStore.settingsFlow.first()
             if (isStandardWhatsApp && !settings.monitorWhatsApp) {
                 return@launch
@@ -61,58 +57,63 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
             val notification = sbn.notification ?: return@launch
             val extras = notification.extras ?: return@launch
 
+            // Check if this is a group summary notification aggregating multiple messages
+            val isGroupSummary = (notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0
+            if (isGroupSummary) {
+                return@launch
+            }
+
             val title = extras.getCharSequence("android.title")?.toString().orEmpty().trim()
             val text = extras.getCharSequence("android.text")?.toString().orEmpty().trim()
             val subText = extras.getCharSequence("android.subText")?.toString().orEmpty().trim()
             val bigText = extras.getCharSequence("android.bigText")?.toString().orEmpty().trim()
             val conversationTitle = extras.getCharSequence("android.conversationTitle")?.toString().orEmpty().trim()
-            val isGroup = extras.getBoolean("android.isGroupConversation", false) || conversationTitle.isNotBlank()
+            val hiddenConversationTitle = extras.getCharSequence("android.hiddenConversationTitle")?.toString().orEmpty().trim()
+
+            // Robust WhatsApp group detection
+            val isGroup = extras.getBoolean("android.isGroupConversation", false) ||
+                conversationTitle.isNotBlank() ||
+                hiddenConversationTitle.isNotBlank() ||
+                title.contains("@") ||
+                (subText.isNotBlank() && (text.contains(":") || bigText.contains(":")))
 
             // Discard system/backup/sync notifications
-            val checkSync = "$title $text $subText"
-            if (checkSync.contains("backup", ignoreCase = true) ||
-                checkSync.contains("checking for new messages", ignoreCase = true) ||
-                checkSync.contains("web is currently active", ignoreCase = true)
+            val checkSync = "$title $text $subText".lowercase()
+            if (checkSync.contains("backup") ||
+                checkSync.contains("checking for new messages") ||
+                checkSync.contains("looking for new messages") ||
+                checkSync.contains("web is currently active") ||
+                checkSync.contains("whatsapp web") ||
+                checkSync.contains("ongoing voice call") ||
+                checkSync.contains("ongoing video call") ||
+                checkSync.contains("مكالمة جارية") ||
+                checkSync.contains("رمز الأمان")
             ) {
+                repository.processCaptureEvaluation(
+                    com.example.data.model.CaptureEvaluation.Excluded(
+                        reason = "إشعار نظام ومزامنة مستبعد",
+                        source = source,
+                        candidatePreview = title.ifBlank { "WhatsApp System" },
+                        category = com.example.data.model.ExcludeCategory.SYSTEM_NOTIFICATION
+                    )
+                )
                 return@launch
             }
 
-            val extractedNumbers = mutableListOf<String>()
+            val evaluations = com.example.util.CaptureReviewEngine.evaluateNotification(
+                isGroup = isGroup,
+                ignoreGroupMessages = settings.ignoreGroupMessages,
+                title = title,
+                text = text,
+                subText = subText,
+                bigText = bigText,
+                conversationTitle = conversationTitle.ifBlank { hiddenConversationTitle },
+                source = source,
+                defaultCountryCode = settings.countryCode
+            )
 
-            if (isGroup) {
-                // Group message rules:
-                // 1. Do NOT extract numbers from the group title / conversationTitle
-                // 2. Do NOT extract random numbers, prices, or IDs from message body text
-                // 3. Only extract if sender is explicitly identified before a colon (e.g. "+967 771 234 567: message")
-                val textCandidate = if (text.contains(":")) text.substringBefore(":") else ""
-                val bigTextCandidate = if (bigText.contains(":")) bigText.substringBefore(":") else ""
-                
-                val senderPrefix = when {
-                    textCandidate.isNotBlank() -> textCandidate
-                    bigTextCandidate.isNotBlank() -> bigTextCandidate
-                    else -> ""
-                }.trim()
-
-                if (senderPrefix.isNotBlank() && senderPrefix != conversationTitle) {
-                    val candidateNumbers = PhoneNumberHelper.extractPhoneNumbers(senderPrefix, settings.countryCode)
-                    extractedNumbers.addAll(candidateNumbers)
-                }
-            } else {
-                // Direct 1-to-1 chat rules:
-                // In 1-to-1 chats, 'title' represents the sender. If it's an unsaved number, extract from title.
-                // Do not extract random numbers inside message body text.
-                if (title.isNotBlank()) {
-                    val titleNumbers = PhoneNumberHelper.extractPhoneNumbers(title, settings.countryCode)
-                    extractedNumbers.addAll(titleNumbers)
-                }
-            }
-
-            if (extractedNumbers.isNotEmpty()) {
-                for (number in extractedNumbers.distinct()) {
-                    repository.processIncomingPhoneCandidate(number, source)
-                }
-            } else {
-                repository.recordNotificationWithoutNumber(source, "Title: '$title', Text: '$text'")
+            for (evaluation in evaluations) {
+                repository.processCaptureEvaluation(evaluation)
             }
         }
     }

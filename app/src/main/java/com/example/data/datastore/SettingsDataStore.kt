@@ -16,6 +16,7 @@ class SettingsDataStore(private val context: Context) {
         val KEY_AUTO_SAVE_LEADS = booleanPreferencesKey("auto_save_leads")
         val KEY_MONITOR_WHATSAPP = booleanPreferencesKey("monitor_whatsapp")
         val KEY_MONITOR_WHATSAPP_BUSINESS = booleanPreferencesKey("monitor_whatsapp_business")
+        val KEY_IGNORE_GROUP_MESSAGES = booleanPreferencesKey("ignore_group_messages")
         val KEY_CONTACT_PREFIX = stringPreferencesKey("contact_prefix")
         val KEY_COUNTRY_CODE = stringPreferencesKey("country_code")
         val KEY_DEFAULT_CONTACT_NAME = stringPreferencesKey("default_contact_name")
@@ -33,6 +34,7 @@ class SettingsDataStore(private val context: Context) {
             autoSaveLeads = preferences[KEY_AUTO_SAVE_LEADS] ?: false,
             monitorWhatsApp = preferences[KEY_MONITOR_WHATSAPP] ?: true,
             monitorWhatsAppBusiness = preferences[KEY_MONITOR_WHATSAPP_BUSINESS] ?: true,
+            ignoreGroupMessages = preferences[KEY_IGNORE_GROUP_MESSAGES] ?: true,
             contactPrefix = preferences[KEY_CONTACT_PREFIX] ?: "WA-Lead",
             countryCode = preferences[KEY_COUNTRY_CODE] ?: "+967",
             defaultContactName = resolvedContactName
@@ -66,6 +68,12 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setMonitorWhatsAppBusiness(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_MONITOR_WHATSAPP_BUSINESS] = enabled
+        }
+    }
+
+    suspend fun setIgnoreGroupMessages(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_IGNORE_GROUP_MESSAGES] = enabled
         }
     }
 

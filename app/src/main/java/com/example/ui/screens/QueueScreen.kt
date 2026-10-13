@@ -55,8 +55,12 @@ fun QueueScreen(
     onEditLeadName: (LeadEntity) -> Unit,
     onSaveAll: () -> Unit,
     onClearAll: () -> Unit,
+    onToggleClassification: ((LeadEntity, Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val confirmedCount = queuedLeads.count { !it.tags.contains("NEEDS_REVIEW") }
+    val needsReviewCount = queuedLeads.count { it.tags.contains("NEEDS_REVIEW") }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -97,7 +101,7 @@ fun QueueScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "New unsaved numbers detected from WhatsApp notifications or photo scans will appear here.",
+                        text = "New unsaved numbers detected from WhatsApp notifications or photo scans will appear here for verification.",
                         color = TextSecondary,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,
@@ -106,11 +110,59 @@ fun QueueScreen(
                 }
             }
         } else {
+            // Queue Review Summary Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Review Queue (${queuedLeads.size})",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFDCFCE7))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "$confirmedCount مؤكد",
+                            color = Color(0xFF15803D),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (needsReviewCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFFEF3C7))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "$needsReviewCount يحتاج مراجعة",
+                                color = Color(0xFFB45309),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(
@@ -122,7 +174,10 @@ fun QueueScreen(
                         onSaveClick = { onSaveLead(lead) },
                         onRemoveClick = { onRemoveLead(lead) },
                         onWhatsAppClick = { onWhatsAppClick(lead) },
-                        onEditNameClick = { onEditLeadName(lead) }
+                        onEditNameClick = { onEditLeadName(lead) },
+                        onToggleClassification = { isConfirmed ->
+                            onToggleClassification?.invoke(lead, isConfirmed)
+                        }
                     )
                 }
                 item {

@@ -472,9 +472,26 @@
     <string name="admin_devices_usage">الأجهزة</string>
     <string name="settings_default_contact_name_title">اسم جهة الاتصال الافتراضي</string>
     <string name="settings_default_contact_name_desc">الاسم المستخدم عند حفظ جهات الاتصال الجديدة</string>
-    <string name="settings_default_contact_name_placeholder">مثال: زبون متجر أومكس أو عميل أومكس</string>
     <string name="settings_default_contact_name_empty_error">لا يمكن أن يكون اسم جهة الاتصال الافتراضي فارغاً</string>
     <string name="settings_default_contact_name_invalid_error">اسم جهة اتصال غير صالح. لا يمكن استخدام أسماء تشير للنفس (\"أنت\"، \"أنا\") أو نصوص النظام.</string>
+
+    <!-- Guest Mode, Account & Notification Access Dialog Strings (Arabic) -->
+    <string name="auth_continue_as_guest">المتابعة واستكشاف التطبيق</string>
+    <string name="auth_login_required_dialog_title">تسجيل الدخول أو الترخيص مطلوب</string>
+    <string name="auth_login_reason_cloud_sync">تتطلب المزامنة السحابية والنسخ الاحتياطي تسجيل الدخول بحساب نشط ومفعّل.</string>
+    <string name="auth_login_reason_saving">حفظ جهات اتصال العملاء في سجل الهاتف يتطلب حساباً مفعلاً وترخيصاً سارياً.</string>
+    <string name="auth_login_reason_admin">الوصول إلى لوحة الإدارة يتطلب تسجيل الدخول كمسؤول.</string>
+    <string name="auth_login_reason_general">هذه الميزة تتطلب تسجيل الدخول بحساب معتمد أو ترخيص نشط.</string>
+    <string name="auth_login_now">تسجيل الدخول / إنشاء حساب</string>
+    <string name="auth_account_section_title">الحساب والترخيص</string>
+    <string name="auth_logged_in_as">تم تسجيل الدخول باسم %1$s</string>
+    <string name="auth_guest_user">تصفح بدون تسجيل دخول (زائر)</string>
+    <string name="auth_guest_user_desc">سجل دخولك بحسابك أو رقم ترخيصك لتفعيل حفظ جهات الاتصال والمزامنة السحابية.</string>
+    <string name="notification_permission_dialog_title">إذن الوصول إلى الإشعارات مطلوب</string>
+    <string name="notification_permission_dialog_message">لالتقاط أرقام العملاء تلقائياً من محادثات واتساب، يحتاج تطبيق WA Lead Saver إلى صلاحية Notification Access من إعدادات Android.\n\nنظام أندرويد يحمي خصوصيتك؛ التطبيق يقرأ فقط أرقام الهواتف الواردة لمساعدتك في حفظها دون تخزين رسائلك الخاصة.</string>
+    <string name="notification_permission_dialog_button">فتح إعدادات النظام</string>
+    <string name="notification_permission_not_granted_banner">صلاحية قراءة الإشعارات غير مفعلة. لن يتم التقاط أرقام واتساب تلقائياً.</string>
+    <string name="enable_notification_access">تفعيل الصلاحية</string>
 
     <!-- Lead Management V1 Strings (Arabic) -->
     <string name="status_new">جديد</string>
@@ -543,4 +560,18 @@
     <string name="status_label">الحالة</string>
     <string name="source_label">المصدر</string>
     <string name="save_changes">حفظ التغييرات</string>
+    <string name="ignore_group_messages_title">تجاهل مجموعات واتساب</string>
+    <string name="ignore_group_messages_subtitle">منع حفظ الأرقام العشوائية والأسعار والرسائل الواردة من المجموعات</string>
+    <string name="group_messages_protection">حماية دفتر العناوين من المجموعات</string>
+    <string name="group_messages_protection_desc">يتم تجاهل إشعارات المجموعات تلقائيًا لحماية جهات اتصالك من الأرقام العشوائية</string>
+    <string name="dashboard_conversion_rate">معدل الحفظ</string>
+    <string name="dashboard_total_leads">إجمالي العملاء</string>
+    <string name="dashboard_saved_leads">المحفوظون</string>
+    <string name="dashboard_queue_leads">قيد الانتظار</string>
+    <string name="queue_title">قائمة انتظار الالتقاط</string>
+    <string name="queue_subtitle">مراجعة وحفظ الأرقام الملتقطة إلى جهات اتصال الهاتف</string>
+    <string name="save_all_to_contacts">حفظ الكل في الهاتف</string>
+    <string name="one_touch_save">حفظ</string>
+    <string name="open_whatsapp">واتساب</string>
+    <string name="dismiss_lead">استبعاد</string>
 </resources>

@@ -74,9 +74,14 @@ import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 import com.example.viewmodel.AuthViewModel
 
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 @Composable
 fun LoginScreen(
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    reasonMessage: String? = null,
+    onDismiss: (() -> Unit)? = null
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
@@ -120,6 +125,39 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // Dismiss / Continue as Guest button if called from inside the app
+                if (onDismiss != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.testTag("login_back_dismiss_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back),
+                                tint = WhatsAppTeal
+                            )
+                        }
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.testTag("login_guest_continue_btn")
+                        ) {
+                            Text(
+                                text = stringResource(R.string.auth_continue_as_guest),
+                                color = WhatsAppTeal,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
                 // Brand Header Icon
                 Box(
                     modifier = Modifier
@@ -144,6 +182,37 @@ fun LoginScreen(
                     fontWeight = FontWeight.Bold,
                     color = WhatsAppTeal
                 )
+
+                if (!reasonMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = Color(0xFFFEF3C7),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                            .testTag("login_reason_banner")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = Color(0xFFB45309),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = reasonMessage,
+                                color = Color(0xFF92400E),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
 
                 Text(
                     text = stringResource(R.string.auth_welcome_subtitle),

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
@@ -25,8 +26,11 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,6 +40,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -114,24 +120,22 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val authState by authViewModel.authState.collectAsStateWithLifecycle()
-                when (val state = authState) {
-                    is AuthState.AuthenticatedUser -> {
-                        MainScreen(
-                            viewModel = viewModel,
-                            authViewModel = authViewModel
-                        )
-                    }
-                    is AuthState.AuthenticatedAdmin -> {
-                        AdminDashboardScreen(
-                            authViewModel = authViewModel,
-                            onLogout = { authViewModel.logout() }
-                        )
-                    }
-                    else -> {
-                        LoginScreen(
-                            authViewModel = authViewModel
-                        )
-                    }
+                var showAdminDashboard by remember { mutableStateOf(false) }
+
+                if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
+                    AdminDashboardScreen(
+                        authViewModel = authViewModel,
+                        onLogout = {
+                            showAdminDashboard = false
+                            authViewModel.logout()
+                        }
+                    )
+                } else {
+                    MainScreen(
+                        viewModel = viewModel,
+                        authViewModel = authViewModel,
+                        onOpenAdminDashboard = { showAdminDashboard = true }
+                    )
                 }
             }
         }
@@ -141,22 +145,32 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     viewModel: MainViewModel,
-    authViewModel: AuthViewModel? = null
+    authViewModel: AuthViewModel? = null,
+    onOpenAdminDashboard: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentTab by remember { mutableStateOf(AppTab.DASHBOARD) }
+    var showQueueScreen by remember { mutableStateOf(false) }
     var showPhotoScanDialog by remember { mutableStateOf(false) }
     var showSaveExistingDialog by remember { mutableStateOf(false) }
     var showSamsungGuideDialog by remember { mutableStateOf(false) }
     var leadToEdit by remember { mutableStateOf<LeadEntity?>(null) }
 
+    // Dialog state for login requirement and notification explanation
+    var showLoginDialog by remember { mutableStateOf(false) }
+    var loginDialogReason by remember { mutableStateOf<String?>(null) }
+    var showNotificationPermissionDialog by remember { mutableStateOf(false) }
+
     val queuedLeads by viewModel.queuedLeads.collectAsStateWithLifecycle(emptyList())
     val totalSaved by viewModel.totalSavedCount.collectAsStateWithLifecycle(0)
     val queueCount by viewModel.queueCount.collectAsStateWithLifecycle(0)
     val historyList by viewModel.historyList.collectAsStateWithLifecycle(emptyList())
+    val captureStats by viewModel.captureStats.collectAsStateWithLifecycle()
+    val selectedAuditFilter by viewModel.selectedAuditFilter.collectAsStateWithLifecycle()
+    val filteredHistory by viewModel.filteredHistory.collectAsStateWithLifecycle()
     val allLeads by viewModel.allLeads.collectAsStateWithLifecycle(emptyList())
     val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle(emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle("")
@@ -173,6 +187,17 @@ fun MainScreen(
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle(emptyList())
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle(false)
     val licenseStatus by viewModel.licenseStatus.collectAsStateWithLifecycle(LicenseStatus.Active)
+    val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
+
+    val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
+
+    androidx.activity.compose.BackHandler(enabled = showLoginDialog) {
+        showLoginDialog = false
+    }
+
+    androidx.activity.compose.BackHandler(enabled = showQueueScreen) {
+        showQueueScreen = false
+    }
 
     androidx.activity.compose.BackHandler(enabled = selectedLead != null) {
         viewModel.selectLead(null)
@@ -214,6 +239,32 @@ fun MainScreen(
         }
     }
 
+    // Helper function to guard protected actions with login / license check
+    val requireAuthOrLicense: (() -> Unit) -> Unit = { action ->
+        if (!isAuthenticated) {
+            loginDialogReason = context.getString(R.string.auth_login_reason_saving)
+            showLoginDialog = true
+        } else if (!licenseStatus.isSaveAllowed) {
+            scope.launch {
+                snackbarHostState.showSnackbar(licenseStatus.message)
+            }
+        } else {
+            action()
+        }
+    }
+
+    if (showLoginDialog && authViewModel != null) {
+        LoginScreen(
+            authViewModel = authViewModel,
+            reasonMessage = loginDialogReason,
+            onDismiss = {
+                showLoginDialog = false
+                loginDialogReason = null
+            }
+        )
+        return
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -221,11 +272,7 @@ fun MainScreen(
                 isActive = isListenerActive,
                 onStatusClick = {
                     if (!isListenerActive) {
-                        try {
-                            context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
-                        } catch (_: Exception) {
-                            currentTab = AppTab.SETTINGS
-                        }
+                        showNotificationPermissionDialog = true
                     } else {
                         currentTab = AppTab.SETTINGS
                     }
@@ -234,7 +281,15 @@ fun MainScreen(
                 onExportClick = { exportHistory() },
                 onWhatsAppClick = { WhatsAppHelper.openWhatsApp(context) },
                 onSettingsClick = { currentTab = AppTab.SETTINGS },
-                onLogoutClick = { authViewModel?.logout() }
+                onLoginClick = if (!isAuthenticated) {
+                    {
+                        loginDialogReason = context.getString(R.string.auth_login_reason_general)
+                        showLoginDialog = true
+                    }
+                } else null,
+                onLogoutClick = if (isAuthenticated) {
+                    { authViewModel?.logout() }
+                } else null
             )
         },
         bottomBar = {
@@ -244,10 +299,11 @@ fun MainScreen(
                 tonalElevation = 6.dp
             ) {
                 AppTab.entries.forEach { tab ->
-                    val isSelected = currentTab == tab
+                    val isSelected = !showQueueScreen && currentTab == tab
                     NavigationBarItem(
                         selected = isSelected,
                         onClick = {
+                            showQueueScreen = false
                             currentTab = tab
                             if (tab != AppTab.LEADS) {
                                 viewModel.selectLead(null)
@@ -298,7 +354,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (!licenseStatus.isSaveAllowed) {
+            if (!licenseStatus.isSaveAllowed && licenseStatus !is LicenseStatus.NotAuthenticated) {
                 val (bgColor, textColor) = when (licenseStatus) {
                     is LicenseStatus.PendingActivation, is LicenseStatus.DeviceLimitExceeded ->
                         Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
@@ -333,31 +389,81 @@ fun MainScreen(
                 }
             }
 
-            Crossfade(
-                targetState = currentTab,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                label = "TabTransition"
-            ) { tab ->
-                when (tab) {
-                    AppTab.DASHBOARD -> DashboardScreen(
-                        totalSaved = totalSaved,
-                        inQueue = queueCount,
-                        settings = settings,
-                        onExportHistory = { exportHistory() },
-                        onViewQueue = { currentTab = AppTab.LEADS },
-                        onOpenSaveExistingContacts = { showSaveExistingDialog = true },
-                        onSnapAndSave = { showPhotoScanDialog = true },
-                        onPrefixChange = { viewModel.setContactPrefix(it) },
-                        onAutoSaveChange = { viewModel.setAutoSave(it) },
-                        onSimulateIncomingLead = {
-                            scope.launch {
-                                val dummyNum = "+96777178691"
-                                viewModel.repository.processIncomingPhoneCandidate(dummyNum, "Simulation")
-                            }
+            if (showQueueScreen) {
+                QueueScreen(
+                    queuedLeads = queuedLeads,
+                    onSaveLead = { lead ->
+                        requireAuthOrLicense {
+                            viewModel.saveLead(lead)
                         }
-                    )
+                    },
+                    onRemoveLead = { lead ->
+                        viewModel.dismissQueuedLead(lead.id)
+                    },
+                    onWhatsAppClick = { lead ->
+                        viewModel.openWhatsAppChat(context, lead)
+                    },
+                    onEditLeadName = { lead ->
+                        leadToEdit = lead
+                    },
+                    onSaveAll = {
+                        requireAuthOrLicense {
+                            viewModel.saveAllQueued()
+                        }
+                    },
+                    onClearAll = {
+                        viewModel.clearQueue()
+                    },
+                    onToggleClassification = { lead, isConfirmed ->
+                        viewModel.updateLeadClassification(
+                            lead.id,
+                            if (isConfirmed) com.example.data.model.CaptureDecision.CONFIRMED else com.example.data.model.CaptureDecision.NEEDS_REVIEW
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                )
+            } else {
+                Crossfade(
+                    targetState = currentTab,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    label = "TabTransition"
+                ) { tab ->
+                    when (tab) {
+                        AppTab.DASHBOARD -> DashboardScreen(
+                            totalSaved = totalSaved,
+                            inQueue = queueCount,
+                            stats = captureStats,
+                            settings = settings,
+                            isNotificationListenerActive = isListenerActive,
+                            onOpenNotificationSettings = {
+                                context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
+                            },
+                            onRunBenchmark = {
+                                viewModel.runAccuracyBenchmark()
+                            },
+                            onExportHistory = { exportHistory() },
+                            onViewQueue = { showQueueScreen = true },
+                            onViewAuditLog = { currentTab = AppTab.HISTORY },
+                            onOpenSaveExistingContacts = { showSaveExistingDialog = true },
+                            onSnapAndSave = { showPhotoScanDialog = true },
+                            onPrefixChange = { viewModel.setContactPrefix(it) },
+                            onAutoSaveChange = { enabled ->
+                                if (enabled && !isListenerActive) {
+                                    showNotificationPermissionDialog = true
+                                }
+                                viewModel.setAutoSave(enabled)
+                            },
+                            onSimulateIncomingLead = {
+                                scope.launch {
+                                    val dummyNum = "+96777178691"
+                                    viewModel.repository.processIncomingPhoneCandidate(dummyNum, "Simulation")
+                                }
+                            }
+                        )
 
                     AppTab.LEADS -> {
                         if (selectedLead != null) {
@@ -398,28 +504,55 @@ fun MainScreen(
                     }
 
                     AppTab.HISTORY -> HistoryScreen(
-                        historyList = historyList,
+                        historyList = filteredHistory,
+                        selectedFilter = selectedAuditFilter,
+                        onFilterSelected = { viewModel.setAuditFilter(it) },
                         onExportHistory = { exportHistory() },
                         onClearHistory = { viewModel.clearHistory() }
                     )
 
                     AppTab.SETTINGS -> SettingsScreen(
                         settings = settings,
-                        onAutoSaveChange = { viewModel.setAutoSave(it) },
-                        onMonitorWhatsAppChange = { viewModel.setMonitorWhatsApp(it) },
-                        onMonitorWhatsAppBusinessChange = { viewModel.setMonitorWhatsAppBusiness(it) },
+                        authState = authState,
+                        licenseStatus = licenseStatus,
+                        onAutoSaveChange = { enabled ->
+                            if (enabled && !isListenerActive) {
+                                showNotificationPermissionDialog = true
+                            }
+                            viewModel.setAutoSave(enabled)
+                        },
+                        onMonitorWhatsAppChange = { enabled ->
+                            if (enabled && !isListenerActive) {
+                                showNotificationPermissionDialog = true
+                            }
+                            viewModel.setMonitorWhatsApp(enabled)
+                        },
+                        onMonitorWhatsAppBusinessChange = { enabled ->
+                            if (enabled && !isListenerActive) {
+                                showNotificationPermissionDialog = true
+                            }
+                            viewModel.setMonitorWhatsAppBusiness(enabled)
+                        },
+                        onIgnoreGroupMessagesChange = { viewModel.setIgnoreGroupMessages(it) },
                         onPrefixChange = { viewModel.setContactPrefix(it) },
                         onCountryCodeChange = { viewModel.setCountryCode(it) },
                         onDefaultContactNameChange = { viewModel.setDefaultContactName(it) },
                         onRequestContactsPermission = {
                             permissionLauncher.launch(permissionsToRequest.toTypedArray())
                         },
-                        onOpenSamsungGuide = { showSamsungGuideDialog = true }
+                        onOpenSamsungGuide = { showSamsungGuideDialog = true },
+                        onOpenLogin = {
+                            loginDialogReason = context.getString(R.string.auth_login_reason_general)
+                            showLoginDialog = true
+                        },
+                        onOpenAdmin = onOpenAdminDashboard,
+                        onLogout = { authViewModel?.logout() }
                     )
                 }
             }
         }
     }
+}
 
     if (showPhotoScanDialog) {
         PhotoScanDialog(
@@ -465,6 +598,58 @@ fun MainScreen(
                 leadToEdit = null
             },
             onDismiss = { leadToEdit = null }
+        )
+    }
+
+    if (showNotificationPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationPermissionDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.notification_permission_dialog_title),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.notification_permission_dialog_message),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = Color(0xFF334155)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showNotificationPermissionDialog = false
+                        try {
+                            context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())
+                        } catch (_: Exception) {
+                            currentTab = AppTab.SETTINGS
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.notification_permission_dialog_button),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showNotificationPermissionDialog = false }
+                ) {
+                    Text(
+                        text = stringResource(R.string.cancel),
+                        color = Color.Gray
+                    )
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.testTag("notification_permission_explanation_dialog")
         )
     }
 }

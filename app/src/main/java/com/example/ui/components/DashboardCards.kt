@@ -38,6 +38,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CardBackground
@@ -59,7 +62,7 @@ fun StatCardsRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Card(
             modifier = Modifier
@@ -72,23 +75,42 @@ fun StatCardsRow(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(14.dp)
             ) {
                 Text(
-                    text = "TOTAL SAVED",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
+                    text = "العملاء المحفوظون",
+                    color = TextPrimary,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Rtl,
+                        textAlign = TextAlign.Start
+                    )
+                )
+                Text(
+                    text = "Total Saved",
+                    color = TextSecondary,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Ltr,
+                        textAlign = TextAlign.Start
+                    )
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = totalSaved.toString(),
                     color = WhatsAppTeal,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Ltr
+                    )
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -101,14 +123,16 @@ fun StatCardsRow(
                         imageVector = Icons.Default.Share,
                         contentDescription = null,
                         tint = WhatsAppTeal,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Export history",
+                        text = "تصدير السجل",
                         color = WhatsAppTeal,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -125,23 +149,42 @@ fun StatCardsRow(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(14.dp)
             ) {
                 Text(
-                    text = "IN QUEUE",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
+                    text = "قائمة الانتظار",
+                    color = TextPrimary,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Rtl,
+                        textAlign = TextAlign.Start
+                    )
+                )
+                Text(
+                    text = "In Queue",
+                    color = TextSecondary,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Ltr,
+                        textAlign = TextAlign.Start
+                    )
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = inQueue.toString(),
                     color = WhatsAppTeal,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Ltr
+                    )
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -151,17 +194,19 @@ fun StatCardsRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "View All",
+                        text = "عرض الكل",
                         color = WhatsAppTeal,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         tint = WhatsAppTeal,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -186,12 +231,12 @@ fun SaveExistingContactsCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(46.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFE8F5E9)),
                 contentAlignment = Alignment.Center
@@ -208,24 +253,33 @@ fun SaveExistingContactsCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Save Existing Contacts",
-                    fontSize = 16.sp,
+                    text = "حفظ جهات الاتصال الحالية",
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Rtl,
+                        textAlign = TextAlign.Start
+                    )
                 )
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Scans your chats and group members for unsaved numbers",
-                    fontSize = 13.sp,
-                    color = TextSecondary
+                    text = "فحص المحادثات والمجموعات للأرقام غير المسجلة (Save Existing Contacts)",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = TextMuted,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
     }
@@ -252,7 +306,7 @@ fun ContactPrefixCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -260,18 +314,21 @@ fun ContactPrefixCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "CONTACT NAME PREFIX",
+                        text = "بادئة اسم جهة الاتصال",
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = androidx.compose.ui.text.TextStyle(
+                            textDirection = TextDirection.Rtl,
+                            textAlign = TextAlign.Start
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "الاسم التلقائي: $currentPrefix (رمز الدولة: $countryCode)",
                         color = TextSecondary,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = "Default: $currentPrefix",
-                        color = TextPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
@@ -289,9 +346,10 @@ fun ContactPrefixCard(
                     modifier = Modifier.testTag("button_edit_prefix")
                 ) {
                     Text(
-                        text = if (isEditing) "Save" else "Edit",
+                        text = if (isEditing) "حفظ" else "تعديل",
                         color = WhatsAppTeal,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -304,14 +362,14 @@ fun ContactPrefixCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_contact_prefix"),
-                    label = { Text("Contact Name Prefix") },
+                    label = { Text("بادئة اسم العميل (Prefix)") },
                     singleLine = true
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Preview: $textValue 771234567",
+                    text = "المعاينة: $textValue 771234567",
                     color = TextSecondary,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 )
             }
         }
@@ -335,25 +393,34 @@ fun AutoSaveLeadsCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Auto-Save Leads",
+                    text = "الحفظ التلقائي للعملاء المؤكدين",
                     color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        textDirection = TextDirection.Rtl,
+                        textAlign = TextAlign.Start
+                    )
                 )
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Automatically save leads to contacts",
+                    text = "حفظ المحادثات الفردية المؤكدة تلقائياً في جهات الاتصال",
                     color = TextSecondary,
-                    fontSize = 13.sp
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             Switch(
                 checked = autoSaveEnabled,
@@ -385,12 +452,12 @@ fun SnapAndSaveCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(46.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFE0F2F1)),
                 contentAlignment = Alignment.Center
@@ -410,10 +477,16 @@ fun SnapAndSaveCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Snap & Save",
-                        fontSize = 16.sp,
+                        text = "التقاط وحفظ عبر الكاميرا",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = androidx.compose.ui.text.TextStyle(
+                            textDirection = TextDirection.Rtl,
+                            textAlign = TextAlign.Start
+                        )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
@@ -430,19 +503,20 @@ fun SnapAndSaveCard(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Scan documents, cards, or screens with your device camera to extract numbers",
-                    fontSize = 13.sp,
-                    color = TextSecondary
+                    text = "مسح المستندات والبطاقات والشاشات بكاميرا الجهاز لاستخراج الأرقام",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    lineHeight = 16.sp
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = TextMuted,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
     }

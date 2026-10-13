@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,17 +61,26 @@ import com.example.ui.theme.WhatsAppTeal
 import com.example.util.ContactNameValidator
 import com.example.util.PermissionHelper
 
+import com.example.data.auth.AuthState
+import com.example.data.auth.LicenseStatus
+
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
+    authState: AuthState? = null,
+    licenseStatus: LicenseStatus? = null,
     onAutoSaveChange: (Boolean) -> Unit,
     onMonitorWhatsAppChange: (Boolean) -> Unit,
     onMonitorWhatsAppBusinessChange: (Boolean) -> Unit,
+    onIgnoreGroupMessagesChange: (Boolean) -> Unit = {},
     onPrefixChange: (String) -> Unit,
     onCountryCodeChange: (String) -> Unit,
     onDefaultContactNameChange: (String) -> Unit = {},
     onRequestContactsPermission: () -> Unit,
     onOpenSamsungGuide: () -> Unit,
+    onOpenLogin: () -> Unit = {},
+    onOpenAdmin: () -> Unit = {},
+    onLogout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -166,6 +178,14 @@ fun SettingsScreen(
                     checked = settings.monitorWhatsAppBusiness,
                     onCheckedChange = onMonitorWhatsAppBusinessChange,
                     testTag = "settings_switch_whatsapp_business"
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                SettingsSwitchRow(
+                    title = stringResource(R.string.ignore_group_messages_title),
+                    subtitle = stringResource(R.string.ignore_group_messages_subtitle),
+                    checked = settings.ignoreGroupMessages,
+                    onCheckedChange = onIgnoreGroupMessagesChange,
+                    testTag = "settings_switch_ignore_groups"
                 )
             }
         }
@@ -427,6 +447,130 @@ fun SettingsScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = stringResource(R.string.auth_account_section_title),
+            color = WhatsAppTeal,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("settings_account_card"),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
+                val isAdmin = authState is AuthState.AuthenticatedAdmin
+                val userEmail = when (authState) {
+                    is AuthState.AuthenticatedUser -> authState.profile.email
+                    is AuthState.AuthenticatedAdmin -> authState.profile.email
+                    else -> null
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (isAuthenticated) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isAuthenticated) Icons.Default.CheckCircle else Icons.Default.Person,
+                            contentDescription = null,
+                            tint = if (isAuthenticated) WhatsAppGreen else Color.Gray,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isAuthenticated) {
+                                stringResource(R.string.auth_logged_in_as, userEmail ?: "")
+                            } else {
+                                stringResource(R.string.auth_guest_user)
+                            },
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (isAuthenticated) {
+                                licenseStatus?.message ?: ""
+                            } else {
+                                stringResource(R.string.auth_guest_user_desc)
+                            },
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (isAuthenticated) {
+                        OutlinedButton(
+                            onClick = onLogout,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("settings_logout_btn"),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.auth_logout),
+                                color = Color(0xFFD32F2F),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        if (isAdmin) {
+                            Button(
+                                onClick = onOpenAdmin,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("settings_open_admin_btn"),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.admin_dashboard_title),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = onOpenLogin,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("settings_login_btn"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.auth_login_now),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
