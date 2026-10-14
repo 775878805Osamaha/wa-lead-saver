@@ -25,12 +25,19 @@ android {
         if (envFile.exists()) {
             FileInputStream(envFile).use { envProps.load(it) }
         }
+        val localPropsFile = rootProject.file("local.properties")
+        val localProps = Properties()
+        if (localPropsFile.exists()) {
+            FileInputStream(localPropsFile).use { localProps.load(it) }
+        }
         val envSupabaseUrl = (project.findProperty("SUPABASE_URL") as? String)
             ?: System.getenv("SUPABASE_URL")
+            ?: localProps.getProperty("SUPABASE_URL")
             ?: envProps.getProperty("SUPABASE_URL")
             ?: ""
         val envSupabaseAnonKey = (project.findProperty("SUPABASE_ANON_KEY") as? String)
             ?: System.getenv("SUPABASE_ANON_KEY")
+            ?: localProps.getProperty("SUPABASE_ANON_KEY")
             ?: envProps.getProperty("SUPABASE_ANON_KEY")
             ?: ""
         val trimmedUrl = envSupabaseUrl.trim().removeSuffix("/")
@@ -46,13 +53,30 @@ android {
             if (keystorePropertiesFile.exists()) {
                 FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
             }
+            val localPropsFile = rootProject.file("local.properties")
+            val localProps = Properties()
+            if (localPropsFile.exists()) {
+                FileInputStream(localPropsFile).use { localProps.load(it) }
+            }
             val storeFilePath = System.getenv("RELEASE_STORE_FILE")
+                ?: (project.findProperty("RELEASE_STORE_FILE") as? String)
+                ?: localProps.getProperty("RELEASE_STORE_FILE")
+                ?: localProps.getProperty("storeFile")
                 ?: keystoreProperties.getProperty("storeFile")
             val storePass = System.getenv("RELEASE_STORE_PASSWORD")
+                ?: (project.findProperty("RELEASE_STORE_PASSWORD") as? String)
+                ?: localProps.getProperty("RELEASE_STORE_PASSWORD")
+                ?: localProps.getProperty("storePassword")
                 ?: keystoreProperties.getProperty("storePassword")
             val keyAl = System.getenv("RELEASE_KEY_ALIAS")
+                ?: (project.findProperty("RELEASE_KEY_ALIAS") as? String)
+                ?: localProps.getProperty("RELEASE_KEY_ALIAS")
+                ?: localProps.getProperty("keyAlias")
                 ?: keystoreProperties.getProperty("keyAlias")
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD")
+                ?: (project.findProperty("RELEASE_KEY_PASSWORD") as? String)
+                ?: localProps.getProperty("RELEASE_KEY_PASSWORD")
+                ?: localProps.getProperty("keyPassword")
                 ?: keystoreProperties.getProperty("keyPassword")
 
             if (!storeFilePath.isNullOrBlank() && file(storeFilePath).exists()) {
