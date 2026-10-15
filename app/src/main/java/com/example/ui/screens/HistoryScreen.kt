@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +27,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,13 +43,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.HistoryEntity
-import com.example.ui.theme.AppBackground
-import com.example.ui.theme.CardBackground
+import com.example.data.model.AuditFilter
+import com.example.ui.theme.DarkEmeraldBg
+import com.example.ui.theme.DarkEmeraldBorder
+import com.example.ui.theme.DarkEmeraldBorderLight
+import com.example.ui.theme.DarkEmeraldElevated
+import com.example.ui.theme.DarkEmeraldSurface
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.StatusWarningAmber
+import com.example.ui.theme.TextLightMuted
+import com.example.ui.theme.TextLightPrimary
+import com.example.ui.theme.TextLightSecondary
+import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.theme.WhatsAppTeal
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,8 +64,8 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     historyList: List<HistoryEntity>,
-    selectedFilter: com.example.data.model.AuditFilter = com.example.data.model.AuditFilter.ALL,
-    onFilterSelected: (com.example.data.model.AuditFilter) -> Unit = {},
+    selectedFilter: AuditFilter = AuditFilter.ALL,
+    onFilterSelected: (AuditFilter) -> Unit = {},
     onExportHistory: () -> Unit,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier
@@ -62,18 +73,18 @@ fun HistoryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppBackground)
+            .background(DarkEmeraldBg)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "سجل المراقبة والتشخيص (${historyList.size})",
-                color = TextPrimary,
+                color = TextLightPrimary,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -101,12 +112,14 @@ fun HistoryScreen(
                     modifier = Modifier.testTag("button_export_history_screen"),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = WhatsAppTeal
+                        containerColor = WhatsAppGreen,
+                        contentColor = Color(0xFF071C17)
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = null,
+                        tint = Color(0xFF071C17),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -120,15 +133,15 @@ fun HistoryScreen(
         }
 
         // Diagnostic Filter Chips Bar
-        androidx.compose.foundation.lazy.LazyRow(
+        LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(com.example.data.model.AuditFilter.values()) { filter ->
+            items(AuditFilter.values()) { filter ->
                 val isSelected = filter == selectedFilter
-                androidx.compose.material3.FilterChip(
+                FilterChip(
                     selected = isSelected,
                     onClick = { onFilterSelected(filter) },
                     label = {
@@ -138,9 +151,15 @@ fun HistoryScreen(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     },
-                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = WhatsAppTeal,
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = DarkEmeraldElevated,
+                        labelColor = TextLightSecondary,
+                        selectedContainerColor = WhatsAppGreen,
                         selectedLabelColor = Color.White
+                    ),
+                    border = BorderStroke(
+                        0.5.dp,
+                        if (isSelected) WhatsAppGreen else DarkEmeraldBorder
                     ),
                     modifier = Modifier.testTag("filter_chip_${filter.name.lowercase()}")
                 )
@@ -160,29 +179,30 @@ fun HistoryScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(72.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF1F5F9)),
+                            .background(DarkEmeraldElevated)
+                            .border(1.dp, DarkEmeraldBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = "Empty History",
-                            modifier = Modifier.size(32.dp),
-                            tint = WhatsAppTeal
+                            modifier = Modifier.size(36.dp),
+                            tint = WhatsAppGreen
                         )
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "No Activity Recorded",
-                        color = TextPrimary,
+                        color = TextLightPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Detected WhatsApp leads, auto-saves, and scanning events will be logged here.",
-                        color = TextSecondary,
+                        color = TextLightMuted,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center
                     )
@@ -192,7 +212,7 @@ fun HistoryScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -218,9 +238,9 @@ fun HistoryItemCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("history_item_${item.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
+        border = BorderStroke(1.dp, DarkEmeraldBorder)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -230,7 +250,7 @@ fun HistoryItemCard(
             ) {
                 Text(
                     text = item.phoneNumber,
-                    color = TextPrimary,
+                    color = WhatsAppGreen,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -240,24 +260,32 @@ fun HistoryItemCard(
             if (item.contactName.isNotBlank() && item.contactName != "N/A") {
                 Text(
                     text = item.contactName,
-                    color = WhatsAppTeal,
-                    fontSize = 13.sp,
+                    color = TextLightPrimary,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
             }
             Text(
                 text = "Source: ${item.source} • $dateStr",
-                color = TextSecondary,
+                color = TextLightMuted,
                 fontSize = 12.sp
             )
             if (item.details.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = item.details,
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkEmeraldElevated)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = item.details,
+                        color = TextLightSecondary,
+                        fontSize = 11.sp
+                    )
+                }
             }
         }
     }
@@ -268,23 +296,24 @@ fun StatusBadge(
     status: String,
     modifier: Modifier = Modifier
 ) {
-    val (bg, textColor) = when (status) {
-        "NEW LEAD", "Queued" -> Pair(Color(0xFFE0F2FE), Color(0xFF0369A1))
-        "Saved" -> Pair(Color(0xFFDCFCE7), Color(0xFF15803D))
-        "Needs Review" -> Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
-        "Group Excluded" -> Pair(Color(0xFFE2E8F0), Color(0xFF334155))
-        "Duplicate" -> Pair(Color(0xFFFEF9C3), Color(0xFF854D0E))
-        "Removed" -> Pair(RemoveRedLight, RemoveRed)
-        "Failed", "Invalid Number", "Excluded" -> Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
-        "System Excluded" -> Pair(Color(0xFFF1F5F9), Color(0xFF475569))
-        "Phone number unavailable" -> Pair(Color(0xFFF3E8FF), Color(0xFF7E22CE))
-        else -> Pair(Color(0xFFF1F5F9), Color(0xFF334155))
+    val (bg, textColor, borderCol) = when (status) {
+        "NEW LEAD", "Queued" -> Triple(Color(0x3338BDF8), Color(0xFF38BDF8), Color(0x6638BDF8))
+        "Saved" -> Triple(Color(0x3325D366), Color(0xFF4ADE80), Color(0x6625D366))
+        "Needs Review" -> Triple(Color(0x33F59E0B), Color(0xFFFBBF24), Color(0x66F59E0B))
+        "Group Excluded" -> Triple(Color(0x3364748B), Color(0xFF94A3B8), Color(0x6664748B))
+        "Duplicate" -> Triple(Color(0x33FBBF24), Color(0xFFFCD34D), Color(0x66FBBF24))
+        "Removed" -> Triple(RemoveRedLight, RemoveRed, Color(0x66EF4444))
+        "Failed", "Invalid Number", "Excluded" -> Triple(Color(0x33EF4444), Color(0xFFF87171), Color(0x66EF4444))
+        "System Excluded" -> Triple(Color(0x3364748B), Color(0xFF94A3B8), Color(0x6664748B))
+        "Phone number unavailable" -> Triple(Color(0x33A855F7), Color(0xFFC084FC), Color(0x66A855F7))
+        else -> Triple(Color(0x3364748B), Color(0xFFCBD5E1), Color(0x6664748B))
     }
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(bg)
+            .border(0.5.dp, borderCol, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(

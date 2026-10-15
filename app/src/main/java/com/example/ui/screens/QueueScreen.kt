@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,13 +40,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.LeadEntity
 import com.example.ui.components.LeadCard
-import com.example.ui.theme.AppBackground
-import com.example.ui.theme.CardBackground
+import com.example.ui.theme.DarkEmeraldBg
+import com.example.ui.theme.DarkEmeraldBorder
+import com.example.ui.theme.DarkEmeraldElevated
+import com.example.ui.theme.DarkEmeraldHeader
+import com.example.ui.theme.DarkEmeraldSurface
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppTeal
+import com.example.ui.theme.StatusWarningAmber
+import com.example.ui.theme.TextLightMuted
+import com.example.ui.theme.TextLightPrimary
+import com.example.ui.theme.TextLightSecondary
+import com.example.ui.theme.WhatsAppGreen
+import com.example.ui.theme.WhatsAppGreenGlow
 
 @Composable
 fun QueueScreen(
@@ -64,7 +72,7 @@ fun QueueScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppBackground)
+            .background(DarkEmeraldBg)
     ) {
         if (queuedLeads.isEmpty()) {
             Box(
@@ -80,29 +88,30 @@ fun QueueScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(80.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF1F5F9)),
+                            .background(DarkEmeraldElevated)
+                            .border(1.dp, DarkEmeraldBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Inbox,
                             contentDescription = "Empty Queue",
-                            modifier = Modifier.size(36.dp),
-                            tint = WhatsAppTeal
+                            modifier = Modifier.size(38.dp),
+                            tint = WhatsAppGreen
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                     Text(
                         text = "Queue is Empty",
-                        color = TextPrimary,
+                        color = TextLightPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "New unsaved numbers detected from WhatsApp notifications or photo scans will appear here for verification.",
-                        color = TextSecondary,
+                        color = TextLightMuted,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 20.sp
@@ -122,19 +131,20 @@ fun QueueScreen(
                     text = "Review Queue (${queuedLeads.size})",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = TextLightPrimary
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFDCFCE7))
+                            .background(WhatsAppGreenGlow)
+                            .border(0.5.dp, WhatsAppGreen, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "$confirmedCount مؤكد",
-                            color = Color(0xFF15803D),
+                            color = WhatsAppGreen,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -144,12 +154,13 @@ fun QueueScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFFEF3C7))
+                                .background(Color(0x33F59E0B))
+                                .border(0.5.dp, StatusWarningAmber, RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "$needsReviewCount يحتاج مراجعة",
-                                color = Color(0xFFB45309),
+                                color = StatusWarningAmber,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -187,9 +198,8 @@ fun QueueScreen(
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = CardBackground,
-                shadowElevation = 8.dp,
-                tonalElevation = 8.dp
+                color = DarkEmeraldSurface,
+                border = BorderStroke(1.dp, DarkEmeraldBorder)
             ) {
                 Row(
                     modifier = Modifier
@@ -206,20 +216,22 @@ fun QueueScreen(
                             .testTag("button_save_all"),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = WhatsAppTeal,
+                            containerColor = WhatsAppGreen,
                             contentColor = Color.White
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Save,
                             contentDescription = null,
+                            tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Save All (${queuedLeads.size})",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
                         )
                     }
 
@@ -233,7 +245,8 @@ fun QueueScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = RemoveRedLight,
                             contentColor = RemoveRed
-                        )
+                        ),
+                        border = BorderStroke(1.dp, RemoveRed.copy(alpha = 0.5f))
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,

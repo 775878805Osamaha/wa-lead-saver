@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,13 +73,21 @@ import com.example.ui.dialogs.ChangeStatusDialog
 import com.example.ui.dialogs.DeleteLeadConfirmDialog
 import com.example.ui.dialogs.EditLeadDialog
 import com.example.ui.dialogs.EditNoteDialog
+import com.example.ui.theme.DarkEmeraldBg
+import com.example.ui.theme.DarkEmeraldBorder
+import com.example.ui.theme.DarkEmeraldBorderLight
+import com.example.ui.theme.DarkEmeraldElevated
+import com.example.ui.theme.DarkEmeraldHeader
+import com.example.ui.theme.DarkEmeraldSurface
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.TextLightMuted
+import com.example.ui.theme.TextLightPrimary
+import com.example.ui.theme.TextLightSecondary
 import com.example.ui.theme.WhatsAppGreen
+import com.example.ui.theme.WhatsAppGreenGlow
 import com.example.ui.theme.WhatsAppTeal
+import com.example.ui.theme.WhatsAppTealAccent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -148,71 +157,75 @@ fun LeadDetailsScreen(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = stringResource(R.string.delete_lead),
-                            tint = Color.White
+                            tint = Color(0xFFFCA5A5)
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = WhatsAppTeal)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkEmeraldHeader
+                )
             )
-        }
+        },
+        containerColor = DarkEmeraldBg
     ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
+                .background(DarkEmeraldBg)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Customer Header Card
+            // Customer Hero Card
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
+                border = BorderStroke(1.dp, DarkEmeraldBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(22.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(72.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFDCFCE7)),
+                            .background(DarkEmeraldElevated)
+                            .border(1.5.dp, WhatsAppGreen, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         val initial = lead.effectiveName.firstOrNull()?.uppercase() ?: "C"
                         Text(
                             text = initial,
-                            color = WhatsAppTeal,
-                            fontSize = 26.sp,
+                            color = WhatsAppGreen,
+                            fontSize = 30.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
                         text = lead.effectiveName,
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = TextLightPrimary
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = lead.phoneNumber,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextSecondary
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = WhatsAppGreen
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -232,26 +245,28 @@ fun LeadDetailsScreen(
                 Button(
                     onClick = onWhatsAppClick,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
+                        .weight(1.3f)
+                        .height(46.dp)
                         .testTag("details_button_whatsapp"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF25D366),
-                        contentColor = Color.White
+                        containerColor = WhatsAppGreen,
+                        contentColor = Color(0xFF071C17)
                     ),
                     contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
+                        tint = Color(0xFF071C17),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.whatsapp_action),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF071C17)
                     )
                 }
 
@@ -259,57 +274,61 @@ fun LeadDetailsScreen(
                     onClick = onCallClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(46.dp)
                         .testTag("details_button_call"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = WhatsAppTeal,
-                        contentColor = Color.White
+                        containerColor = DarkEmeraldElevated,
+                        contentColor = WhatsAppTealAccent
                     ),
+                    border = BorderStroke(1.dp, DarkEmeraldBorderLight),
                     contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Call,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
+                        tint = WhatsAppTealAccent
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.call_action),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = WhatsAppTealAccent
                     )
                 }
 
                 OutlinedButton(
                     onClick = { showStatusDialog = true },
                     modifier = Modifier
-                        .height(44.dp)
+                        .height(46.dp)
                         .testTag("details_button_change_status"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, DarkEmeraldBorder),
                     contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SwapHoriz,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = WhatsAppTeal
+                        tint = WhatsAppGreen
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.status_label),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = WhatsAppTeal
+                        color = TextLightPrimary
                     )
                 }
             }
 
             // Notes Card
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
+                border = BorderStroke(1.dp, DarkEmeraldBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -326,7 +345,7 @@ fun LeadDetailsScreen(
                             Icon(
                                 imageVector = Icons.Default.Notes,
                                 contentDescription = null,
-                                tint = WhatsAppTeal,
+                                tint = WhatsAppGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -334,7 +353,7 @@ fun LeadDetailsScreen(
                                 text = stringResource(R.string.notes_label),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = TextLightPrimary
                             )
                         }
 
@@ -344,7 +363,7 @@ fun LeadDetailsScreen(
                         ) {
                             Text(
                                 text = if (lead.notes.isBlank()) stringResource(R.string.add_note) else stringResource(R.string.edit_note),
-                                color = WhatsAppTeal,
+                                color = WhatsAppGreen,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -357,13 +376,13 @@ fun LeadDetailsScreen(
                         Text(
                             text = stringResource(R.string.notes_hint),
                             fontSize = 13.sp,
-                            color = TextMuted
+                            color = TextLightMuted
                         )
                     } else {
                         Text(
                             text = lead.notes,
                             fontSize = 14.sp,
-                            color = TextPrimary,
+                            color = TextLightPrimary,
                             lineHeight = 20.sp
                         )
                     }
@@ -372,9 +391,9 @@ fun LeadDetailsScreen(
 
             // Tags Card
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
+                border = BorderStroke(1.dp, DarkEmeraldBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -391,7 +410,7 @@ fun LeadDetailsScreen(
                             Icon(
                                 imageVector = Icons.Default.Tag,
                                 contentDescription = null,
-                                tint = WhatsAppTeal,
+                                tint = WhatsAppGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -399,7 +418,7 @@ fun LeadDetailsScreen(
                                 text = stringResource(R.string.tags_label),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = TextLightPrimary
                             )
                         }
 
@@ -410,13 +429,13 @@ fun LeadDetailsScreen(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = WhatsAppTeal,
+                                tint = WhatsAppGreen,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.add_tag),
-                                color = WhatsAppTeal,
+                                color = WhatsAppGreen,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -429,7 +448,7 @@ fun LeadDetailsScreen(
                         Text(
                             text = stringResource(R.string.tags_hint),
                             fontSize = 13.sp,
-                            color = TextMuted
+                            color = TextLightMuted
                         )
                     } else {
                         FlowRow(
@@ -439,8 +458,8 @@ fun LeadDetailsScreen(
                             tags.forEach { tag ->
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFFF1F5F9),
-                                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                                    color = DarkEmeraldElevated,
+                                    border = BorderStroke(0.5.dp, DarkEmeraldBorderLight)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -450,13 +469,13 @@ fun LeadDetailsScreen(
                                             text = tag,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = TextPrimary
+                                            color = TextLightPrimary
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Remove tag $tag",
-                                            tint = TextMuted,
+                                            tint = TextLightMuted,
                                             modifier = Modifier
                                                 .size(14.dp)
                                                 .clickable {
@@ -474,9 +493,9 @@ fun LeadDetailsScreen(
 
             // Timestamps Card
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
+                border = BorderStroke(1.dp, DarkEmeraldBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -489,7 +508,7 @@ fun LeadDetailsScreen(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = WhatsAppTeal,
+                            tint = WhatsAppGreen,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -497,7 +516,7 @@ fun LeadDetailsScreen(
                             text = "السجل الزمني",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = TextLightPrimary
                         )
                     }
 
@@ -586,13 +605,13 @@ private fun TimestampRow(label: String, value: String) {
         Text(
             text = label,
             fontSize = 13.sp,
-            color = TextSecondary
+            color = TextLightMuted
         )
         Text(
             text = value,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = TextPrimary
+            color = TextLightPrimary
         )
     }
 }

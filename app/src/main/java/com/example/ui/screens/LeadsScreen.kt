@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,12 +24,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -36,8 +36,8 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,11 +64,29 @@ import com.example.data.model.SortOrder
 import com.example.ui.components.CrmLeadCard
 import com.example.ui.dialogs.AddLeadDialog
 import com.example.ui.dialogs.ChangeStatusDialog
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppTeal
+import com.example.ui.theme.CrmBackground
+import com.example.ui.theme.CrmBorder
+import com.example.ui.theme.CrmCardSurface
+import com.example.ui.theme.CrmHeader
+import com.example.ui.theme.CrmPaleEmerald
+import com.example.ui.theme.CrmPrimary
+import com.example.ui.theme.CrmTextMuted
+import com.example.ui.theme.CrmTextPrimary
+import com.example.ui.theme.CrmTextSecondary
 
+/**
+ * LeadsScreen - Section 4 Strict Specification
+ * 1. Compact emerald app bar:
+ *    - Title: "العملاء"
+ *    - Subtitle: "إدارة العملاء المحتملين من واتساب"
+ *    - Search & Filter action
+ * 2. Below header:
+ *    - White search field with visible #E3E9EF border
+ *    - Compact horizontal row of rounded filter chips: "الكل", "جديد", "متابعة", "مهتم"
+ *    - Small result count
+ * 3. Separate white rounded customer cards with subtle border
+ * 4. Floating emerald action button for adding leads
+ */
 @Composable
 fun LeadsScreen(
     leads: List<LeadEntity>,
@@ -93,13 +111,12 @@ fun LeadsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var leadToChangeStatus by remember { mutableStateOf<LeadEntity?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
-    var showFilterMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = WhatsAppTeal,
+                containerColor = CrmPrimary,
                 contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier.testTag("fab_add_lead")
@@ -107,87 +124,84 @@ fun LeadsScreen(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(R.string.add_lead),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
         },
+        containerColor = CrmBackground,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
+                .background(CrmBackground)
         ) {
-            // Search Bar & Sort Button
+            // Compact in-screen header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("search_leads_input"),
-                    placeholder = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "العملاء",
+                        color = CrmTextPrimary,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(CrmPaleEmerald)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
                         Text(
-                            text = stringResource(R.string.search_leads_hint),
-                            fontSize = 13.sp,
-                            color = TextMuted
+                            text = "$totalCount",
+                            color = CrmPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = { onSearchChange("") },
-                                modifier = Modifier.testTag("button_clear_search")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear search",
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    }
+                }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Sort Dropdown Button
+                // Sort Action Button
                 Box {
-                    IconButton(
+                    androidx.compose.material3.OutlinedButton(
                         onClick = { showSortMenu = true },
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
-                            .testTag("button_sort_menu")
+                            .height(34.dp)
+                            .testTag("button_sort_menu"),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, CrmBorder),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            containerColor = CrmCardSurface,
+                            contentColor = CrmTextPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Sort,
                             contentDescription = "Sort",
-                            tint = WhatsAppTeal
+                            tint = CrmPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(selectedSortOrder.titleRes),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = CrmTextPrimary
                         )
                     }
 
                     DropdownMenu(
                         expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false }
+                        onDismissRequest = { showSortMenu = false },
+                        modifier = Modifier.background(CrmCardSurface)
                     ) {
                         SortOrder.entries.forEach { sort ->
                             DropdownMenuItem(
@@ -195,7 +209,7 @@ fun LeadsScreen(
                                     Text(
                                         text = stringResource(sort.titleRes),
                                         fontWeight = if (selectedSortOrder == sort) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (selectedSortOrder == sort) WhatsAppTeal else TextPrimary
+                                        color = if (selectedSortOrder == sort) CrmPrimary else CrmTextPrimary
                                     )
                                 },
                                 onClick = {
@@ -208,35 +222,109 @@ fun LeadsScreen(
                 }
             }
 
-            // Filter Chips Scrollable Row (Status filters)
+            // 1. White search field with visible border #E3E9EF
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("search_leads_input"),
+                    placeholder = {
+                        Text(
+                            text = "بحث بالاسم أو الرقم...",
+                            fontSize = 13.sp,
+                            color = CrmTextSecondary
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = CrmPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onSearchChange("") },
+                                modifier = Modifier.testTag("button_clear_search")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = CrmTextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = CrmTextPrimary,
+                        unfocusedTextColor = CrmTextPrimary,
+                        focusedBorderColor = CrmPrimary,
+                        unfocusedBorderColor = CrmBorder,
+                        focusedContainerColor = CrmCardSurface,
+                        unfocusedContainerColor = CrmCardSurface
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. Compact horizontal row of rounded filter chips: "الكل", "جديد", "متابعة", "مهتم"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // "All Statuses" Chip
+                // "الكل" Chip
+                val isAllSelected = selectedStatus == null
                 FilterChip(
-                    selected = selectedStatus == null,
+                    selected = isAllSelected,
                     onClick = { onStatusFilterChange(null) },
                     label = {
                         Text(
-                            text = "${stringResource(R.string.filter_all)} ($totalCount)",
+                            text = "الكل ($totalCount)",
                             fontSize = 12.sp,
-                            fontWeight = if (selectedStatus == null) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = WhatsAppTeal,
+                        containerColor = Color(0xFFF1F5F9),
+                        labelColor = CrmTextPrimary,
+                        selectedContainerColor = CrmPrimary,
                         selectedLabelColor = Color.White
                     ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isAllSelected) CrmPrimary else CrmBorder
+                    ),
+                    shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.testTag("filter_chip_status_all")
                 )
 
-                // Individual Status Chips
-                LeadStatus.entries.forEach { status ->
+                // Mandatory status chips: جديد, متابعة, مهتم
+                val keyStatuses = listOf(
+                    LeadStatus.NEW to "جديد",
+                    LeadStatus.FOLLOW_UP to "متابعة",
+                    LeadStatus.INTERESTED to "مهتم",
+                    LeadStatus.SOLD to "تم البيع",
+                    LeadStatus.CONTACTED to "تم التواصل"
+                )
+
+                keyStatuses.forEach { (status, label) ->
                     val isSelected = selectedStatus == status
                     FilterChip(
                         selected = isSelected,
@@ -245,147 +333,118 @@ fun LeadsScreen(
                         },
                         label = {
                             Text(
-                                text = stringResource(status.titleRes),
+                                text = label,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(status.badgeTextColor),
+                            containerColor = Color(0xFFF1F5F9),
+                            labelColor = CrmTextPrimary,
+                            selectedContainerColor = CrmPrimary,
                             selectedLabelColor = Color.White
                         ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) CrmPrimary else CrmBorder
+                        ),
+                        shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.testTag("filter_chip_status_${status.name.lowercase()}")
                     )
                 }
             }
 
-            // Secondary Filter Row: Source & Date
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. Small result count row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .padding(horizontal = 20.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Date filter dropdown or chips
-                DateFilter.entries.forEach { dateFilter ->
-                    val isSelected = selectedDateFilter == dateFilter
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onDateFilterChange(dateFilter) },
-                        label = {
-                            Text(
-                                text = stringResource(dateFilter.titleRes),
-                                fontSize = 11.sp
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF0F766E),
-                            selectedLabelColor = Color.White
-                        ),
-                        modifier = Modifier.testTag("filter_chip_date_${dateFilter.name.lowercase()}")
-                    )
-                }
+                Text(
+                    text = "عرض ${leads.size} عميل",
+                    color = CrmTextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
 
-                // Sources chips
-                LeadSource.entries.forEach { source ->
-                    val isSelected = selectedSource == source
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            if (isSelected) onSourceFilterChange(null) else onSourceFilterChange(source)
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(source.titleRes),
-                                fontSize = 11.sp
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF4338CA),
-                            selectedLabelColor = Color.White
-                        ),
-                        modifier = Modifier.testTag("filter_chip_source_${source.name.lowercase()}")
+                if (searchQuery.isNotEmpty() || selectedStatus != null) {
+                    Text(
+                        text = "فلترة نشطة",
+                        color = CrmPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Leads List or Empty State
+            // 4. Customer List or Empty State
             if (leads.isEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = CrmCardSurface),
+                        border = BorderStroke(1.dp, CrmBorder),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Group,
-                            contentDescription = null,
-                            tint = Color(0xFFCBD5E1),
-                            modifier = Modifier.size(72.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = if (searchQuery.isNotEmpty() || selectedStatus != null || selectedSource != null || selectedDateFilter != DateFilter.ALL) {
-                                "لا توجد نتائج مطابقة للبحث"
-                            } else {
-                                stringResource(R.string.empty_leads_title)
-                            },
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = if (searchQuery.isNotEmpty() || selectedStatus != null || selectedSource != null || selectedDateFilter != DateFilter.ALL) {
-                                "جرّب تغيير كلمات البحث أو إعادة ضبط الفلاتر"
-                            } else {
-                                stringResource(R.string.empty_leads_desc)
-                            },
-                            fontSize = 13.sp,
-                            color = TextMuted,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-
-                        if (searchQuery.isNotEmpty() || selectedStatus != null || selectedSource != null || selectedDateFilter != DateFilter.ALL) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    onSearchChange("")
-                                    onStatusFilterChange(null)
-                                    onSourceFilterChange(null)
-                                    onDateFilterChange(DateFilter.ALL)
-                                },
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("إعادة ضبط الفلاتر")
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Button(
-                                onClick = { showAddDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
-                                shape = RoundedCornerShape(10.dp)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(CrmPaleEmerald),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
+                                    imageVector = Icons.Default.Group,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    tint = CrmPrimary,
+                                    modifier = Modifier.size(28.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(stringResource(R.string.add_lead))
                             }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = if (searchQuery.isNotEmpty() || selectedStatus != null) {
+                                    "لا توجد نتائج مطابقة للبحث"
+                                } else {
+                                    "قائمة العملاء فارغة حتى الآن"
+                                },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CrmTextPrimary
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = if (searchQuery.isNotEmpty() || selectedStatus != null) {
+                                    "جرّب تغيير كلمات البحث أو إعادة ضبط الفلتر"
+                                } else {
+                                    "سيتم إدراج العملاء تلقائياً عند استلام إشعارات واتساب أو عبر الإضافة اليدوية."
+                                },
+                                fontSize = 12.sp,
+                                color = CrmTextSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
                         }
                     }
                 }
@@ -393,9 +452,9 @@ fun LeadsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .testTag("leads_list"),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     items(
                         items = leads,
@@ -414,24 +473,25 @@ fun LeadsScreen(
         }
     }
 
+    // Add Lead Dialog
     if (showAddDialog) {
         AddLeadDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { phone, name, source, status, notes, tags ->
-                showAddDialog = false
                 onCreateLead(phone, name, source, status, notes, tags)
+                showAddDialog = false
             }
         )
     }
 
+    // Change Status Dialog
     leadToChangeStatus?.let { lead ->
         ChangeStatusDialog(
             currentStatus = LeadStatus.fromString(lead.status),
             onDismiss = { leadToChangeStatus = null },
             onSelectStatus = { newStatus ->
-                val id = lead.id
+                onUpdateStatus(lead.id, newStatus)
                 leadToChangeStatus = null
-                onUpdateStatus(id, newStatus)
             }
         )
     }

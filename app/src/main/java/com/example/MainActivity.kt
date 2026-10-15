@@ -9,15 +9,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
@@ -31,6 +38,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -186,6 +194,7 @@ fun MainScreen(
     val userMessage by viewModel.userMessage.collectAsStateWithLifecycle(null)
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle(emptyList())
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle(false)
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle(false)
     val licenseStatus by viewModel.licenseStatus.collectAsStateWithLifecycle(LicenseStatus.Active)
     val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
 
@@ -281,6 +290,7 @@ fun MainScreen(
                 onExportClick = { exportHistory() },
                 onWhatsAppClick = { WhatsAppHelper.openWhatsApp(context) },
                 onSettingsClick = { currentTab = AppTab.SETTINGS },
+                onSearchClick = { currentTab = AppTab.LEADS },
                 onLoginClick = if (!isAuthenticated) {
                     {
                         loginDialogReason = context.getString(R.string.auth_login_reason_general)
@@ -293,76 +303,110 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                modifier = Modifier.navigationBarsPadding(),
-                containerColor = Color.White,
-                tonalElevation = 6.dp
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars),
+                color = com.example.ui.theme.CrmCardSurface,
+                shadowElevation = 4.dp
             ) {
-                AppTab.entries.forEach { tab ->
-                    val isSelected = !showQueueScreen && currentTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            showQueueScreen = false
-                            currentTab = tab
-                            if (tab != AppTab.LEADS) {
-                                viewModel.selectLead(null)
-                            }
-                        },
-                        icon = {
-                            val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
-                            if (badgeCount > 0) {
-                                BadgedBox(badge = { Badge { Text("$badgeCount") } }) {
-                                    Icon(
-                                        imageVector = when (tab) {
-                                            AppTab.DASHBOARD -> Icons.Default.Dashboard
-                                            AppTab.LEADS -> Icons.Default.People
-                                            AppTab.HISTORY -> Icons.Default.History
-                                            AppTab.SETTINGS -> Icons.Default.Settings
-                                        },
-                                        contentDescription = tab.title
+                Column {
+                    HorizontalDivider(color = com.example.ui.theme.CrmBorder, thickness = 1.dp)
+                    NavigationBar(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp),
+                        containerColor = com.example.ui.theme.CrmCardSurface,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0)
+                    ) {
+                        AppTab.entries.forEach { tab ->
+                            val isSelected = !showQueueScreen && currentTab == tab
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = {
+                                    showQueueScreen = false
+                                    currentTab = tab
+                                    if (tab != AppTab.LEADS) {
+                                        viewModel.selectLead(null)
+                                    }
+                                },
+                                icon = {
+                                    val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
+                                    if (badgeCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(
+                                                    containerColor = com.example.ui.theme.CrmPrimary,
+                                                    contentColor = Color.White
+                                                ) {
+                                                    Text("$badgeCount", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = when (tab) {
+                                                    AppTab.DASHBOARD -> Icons.Default.Dashboard
+                                                    AppTab.LEADS -> Icons.Default.People
+                                                    AppTab.HISTORY -> Icons.Default.History
+                                                    AppTab.SETTINGS -> Icons.Default.Settings
+                                                },
+                                                contentDescription = tab.title,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    } else {
+                                        Icon(
+                                            imageVector = when (tab) {
+                                                AppTab.DASHBOARD -> Icons.Default.Dashboard
+                                                AppTab.LEADS -> Icons.Default.People
+                                                AppTab.HISTORY -> Icons.Default.History
+                                                AppTab.SETTINGS -> Icons.Default.Settings
+                                            },
+                                            contentDescription = tab.title,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.title,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 11.sp
                                     )
-                                }
-                            } else {
-                                Icon(
-                                    imageVector = when (tab) {
-                                        AppTab.DASHBOARD -> Icons.Default.Dashboard
-                                        AppTab.LEADS -> Icons.Default.People
-                                        AppTab.HISTORY -> Icons.Default.History
-                                        AppTab.SETTINGS -> Icons.Default.Settings
-                                    },
-                                    contentDescription = tab.title
-                                )
-                            }
-                        },
-                        label = { Text(tab.title) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = WhatsAppTeal,
-                            selectedTextColor = WhatsAppTeal,
-                            indicatorColor = Color(0xFFDCFCE7),
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted
-                        ),
-                        modifier = Modifier.testTag("nav_tab_${tab.name.lowercase()}")
-                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = com.example.ui.theme.CrmPrimary,
+                                    selectedTextColor = com.example.ui.theme.CrmPrimary,
+                                    indicatorColor = com.example.ui.theme.CrmSelectedNavBg,
+                                    unselectedIconColor = com.example.ui.theme.CrmTextSecondary,
+                                    unselectedTextColor = com.example.ui.theme.CrmTextSecondary
+                                ),
+                                modifier = Modifier.testTag("nav_tab_${tab.name.lowercase()}")
+                            )
+                        }
+                    }
                 }
             }
-        }
+        },
+        containerColor = com.example.ui.theme.CrmBackground
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(com.example.ui.theme.CrmBackground)
         ) {
             if (!licenseStatus.isSaveAllowed && licenseStatus !is LicenseStatus.NotAuthenticated) {
-                val (bgColor, textColor) = when (licenseStatus) {
+                val (bgColor, textColor, borderColor) = when (licenseStatus) {
                     is LicenseStatus.PendingActivation, is LicenseStatus.DeviceLimitExceeded ->
-                        Pair(Color(0xFFFEF3C7), Color(0xFFB45309))
+                        Triple(Color(0xFFFEF3C7), Color(0xFF92400E), Color(0xFFFDE68A))
                     else ->
-                        Pair(Color(0xFFFEE2E2), Color(0xFFB91C1C))
+                        Triple(Color(0xFFFEE2E2), Color(0xFF991B1B), Color(0xFFFECACA))
                 }
                 Surface(
                     color = bgColor,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("license_status_banner")
@@ -438,6 +482,9 @@ fun MainScreen(
                             inQueue = queueCount,
                             stats = captureStats,
                             settings = settings,
+                            recentHistory = historyList,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { viewModel.refreshDashboardData() },
                             isNotificationListenerActive = isListenerActive,
                             onOpenNotificationSettings = {
                                 context.startActivity(PermissionHelper.getNotificationListenerSettingsIntent())

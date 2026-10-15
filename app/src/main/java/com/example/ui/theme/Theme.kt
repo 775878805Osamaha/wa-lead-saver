@@ -6,23 +6,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = WhatsAppTeal,
+    primary = CrmPrimary,
     onPrimary = Color.White,
-    primaryContainer = WhatsAppTealLight,
-    onPrimaryContainer = Color.White,
-    secondary = WhatsAppGreen,
+    primaryContainer = CrmSelectedNavBg,
+    onPrimaryContainer = CrmPrimary,
+    secondary = CrmHeader,
     onSecondary = Color.White,
-    tertiary = BadgeNewLeadBg,
-    onTertiary = BadgeNewLeadText,
-    background = AppBackground,
-    onBackground = TextPrimary,
-    surface = CardBackground,
-    onSurface = TextPrimary,
-    surfaceVariant = Color(0xFFF1F5F9),
-    onSurfaceVariant = TextSecondary,
-    error = RemoveRed,
+    secondaryContainer = CrmSelectedNavBg,
+    onSecondaryContainer = CrmHeader,
+    tertiary = CrmSuccess,
+    onTertiary = Color.White,
+    background = CrmBackground,
+    onBackground = CrmTextPrimary,
+    surface = CrmCardSurface,
+    onSurface = CrmTextPrimary,
+    surfaceVariant = CrmCardElevated,
+    onSurfaceVariant = CrmTextSecondary,
+    outline = CrmBorder,
+    outlineVariant = CrmBorderSubtle,
+    error = CrmDanger,
     onError = Color.White,
-    outline = CardBorder
+    errorContainer = CrmDangerBg,
+    onErrorContainer = Color(0xFF991B1B)
 )
 
 @Composable

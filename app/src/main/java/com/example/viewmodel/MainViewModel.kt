@@ -184,10 +184,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val licenseStatus: StateFlow<com.example.data.auth.LicenseStatus> = repository.licenseManager.currentStatus
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
         refreshStatuses()
         viewModelScope.launch {
             repository.checkLicense()
+        }
+    }
+
+    fun refreshDashboardData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                refreshStatuses()
+                repository.runBenchmarkEvaluation()
+                kotlinx.coroutines.delay(650L)
+                _userMessage.value = "تمت مزامنة وتحديث إحصائيات لوحة التحكم بنجاح"
+            } catch (e: Exception) {
+                _userMessage.value = "فشلت المزامنة: ${e.localizedMessage ?: "خطأ غير متوقع"}"
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 

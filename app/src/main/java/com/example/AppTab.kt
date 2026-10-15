@@ -1,8 +1,10 @@
 package com.example
 
-enum class AppTab(val title: String) {
-    DASHBOARD("Dashboard"),
-    LEADS("Leads"),
-    HISTORY("History"),
-    SETTINGS("Settings")
+enum class AppTab(val titleAr: String, val titleEn: String) {
+    DASHBOARD("الرئيسية", "Dashboard"),
+    LEADS("العملاء", "Leads"),
+    HISTORY("السجل", "History"),
+    SETTINGS("الإعدادات", "Settings");
+
+    val title: String get() = titleAr
 }
