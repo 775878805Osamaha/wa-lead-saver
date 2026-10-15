@@ -46,6 +46,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    private val _recoverySuccessMessage = MutableStateFlow<String?>(null)
+    val recoverySuccessMessage: StateFlow<String?> = _recoverySuccessMessage.asStateFlow()
+
+    private val _recoveryErrorMessage = MutableStateFlow<String?>(null)
+    val recoveryErrorMessage: StateFlow<String?> = _recoveryErrorMessage.asStateFlow()
+
     // Admin Customer Items List (combining public.profiles & public.accounts)
     private val _customersList = MutableStateFlow<List<AdminCustomerItem>>(emptyList())
     val rawCustomersList: StateFlow<List<AdminCustomerItem>> = _customersList.asStateFlow()
@@ -210,6 +216,35 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun sendPasswordRecoveryEmail(email: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _recoveryErrorMessage.value = null
+            _recoverySuccessMessage.value = null
+            try {
+                val res = authRepository.sendPasswordResetEmail(email)
+                if (res.isSuccess) {
+                    val msg = "تم إرسال رابط استعادة كلمة المرور إلى $email بنجاح. يُرجى مراجعة بريدك الوارد."
+                    _recoverySuccessMessage.value = msg
+                    _successMessage.value = msg
+                    onSuccess()
+                } else {
+                    val err = res.exceptionOrNull()?.message ?: "فشل إرسال رابط الاستعادة"
+                    _recoveryErrorMessage.value = err
+                }
+            } catch (e: Exception) {
+                _recoveryErrorMessage.value = e.message ?: "حدث خطأ أثناء طلب استعادة كلمة المرور"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun clearRecoveryMessages() {
+        _recoverySuccessMessage.value = null
+        _recoveryErrorMessage.value = null
+    }
+
     fun logout() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -240,6 +275,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _unconfirmedEmail.value = null
         _registrationSuccessMessage.value = null
         _registrationErrorMessage.value = null
+        _recoverySuccessMessage.value = null
+        _recoveryErrorMessage.value = null
     }
 
     // ==========================================

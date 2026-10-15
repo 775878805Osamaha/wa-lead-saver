@@ -90,8 +90,11 @@ fun LoginScreen(
     val unconfirmedEmail by authViewModel.unconfirmedEmail.collectAsStateWithLifecycle()
     val registrationSuccessMessage by authViewModel.registrationSuccessMessage.collectAsStateWithLifecycle()
     val registrationErrorMessage by authViewModel.registrationErrorMessage.collectAsStateWithLifecycle()
+    val recoverySuccessMessage by authViewModel.recoverySuccessMessage.collectAsStateWithLifecycle()
+    val recoveryErrorMessage by authViewModel.recoveryErrorMessage.collectAsStateWithLifecycle()
 
     var isRegisterMode by remember { mutableStateOf(false) }
+    var isRecoveryMode by remember { mutableStateOf(false) }
 
     // Login state
     var accountOrEmail by remember { mutableStateOf("") }
@@ -99,6 +102,10 @@ fun LoginScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
     var loginMethod by remember { mutableStateOf(LoginMethod.ACCOUNT_NUMBER) }
+
+    // Recovery state
+    var recoveryEmail by remember { mutableStateOf("") }
+    var recoveryEmailSent by remember { mutableStateOf(false) }
 
     // Register state
     var regFullName by remember { mutableStateOf("") }
@@ -109,6 +116,12 @@ fun LoginScreen(
     var regValidationErr by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    androidx.activity.compose.BackHandler(enabled = isRecoveryMode) {
+        isRecoveryMode = false
+        recoveryEmailSent = false
+        authViewModel.clearRecoveryMessages()
+    }
 
     Surface(
         modifier = Modifier
@@ -236,7 +249,11 @@ fun LoginScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (isRegisterMode) stringResource(R.string.auth_register_title) else stringResource(R.string.auth_login_title),
+                            text = when {
+                                isRecoveryMode -> stringResource(R.string.auth_recovery_title)
+                                isRegisterMode -> stringResource(R.string.auth_register_title)
+                                else -> stringResource(R.string.auth_login_title)
+                            },
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1E293B),
@@ -246,7 +263,169 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        if (isRegisterMode) {
+                        if (isRecoveryMode) {
+                            // Dedicated "استعادة كلمة المرور" Form View
+                            Text(
+                                text = stringResource(R.string.auth_recovery_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF64748B),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                textAlign = TextAlign.Start
+                            )
+
+                            // Email input for password recovery
+                            OutlinedTextField(
+                                value = recoveryEmail,
+                                onValueChange = {
+                                    recoveryEmail = it
+                                    if (recoveryErrorMessage != null) {
+                                        authViewModel.clearRecoveryMessages()
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.auth_email_label)) },
+                                placeholder = { Text(stringResource(R.string.auth_email_placeholder)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = WhatsAppTeal)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        if (recoveryEmail.isNotBlank()) {
+                                            authViewModel.sendPasswordRecoveryEmail(recoveryEmail) {
+                                                recoveryEmailSent = true
+                                            }
+                                        }
+                                    }
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = WhatsAppTeal,
+                                    focusedLabelColor = WhatsAppTeal
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("recovery_email_input")
+                            )
+
+                            // Error message banner
+                            if (!recoveryErrorMessage.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("recovery_error_card"),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
+                                ) {
+                                    Text(
+                                        text = recoveryErrorMessage!!,
+                                        color = Color(0xFFB91C1C),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
+                            }
+
+                            // Success message banner
+                            if (!recoverySuccessMessage.isNullOrBlank() || recoveryEmailSent) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().testTag("recovery_success_card"),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF15803D),
+                                            modifier = Modifier.size(20.dp).padding(top = 2.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.auth_recovery_email_sent_title),
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF15803D),
+                                                style = MaterialTheme.typography.titleSmall
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = recoverySuccessMessage ?: stringResource(R.string.auth_recovery_email_sent_desc),
+                                                color = Color(0xFF166534),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // Send Recovery Link Button: "إرسال رابط الاستعادة"
+                            Button(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    authViewModel.sendPasswordRecoveryEmail(recoveryEmail) {
+                                        recoveryEmailSent = true
+                                    }
+                                },
+                                enabled = !isLoading && recoveryEmail.isNotBlank(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("send_recovery_link_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppGreen,
+                                    disabledContainerColor = Color(0xFFCBD5E1)
+                                )
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.auth_recovery_send_button),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Back-to-login action
+                            TextButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    isRecoveryMode = false
+                                    recoveryEmailSent = false
+                                    authViewModel.clearRecoveryMessages()
+                                },
+                                modifier = Modifier.testTag("recovery_back_to_login_btn")
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.auth_recovery_back_to_login),
+                                    color = WhatsAppTeal,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        } else if (isRegisterMode) {
                             // Register Form Fields
                             OutlinedTextField(
                                 value = regFullName,
@@ -503,7 +682,36 @@ fun LoginScreen(
                                     .testTag("password_input")
                             )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            // "نسيت كلمة المرور؟" clickable Arabic text link
+                            // Placed directly below password field and above remember-me checkbox
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp, bottom = 4.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        keyboardController?.hide()
+                                        // Prefill recovery email if user already typed an email
+                                        if (loginMethod == LoginMethod.EMAIL && accountOrEmail.contains("@")) {
+                                            recoveryEmail = accountOrEmail.trim()
+                                        }
+                                        authViewModel.clearMessages()
+                                        isRecoveryMode = true
+                                    },
+                                    modifier = Modifier.testTag("forgot_password_link")
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.auth_forgot_password),
+                                        color = WhatsAppTeal,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
 
                             // Remember Me Checkbox
                             Row(
@@ -635,46 +843,47 @@ fun LoginScreen(
                             }
                         }
 
-                        // Account status messages if blocked/expired/device limit
-                        when (val state = authState) {
-                            is AuthState.AccountInactive -> {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                StatusAlertCard(
-                                    title = stringResource(R.string.auth_account_inactive_title),
-                                    message = state.message,
-                                    bgColor = Color(0xFFFEF3C7),
-                                    textColor = Color(0xFFB45309)
-                                )
+                        if (!isRecoveryMode) {
+                            // Account status messages if blocked/expired/device limit
+                            when (val state = authState) {
+                                is AuthState.AccountInactive -> {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    StatusAlertCard(
+                                        title = stringResource(R.string.auth_account_inactive_title),
+                                        message = state.message,
+                                        bgColor = Color(0xFFFEF3C7),
+                                        textColor = Color(0xFFB45309)
+                                    )
+                                }
+                                is AuthState.AccountExpired -> {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    StatusAlertCard(
+                                        title = stringResource(R.string.auth_account_expired_title),
+                                        message = state.message,
+                                        bgColor = Color(0xFFFEE2E2),
+                                        textColor = Color(0xFFB91C1C)
+                                    )
+                                }
+                                is AuthState.DeviceLimitExceeded -> {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    StatusAlertCard(
+                                        title = stringResource(R.string.auth_device_limit_title),
+                                        message = state.message,
+                                        bgColor = Color(0xFFFEF3C7),
+                                        textColor = Color(0xFFB45309)
+                                    )
+                                }
+                                else -> {}
                             }
-                            is AuthState.AccountExpired -> {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                StatusAlertCard(
-                                    title = stringResource(R.string.auth_account_expired_title),
-                                    message = state.message,
-                                    bgColor = Color(0xFFFEE2E2),
-                                    textColor = Color(0xFFB91C1C)
-                                )
-                            }
-                            is AuthState.DeviceLimitExceeded -> {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                StatusAlertCard(
-                                    title = stringResource(R.string.auth_device_limit_title),
-                                    message = state.message,
-                                    bgColor = Color(0xFFFEF3C7),
-                                    textColor = Color(0xFFB45309)
-                                )
-                            }
-                            else -> {}
-                        }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
-                        if (isRegisterMode) {
-                            // Register Button
-                            Button(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    regValidationErr = null
+                            if (isRegisterMode) {
+                                // Register Button
+                                Button(
+                                    onClick = {
+                                        keyboardController?.hide()
+                                        regValidationErr = null
                                     if (regPassword != regConfirmPassword) {
                                         regValidationErr = "كلمتا المرور غير متطابقتين"
                                         return@Button
@@ -771,6 +980,7 @@ fun LoginScreen(
                                 fontSize = 14.sp
                             )
                         }
+                    }
                     }
                 }
             }

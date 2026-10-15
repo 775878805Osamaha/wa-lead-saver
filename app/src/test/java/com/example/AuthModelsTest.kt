@@ -248,4 +248,41 @@ class AuthModelsTest {
         )
         assertEquals("OMX-100006", adminRepo.generateNextAccountNumber(existing))
     }
+
+    @Test
+    fun testPasswordRecoveryEmailValidation() = kotlinx.coroutines.runBlocking {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val authRepo = AuthRepository(context)
+
+        // Invalid emails should fail immediately with validation error
+        val emptyResult = authRepo.sendPasswordResetEmail("")
+        assertTrue(emptyResult.isFailure)
+        assertTrue(emptyResult.exceptionOrNull()?.message?.contains("صالح") == true)
+
+        val invalidResult = authRepo.sendPasswordResetEmail("not-an-email")
+        assertTrue(invalidResult.isFailure)
+        assertTrue(invalidResult.exceptionOrNull()?.message?.contains("صالح") == true)
+
+        val missingDomain = authRepo.sendPasswordResetEmail("user@")
+        assertTrue(missingDomain.isFailure)
+        assertTrue(missingDomain.exceptionOrNull()?.message?.contains("صالح") == true)
+    }
+
+    @Test
+    fun testAuthViewModelPasswordRecoveryState() {
+        val app = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+        val authViewModel = com.example.viewmodel.AuthViewModel(app)
+
+        authViewModel.clearRecoveryMessages()
+        assertEquals(null, authViewModel.recoveryErrorMessage.value)
+        assertEquals(null, authViewModel.recoverySuccessMessage.value)
+
+        // Invalid email via ViewModel
+        authViewModel.sendPasswordRecoveryEmail("invalid-email")
+        assertNotNull(authViewModel.recoveryErrorMessage.value)
+        assertTrue(authViewModel.recoveryErrorMessage.value!!.contains("صالح"))
+
+        authViewModel.clearRecoveryMessages()
+        assertEquals(null, authViewModel.recoveryErrorMessage.value)
+    }
 }

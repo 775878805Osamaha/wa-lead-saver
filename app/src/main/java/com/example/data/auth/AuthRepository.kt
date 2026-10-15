@@ -299,6 +299,14 @@ class AuthRepository(
         return supabaseClient.resendConfirmationEmail(trimmed)
     }
 
+    suspend fun sendPasswordResetEmail(email: String, redirectTo: String = "waleadsaver://reset-password"): Result<Boolean> {
+        val trimmed = email.trim()
+        if (trimmed.isBlank() || !trimmed.contains("@") || !trimmed.contains(".")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صالح"))
+        }
+        return supabaseClient.resetPasswordForEmail(trimmed, redirectTo)
+    }
+
     private suspend fun validateAccountState(profile: UserProfile, account: CustomerAccount?): AuthState {
         if (account == null) {
             val state = AuthState.AuthenticatedUser(profile, null)

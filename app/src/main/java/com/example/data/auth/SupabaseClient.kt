@@ -184,6 +184,67 @@ class SupabaseClient(private val context: Context) {
         }
     }
 
+    /**
+     * Sends password recovery email via Supabase Auth (/auth/v1/recover).
+     * Accepts an optional redirectTo parameter for deep linking or session recovery.
+     */
+    suspend fun resetPasswordForEmail(email: String, redirectTo: String = "waleadsaver://reset-password"): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val trimmedEmail = email.trim()
+            if (baseUrl.isBlank() || anonKey.isBlank()) {
+                return@withContext Result.failure(Exception("رابط خادم Supabase أو مفتاح الوصول العام غير مهيأ."))
+            }
+
+            val urlBuilder = StringBuilder("$baseUrl/auth/v1/recover")
+            if (redirectTo.isNotBlank()) {
+                urlBuilder.append("?redirect_to=").append(java.net.URLEncoder.encode(redirectTo, "UTF-8"))
+            }
+
+            val bodyJson = JSONObject().apply {
+                put("email", trimmedEmail)
+            }
+
+            android.util.Log.d("AuthDev", "resetPasswordForEmail: sending recovery request for $trimmedEmail")
+
+            val request = Request.Builder()
+                .url(urlBuilder.toString())
+                .addHeader("apikey", anonKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                val code = response.code
+                android.util.Log.d("AuthDev", "resetPasswordForEmail response: HTTP $code")
+
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val json = try { JSONObject(respStr) } catch (_: Exception) { null }
+                    val rawDesc = json?.optString("error_description")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("msg")?.takeIf { it.isNotBlank() }
+                        ?: ""
+
+                    val isRateLimit = code == 429 || rawDesc.contains("rate limit", ignoreCase = true)
+                    val errMsg = when {
+                        isRateLimit -> "تم تجاوز عدد المحاولات المسموح بها، يرجى المحاولة بعد قليل."
+                        rawDesc.contains("Email not found", ignoreCase = true) -> "البريد الإلكتروني غير مسجل في النظام."
+                        rawDesc.isNotBlank() -> rawDesc
+                        else -> parseErrorMessage(respStr, "فشل إرسال رابط استعادة كلمة المرور")
+                    }
+                    Result.failure(Exception(errMsg))
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthDev", "resetPasswordForEmail error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     suspend fun signUpUser(email: String, password: String, fullName: String = ""): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
             val baseUrl = getBaseUrl()

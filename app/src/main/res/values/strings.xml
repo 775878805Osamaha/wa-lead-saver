@@ -425,6 +425,13 @@
     <string name="auth_email_placeholder">e.g. admin@example.com</string>
     <string name="auth_password_label">Password</string>
     <string name="auth_remember_me">Remember login session</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_recovery_title">Password Recovery</string>
+    <string name="auth_recovery_subtitle">Enter your registered account email to receive a password recovery link</string>
+    <string name="auth_recovery_send_button">Send Recovery Link</string>
+    <string name="auth_recovery_back_to_login">Back to Sign In</string>
+    <string name="auth_recovery_email_sent_title">Recovery Email Sent</string>
+    <string name="auth_recovery_email_sent_desc">If an account with this email exists, a password reset link has been dispatched. Please check your inbox and spam folder.</string>
     <string name="auth_login_button">Log In</string>
     <string name="auth_logout">Log Out</string>
     <string name="auth_server_not_configured_error">Production server (SUPABASE_URL) was not configured during this build. Please set Secrets in GitHub Actions and rebuild.</string>
