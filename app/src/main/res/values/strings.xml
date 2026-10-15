@@ -432,6 +432,12 @@
     <string name="auth_recovery_back_to_login">Back to Sign In</string>
     <string name="auth_recovery_email_sent_title">Recovery Email Sent</string>
     <string name="auth_recovery_email_sent_desc">If an account with this email exists, a password reset link has been dispatched. Please check your inbox and spam folder.</string>
+    <string name="auth_reset_screen_title">Reset Password</string>
+    <string name="auth_reset_screen_subtitle">Set a secure new password for your WA Lead Saver account</string>
+    <string name="auth_new_password_label">New Password</string>
+    <string name="auth_confirm_new_password_label">Confirm New Password</string>
+    <string name="auth_save_new_password_btn">Save New Password</string>
+    <string name="auth_password_reset_success">Password has been updated successfully. Please sign in with your new credentials.</string>
     <string name="auth_login_button">Log In</string>
     <string name="auth_logout">Log Out</string>
     <string name="auth_server_not_configured_error">Production server (SUPABASE_URL) was not configured during this build. Please set Secrets in GitHub Actions and rebuild.</string>

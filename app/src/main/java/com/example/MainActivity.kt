@@ -91,11 +91,13 @@ import com.example.ui.screens.LeadDetailsScreen
 import com.example.ui.screens.LeadsScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.QueueScreen
+import com.example.ui.screens.ResetPasswordScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.WALeadSaverTheme
 import com.example.ui.theme.WhatsAppTeal
 import com.example.util.CsvExportHelper
+import com.example.util.DeepLinkHelper
 import com.example.util.PermissionHelper
 import com.example.util.WhatsAppHelper
 import com.example.viewmodel.AuthViewModel
@@ -104,15 +106,28 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
+    private var pendingIntentUri by mutableStateOf<android.net.Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingIntentUri = intent?.data
         enableEdgeToEdge()
         setContent {
             WALeadSaverTheme {
                 val viewModel: MainViewModel = viewModel()
                 val authViewModel: AuthViewModel = viewModel()
                 mainViewModel = viewModel
+
+                // Process initial or updated deep link intent
+                LaunchedEffect(pendingIntentUri) {
+                    val uri = pendingIntentUri
+                    if (uri != null) {
+                        val session = DeepLinkHelper.parseRecoverySession(uri)
+                        if (session != null && session.isValid) {
+                            authViewModel.setRecoverySession(session)
+                        }
+                    }
+                }
 
                 val lifecycleOwner = LocalLifecycleOwner.current
                 DisposableEffect(lifecycleOwner) {
@@ -128,9 +143,24 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val authState by authViewModel.authState.collectAsStateWithLifecycle()
+                val activeRecoverySession by authViewModel.activeRecoverySession.collectAsStateWithLifecycle()
                 var showAdminDashboard by remember { mutableStateOf(false) }
 
-                if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
+                // 1. Password Reset Flow via Deep Link
+                if (activeRecoverySession != null) {
+                    ResetPasswordScreen(
+                        authViewModel = authViewModel,
+                        recoverySession = activeRecoverySession,
+                        onResetComplete = {
+                            authViewModel.clearRecoverySession()
+                            pendingIntentUri = null
+                        },
+                        onCancel = {
+                            authViewModel.clearRecoverySession()
+                            pendingIntentUri = null
+                        }
+                    )
+                } else if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
                     AdminDashboardScreen(
                         authViewModel = authViewModel,
                         onLogout = {
@@ -147,6 +177,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingIntentUri = intent.data
     }
 }
 

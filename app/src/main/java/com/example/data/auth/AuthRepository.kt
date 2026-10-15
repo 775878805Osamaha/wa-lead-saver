@@ -307,6 +307,34 @@ class AuthRepository(
         return supabaseClient.resetPasswordForEmail(trimmed, redirectTo)
     }
 
+    /**
+     * Executes the actual password update using the verified recovery session.
+     */
+    suspend fun completePasswordReset(session: RecoverySession, newPassword: String): Result<Boolean> {
+        if (!session.isValid) {
+            return Result.failure(Exception("جلسة استعادة كلمة المرور غير صالحة أو منتهية."))
+        }
+        if (newPassword.length < 6) {
+            return Result.failure(Exception("يجب ألا تقل كلمة المرور عن 6 أحرف."))
+        }
+
+        val tokenToUse = if (session.accessToken.isNotBlank()) {
+            session.accessToken
+        } else if (!session.tokenHash.isNullOrBlank()) {
+            // Exchange tokenHash for session
+            val verifyRes = supabaseClient.verifyOtpForRecovery(session.tokenHash)
+            if (verifyRes.isFailure) {
+                return Result.failure(verifyRes.exceptionOrNull() ?: Exception("رمز الاستعادة غير صالح أو منتهي"))
+            }
+            val json = verifyRes.getOrNull()
+            json?.optString("access_token") ?: return Result.failure(Exception("فشل استخراج جلسة المصادقة من رمز الاستعادة"))
+        } else {
+            return Result.failure(Exception("رمز الاستعادة مفقود من الرابط."))
+        }
+
+        return supabaseClient.updateUserPassword(tokenToUse, newPassword)
+    }
+
     private suspend fun validateAccountState(profile: UserProfile, account: CustomerAccount?): AuthState {
         if (account == null) {
             val state = AuthState.AuthenticatedUser(profile, null)

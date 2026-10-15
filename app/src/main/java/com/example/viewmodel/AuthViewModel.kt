@@ -52,6 +52,13 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _recoveryErrorMessage = MutableStateFlow<String?>(null)
     val recoveryErrorMessage: StateFlow<String?> = _recoveryErrorMessage.asStateFlow()
 
+    // Active password recovery session (obtained from deep link)
+    private val _activeRecoverySession = MutableStateFlow<com.example.data.auth.RecoverySession?>(null)
+    val activeRecoverySession: StateFlow<com.example.data.auth.RecoverySession?> = _activeRecoverySession.asStateFlow()
+
+    private val _passwordResetResult = MutableStateFlow<com.example.data.auth.PasswordResetResult>(com.example.data.auth.PasswordResetResult.Idle)
+    val passwordResetResult: StateFlow<com.example.data.auth.PasswordResetResult> = _passwordResetResult.asStateFlow()
+
     // Admin Customer Items List (combining public.profiles & public.accounts)
     private val _customersList = MutableStateFlow<List<AdminCustomerItem>>(emptyList())
     val rawCustomersList: StateFlow<List<AdminCustomerItem>> = _customersList.asStateFlow()
@@ -236,6 +243,54 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 _recoveryErrorMessage.value = e.message ?: "حدث خطأ أثناء طلب استعادة كلمة المرور"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun setRecoverySession(session: com.example.data.auth.RecoverySession?) {
+        _activeRecoverySession.value = session
+        _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Idle
+    }
+
+    fun clearRecoverySession() {
+        _activeRecoverySession.value = null
+        _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Idle
+    }
+
+    /**
+     * Completes password reset with new password for the active recovery session.
+     */
+    fun resetPassword(newPassword: String, confirmPassword: String, onSuccess: () -> Unit = {}) {
+        val session = _activeRecoverySession.value
+        if (session == null || !session.isValid) {
+            _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Error("جلسة استعادة كلمة المرور غير صالحة أو منتهية.")
+            return
+        }
+        if (newPassword != confirmPassword) {
+            _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Error("كلمتا المرور غير متطابقتين.")
+            return
+        }
+        if (newPassword.length < 6) {
+            _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Error("يجب ألا تقل كلمة المرور عن 6 أحرف.")
+            return
+        }
+
+        viewModelScope.launch {
+            _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Loading
+            try {
+                val res = authRepository.completePasswordReset(session, newPassword)
+                if (res.isSuccess) {
+                    _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Success
+                    _successMessage.value = "تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة."
+                    _activeRecoverySession.value = null
+                    onSuccess()
+                } else {
+                    val err = res.exceptionOrNull()?.message ?: "فشل تحديث كلمة المرور"
+                    _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Error(err)
+                }
+            } catch (e: Exception) {
+                val err = e.message ?: "حدث خطأ أثناء تغيير كلمة المرور"
+                _passwordResetResult.value = com.example.data.auth.PasswordResetResult.Error(err)
             }
         }
     }

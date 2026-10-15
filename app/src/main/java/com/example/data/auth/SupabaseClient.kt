@@ -245,6 +245,105 @@ class SupabaseClient(private val context: Context) {
         }
     }
 
+    /**
+     * Updates user password using Supabase Auth (PUT /auth/v1/user) with the recovery session access_token.
+     * Never logs sensitive tokens or passwords.
+     */
+    suspend fun updateUserPassword(accessToken: String, newPassword: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            if (baseUrl.isBlank() || anonKey.isBlank()) {
+                return@withContext Result.failure(Exception("رابط خادم Supabase أو مفتاح الوصول العام غير مهيأ."))
+            }
+            if (accessToken.isBlank()) {
+                return@withContext Result.failure(Exception("جلسة استعادة كلمة المرور غير صالحة أو منتهية."))
+            }
+
+            val url = "$baseUrl/auth/v1/user"
+            val bodyJson = JSONObject().apply {
+                put("password", newPassword)
+            }
+
+            android.util.Log.d("AuthDev", "updateUserPassword: submitting password update request")
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .addHeader("Content-Type", "application/json")
+                .put(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                val code = response.code
+                android.util.Log.d("AuthDev", "updateUserPassword response: HTTP $code")
+
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val json = try { JSONObject(respStr) } catch (_: Exception) { null }
+                    val rawDesc = json?.optString("error_description")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("msg")?.takeIf { it.isNotBlank() }
+                        ?: ""
+
+                    val errMsg = when {
+                        code == 401 || code == 403 || rawDesc.contains("jwt", ignoreCase = true) || rawDesc.contains("expired", ignoreCase = true) ->
+                            "انتهت صلاحية جلسة الاستعادة، يرجى طلب رابط جديد."
+                        rawDesc.contains("password", ignoreCase = true) && rawDesc.contains("characters", ignoreCase = true) ->
+                            "يجب ألا تقل كلمة المرور عن 6 أحرف."
+                        rawDesc.isNotBlank() -> rawDesc
+                        else -> parseErrorMessage(respStr, "فشل تعيين كلمة المرور الجديدة")
+                    }
+                    Result.failure(Exception(errMsg))
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthDev", "updateUserPassword error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Verifies OTP / recovery token hash (POST /auth/v1/verify) if a token_hash is received.
+     */
+    suspend fun verifyOtpForRecovery(tokenHash: String): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            if (baseUrl.isBlank() || anonKey.isBlank()) {
+                return@withContext Result.failure(Exception("رابط خادم Supabase أو مفتاح الوصول العام غير مهيأ."))
+            }
+
+            val url = "$baseUrl/auth/v1/verify"
+            val bodyJson = JSONObject().apply {
+                put("type", "recovery")
+                put("token_hash", tokenHash)
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                if (response.isSuccessful) {
+                    Result.success(JSONObject(respStr))
+                } else {
+                    val errMsg = parseErrorMessage(respStr, "رمز الاستعادة غير صالح أو منتهي الصلاحية")
+                    Result.failure(Exception(errMsg))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun signUpUser(email: String, password: String, fullName: String = ""): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
             val baseUrl = getBaseUrl()

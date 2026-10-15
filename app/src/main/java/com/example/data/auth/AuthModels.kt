@@ -159,3 +159,23 @@ sealed class AuthResult {
     data class Error(val message: String) : AuthResult()
     data class EmailNotConfirmed(val email: String, val message: String) : AuthResult()
 }
+
+/**
+ * Encapsulates verified Supabase Auth recovery tokens extracted from deep link.
+ */
+data class RecoverySession(
+    val accessToken: String,
+    val refreshToken: String? = null,
+    val type: String = "recovery",
+    val tokenHash: String? = null
+) {
+    val isValid: Boolean
+        get() = accessToken.isNotBlank() && (type == "recovery" || type.isBlank())
+}
+
+sealed class PasswordResetResult {
+    object Idle : PasswordResetResult()
+    object Loading : PasswordResetResult()
+    object Success : PasswordResetResult()
+    data class Error(val message: String) : PasswordResetResult()
+}
