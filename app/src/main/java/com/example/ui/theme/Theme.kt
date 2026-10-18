@@ -1,33 +1,34 @@
 package com.example.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
-private val LightColorScheme = lightColorScheme(
-    primary = CrmPrimary,
-    onPrimary = Color.White,
-    primaryContainer = CrmSelectedNavBg,
-    onPrimaryContainer = CrmPrimary,
-    secondary = CrmHeader,
-    onSecondary = Color.White,
-    secondaryContainer = CrmSelectedNavBg,
-    onSecondaryContainer = CrmHeader,
-    tertiary = CrmSuccess,
-    onTertiary = Color.White,
-    background = CrmBackground,
-    onBackground = CrmTextPrimary,
-    surface = CrmCardSurface,
-    onSurface = CrmTextPrimary,
-    surfaceVariant = CrmCardElevated,
-    onSurfaceVariant = CrmTextSecondary,
-    outline = CrmBorder,
-    outlineVariant = CrmBorderSubtle,
-    error = CrmDanger,
-    onError = Color.White,
-    errorContainer = CrmDangerBg,
-    onErrorContainer = Color(0xFF991B1B)
+private val AppColorScheme = darkColorScheme(
+    primary = ColorBrandGreen,
+    onPrimary = ColorScreenBackground,
+    primaryContainer = ColorBrandGreenTranslucent,
+    onPrimaryContainer = ColorBrandGreen,
+    secondary = ColorBrandGreenDark,
+    onSecondary = ColorTextPrimary,
+    secondaryContainer = ColorBrandGreenTranslucent,
+    onSecondaryContainer = ColorBrandGreen,
+    tertiary = ColorAccentBlue,
+    onTertiary = ColorScreenBackground,
+    tertiaryContainer = ColorAccentBlueTranslucent,
+    onTertiaryContainer = ColorAccentBlue,
+    background = ColorScreenBackground,
+    onBackground = ColorTextPrimary,
+    surface = ColorCardBackground,
+    onSurface = ColorTextPrimary,
+    surfaceVariant = ColorCardBackground,
+    onSurfaceVariant = ColorTextSecondary,
+    outline = ColorCardBorder,
+    outlineVariant = ColorCardBorder,
+    error = ColorDangerRed,
+    onError = ColorScreenBackground,
+    errorContainer = ColorDangerRedTranslucent,
+    onErrorContainer = ColorDangerRed
 )
 
 @Composable
@@ -35,7 +36,7 @@ fun WALeadSaverTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = LightColorScheme,
+        colorScheme = AppColorScheme,
         typography = Typography,
         content = content
     )

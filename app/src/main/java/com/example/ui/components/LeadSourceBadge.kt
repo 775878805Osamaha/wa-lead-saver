@@ -16,8 +16,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LeadSource
-import com.example.ui.theme.CrmBorder
-import com.example.ui.theme.CrmPrimary
+import com.example.ui.theme.ColorAccentBlue
+import com.example.ui.theme.ColorAccentBlueTranslucent
+import com.example.ui.theme.ColorAlertAmber
+import com.example.ui.theme.ColorAlertAmberTranslucent
+import com.example.ui.theme.ColorBrandGreen
+import com.example.ui.theme.ColorBrandGreenTranslucent
+import com.example.ui.theme.ColorCardBorder
+import com.example.ui.theme.ColorTextSecondary
 
 @Composable
 fun LeadSourceBadge(
@@ -25,25 +31,26 @@ fun LeadSourceBadge(
     modifier: Modifier = Modifier
 ) {
     val (bgColor, textColor, borderColor) = when (source) {
-        LeadSource.WHATSAPP -> Triple(Color(0xFFDDF7EE), CrmPrimary, Color(0xFFB4EBD9))
-        LeadSource.MANUAL -> Triple(Color(0xFFF1F5F9), Color(0xFF475569), CrmBorder)
-        LeadSource.SCAN -> Triple(Color(0xFFFEF3C7), Color(0xFFB45309), Color(0xFFFDE68A))
-        LeadSource.IMPORT -> Triple(Color(0xFFEDE9FE), Color(0xFF6D28D9), Color(0xFFDDD6FE))
+        LeadSource.WHATSAPP -> Triple(ColorBrandGreenTranslucent, ColorBrandGreen, Color(0x3825D366))
+        LeadSource.MANUAL -> Triple(Color(0x248B958F), ColorTextSecondary, ColorCardBorder)
+        LeadSource.SCAN -> Triple(ColorAlertAmberTranslucent, ColorAlertAmber, Color(0x38E6A032))
+        LeadSource.IMPORT -> Triple(ColorAccentBlueTranslucent, ColorAccentBlue, Color(0x387FA6E6))
     }
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .border(0.5.dp, borderColor, RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 9.dp, vertical = 3.dp)
             .testTag("lead_source_badge_${source.name.lowercase()}")
     ) {
         Text(
             text = stringResource(id = source.titleRes),
             color = textColor,
             fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
         )
     }
 }

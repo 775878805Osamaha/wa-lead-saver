@@ -1,104 +1,148 @@
 package com.example.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ==========================================
-// WA Lead Saver - Strict Premium CRM Design System
+// WA Lead Saver - Professional Dark Identity Palette
 // ==========================================
 
-// 1. Mandatory Colors
-val CrmHeader = Color(0xFF087F68)            // Main app header #087F68
-val CrmActiveEmerald = Color(0xFF07866F)     // Active emerald #07866F
-val CrmBackground = Color(0xFFF4F7FA)        // Main page background #F4F7FA
-val CrmCardSurface = Color(0xFFFFFFFF)       // Card background #FFFFFF
-val CrmCardElevated = Color(0xFFFFFFFF)      // Standard card surface
-val CrmTextPrimary = Color(0xFF172B3A)       // Primary text #172B3A
-val CrmTextSecondary = Color(0xFF718096)     // Secondary text #718096
-val CrmBorder = Color(0xFFE3E9EF)            // Card border #E3E9EF
-val CrmBorderSubtle = Color(0xFFE3E9EF)      // Subtle border
-val CrmPaleEmerald = Color(0xFFE3F8EF)       // Pale emerald #E3F8EF
-val CrmPaleBlue = Color(0xFFEAF4FF)          // Pale blue #EAF4FF
-val CrmPaleAmber = Color(0xFFFFF4D9)         // Pale amber #FFF4D9
-val CrmPaleRed = Color(0xFFFDECEC)           // Pale red #FDECEC
+// 1. Core Surfaces & Backgrounds (Warm Black #0a0d0b, Card #121713, Border #1f271f)
+val ColorScreenBackground = Color(0xFF0A0D0B)   // #0a0d0b
+val ColorHeaderStart = Color(0xFF0F2D22)        // #0f2d22
+val ColorHeaderEnd = Color(0xFF0A1D16)          // #0a1d16
+val ColorCardBackground = Color(0xFF121713)     // #121713
+val ColorCardBorder = Color(0xFF1F271F)         // #1f271f
 
-// Primary & Accent Colors
-val CrmPrimary = Color(0xFF087F68)           // Primary emerald #087F68
-val CrmPrimaryGlow = CrmPaleEmerald
-val CrmSelectedNavBg = CrmPaleEmerald        // Selection background #E3F8EF
-val CrmTextMuted = Color(0xFFA0AEC0)         // Muted caption
-val CrmSuccess = Color(0xFF087F68)           // Success emerald
-val CrmSuccessBg = CrmPaleEmerald
-val CrmWarning = Color(0xFFE7A52B)           // Warning amber
-val CrmWarningBg = CrmPaleAmber
-val CrmDanger = Color(0xFFD94343)            // Error red
-val CrmDangerBg = CrmPaleRed
-val CrmDangerCardBg = CrmPaleRed
-val CrmDangerBorder = Color(0xFFFCA5A5)      // Border for error/warning card
-val CrmInfoBlue = Color(0xFF2878D0)          // Info blue
-val CrmInfoBlueBg = CrmPaleBlue
-val CrmPurple = Color(0xFF8B5CF6)
-val CrmPurpleBg = Color(0xFFEDE9FE)
-val CrmSlate = Color(0xFF64748B)
-val CrmSlateBg = Color(0xFFF1F5F9)
+// 2. Typography
+val ColorTextPrimary = Color(0xFFF0F5F2)        // #f0f5f2
+val ColorTextSecondary = Color(0xFF8B958F)      // #8b958f
+val ColorTextMuted = Color(0xFF7A8580)          // #7a8580
+val ColorTextSubtle = Color(0xFF6E786F)         // #6e786f
 
-// Aliases & Backward Compatibility
-val DashboardContentBg = CrmBackground
-val DashboardHeaderBg = CrmHeader
-val DashboardButtonPrimary = CrmPrimary
-val DashboardSuccess = CrmSuccess
-val DashboardWarning = CrmWarning
-val DashboardTextPrimary = CrmTextPrimary
-val DashboardTextSecondary = CrmTextSecondary
-val DashboardCardBg = CrmCardSurface
-val DashboardCardBorder = CrmBorder
-val DashboardLightGreenBg = CrmPaleEmerald
-val DashboardLightGreenBorder = CrmBorder
-val DashboardLightRedBg = CrmDangerCardBg
-val DashboardLightRedBorder = CrmDangerBorder
-val DashboardDanger = CrmDanger
+// 3. Brand WhatsApp Green (#2ee671 and #16a34a)
+val ColorBrandGreen = Color(0xFF2EE671)         // #2ee671
+val ColorBrandGreenDark = Color(0xFF16A34A)     // #16a34a
+val ColorBrandGreenTranslucent = Color(0x242EE671) // rgba(46, 230, 113, 0.14)
+val ColorBrandGreenGlow = Color(0x282EE671)     // subtle green drop shadow
+val ColorNotificationGlowSubtle = Color(0x0F2EE671) // 6% alpha subtle glow
 
-val DarkEmeraldBg = CrmBackground
-val DarkEmeraldSurface = CrmCardSurface
-val DarkEmeraldElevated = CrmCardElevated
-val DarkEmeraldBorder = CrmBorder
-val DarkEmeraldBorderLight = CrmBorder
-val DarkEmeraldHeader = CrmHeader
+// 4. Accent & Neutral Tints
+val ColorAccentBlue = Color(0xFF7FA6E6)         // #7fa6e6
+val ColorAccentBlueTranslucent = Color(0x245A8CE6) // rgba(90, 140, 230, 0.14)
 
-val WhatsAppGreen = CrmPrimary
-val WhatsAppGreenLight = CrmSuccess
-val WhatsAppGreenGlow = CrmPaleEmerald
-val WhatsAppTeal = Color(0xFF0E7A60)
-val WhatsAppDarkTeal = CrmHeader
-val WhatsAppTealAccent = CrmPrimary
+val ColorAlertAmber = Color(0xFFE6A032)         // #e6a032
+val ColorAlertAmberTranslucent = Color(0x24E6A032) // rgba(230, 160, 50, 0.14)
 
-val TextLightPrimary = CrmTextPrimary
-val TextLightSecondary = CrmTextSecondary
-val TextLightMuted = CrmTextMuted
-val TextEmeraldAccent = CrmPrimary
+val ColorDangerRed = Color(0xFFE05252)          // #e05252
+val ColorDangerRedTranslucent = Color(0x24E05252) // rgba(224, 82, 82, 0.14)
 
-val StatusActiveGreen = CrmSuccess
-val StatusActiveDot = CrmSuccess
-val StatusWarningAmber = CrmWarning
-val StatusWarningAmberBg = CrmWarningBg
-val RemoveRed = CrmDanger
-val RemoveRedLight = CrmDangerBg
-val RemoveRedDark = Color(0xFF991B1B)
-val InfoBlue = CrmInfoBlue
-val InfoBlueBg = CrmInfoBlueBg
-val PurpleAccent = CrmPurple
-val PurpleAccentBg = CrmPurpleBg
+// 5. Gradients
+val HeaderGradient = Brush.verticalGradient(
+    colors = listOf(ColorHeaderStart, ColorHeaderEnd)
+)
 
-val DarkTealHeader = CrmHeader
-val DarkTealHeaderDarker = Color(0xFF066654)
-val WhatsAppTealLight = CrmPrimary
-val AppBackground = CrmBackground
-val CardBackground = CrmCardSurface
-val CardBorder = CrmBorder
-val TextPrimary = CrmTextPrimary
-val TextSecondary = CrmTextSecondary
-val TextMuted = CrmTextMuted
-val StatusInactiveGray = CrmTextMuted
-val BadgeNewLeadBg = CrmPaleEmerald
-val BadgeNewLeadText = CrmPrimary
-val TealBadgeLight = CrmPaleEmerald
-val TealDark = CrmPrimary
+val BrandGreenGradient = Brush.horizontalGradient(
+    colors = listOf(ColorBrandGreenDark, ColorBrandGreen)
+)
+
+val AccuracyProgressGradient = Brush.horizontalGradient(
+    colors = listOf(Color(0xFF16A34A), Color(0xFF2EE671))
+)
+
+val BrandGreenGradientVertical = Brush.verticalGradient(
+    colors = listOf(ColorBrandGreenDark, ColorBrandGreen)
+)
+
+// ==========================================
+// Compatibility Aliases for Existing Components
+// ==========================================
+val CrmHeader = ColorHeaderStart
+val CrmActiveEmerald = ColorBrandGreen
+val CrmBackground = ColorScreenBackground
+val CrmCardSurface = ColorCardBackground
+val CrmCardElevated = ColorCardBackground
+val CrmTextPrimary = ColorTextPrimary
+val CrmTextSecondary = ColorTextSecondary
+val CrmBorder = ColorCardBorder
+val CrmBorderSubtle = ColorCardBorder
+val CrmPaleEmerald = ColorBrandGreenTranslucent
+val CrmPaleBlue = ColorAccentBlueTranslucent
+val CrmPaleAmber = ColorAlertAmberTranslucent
+val CrmPaleRed = ColorDangerRedTranslucent
+
+val CrmPrimary = ColorBrandGreen
+val CrmPrimaryGlow = ColorBrandGreenTranslucent
+val CrmSelectedNavBg = ColorBrandGreenTranslucent
+val CrmTextMuted = ColorTextMuted
+val CrmSuccess = ColorBrandGreen
+val CrmSuccessBg = ColorBrandGreenTranslucent
+val CrmWarning = ColorAlertAmber
+val CrmWarningBg = ColorAlertAmberTranslucent
+val CrmDanger = ColorDangerRed
+val CrmDangerBg = ColorDangerRedTranslucent
+val CrmDangerCardBg = ColorCardBackground
+val CrmDangerBorder = ColorDangerRed
+val CrmInfoBlue = ColorAccentBlue
+val CrmInfoBlueBg = ColorAccentBlueTranslucent
+val CrmPurple = ColorAccentBlue
+val CrmPurpleBg = ColorAccentBlueTranslucent
+val CrmSlate = ColorTextSecondary
+val CrmSlateBg = ColorCardBackground
+
+val DashboardContentBg = ColorScreenBackground
+val DashboardHeaderBg = ColorHeaderStart
+val DashboardButtonPrimary = ColorBrandGreen
+val DashboardSuccess = ColorBrandGreen
+val DashboardWarning = ColorAlertAmber
+val DashboardTextPrimary = ColorTextPrimary
+val DashboardTextSecondary = ColorTextSecondary
+val DashboardCardBg = ColorCardBackground
+val DashboardCardBorder = ColorCardBorder
+val DashboardLightGreenBg = ColorBrandGreenTranslucent
+val DashboardLightGreenBorder = ColorCardBorder
+val DashboardLightRedBg = ColorDangerRedTranslucent
+val DashboardLightRedBorder = ColorDangerRed
+val DashboardDanger = ColorDangerRed
+
+val DarkEmeraldBg = ColorScreenBackground
+val DarkEmeraldSurface = ColorCardBackground
+val DarkEmeraldElevated = ColorCardBackground
+val DarkEmeraldBorder = ColorCardBorder
+val DarkEmeraldBorderLight = ColorCardBorder
+val DarkEmeraldHeader = ColorHeaderStart
+
+val WhatsAppGreen = ColorBrandGreen
+val WhatsAppGreenLight = ColorBrandGreen
+val WhatsAppGreenGlow = ColorBrandGreenTranslucent
+val WhatsAppTeal = ColorBrandGreenDark
+val WhatsAppDarkTeal = ColorHeaderStart
+val WhatsAppTealAccent = ColorBrandGreen
+
+val TextLightPrimary = ColorTextPrimary
+val TextLightSecondary = ColorTextSecondary
+val TextLightMuted = ColorTextMuted
+val TextEmeraldAccent = ColorBrandGreen
+
+val StatusActiveGreen = ColorBrandGreen
+val StatusActiveDot = ColorBrandGreen
+val StatusWarningAmber = ColorAlertAmber
+val StatusWarningAmberBg = ColorAlertAmberTranslucent
+val RemoveRed = ColorDangerRed
+val RemoveRedLight = ColorDangerRedTranslucent
+val RemoveRedDark = ColorDangerRed
+val InfoBlue = ColorAccentBlue
+val InfoBlueBg = ColorAccentBlueTranslucent
+val PurpleAccent = ColorAccentBlue
+val PurpleAccentBg = ColorAccentBlueTranslucent
+
+val DarkTealHeader = ColorHeaderStart
+val DarkTealHeaderDarker = ColorHeaderEnd
+val WhatsAppTealLight = ColorBrandGreen
+val AppBackground = ColorScreenBackground
+val CardBackground = ColorCardBackground
+val CardBorder = ColorCardBorder
+val TextPrimary = ColorTextPrimary
+val TextSecondary = ColorTextSecondary
+val TextMuted = ColorTextMuted
+val StatusInactiveGray = ColorTextMuted

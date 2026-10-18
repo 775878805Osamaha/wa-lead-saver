@@ -3,11 +3,14 @@ package com.example.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,48 +19,48 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.model.AuditFilter
-import com.example.ui.theme.DarkEmeraldBg
-import com.example.ui.theme.DarkEmeraldBorder
-import com.example.ui.theme.DarkEmeraldBorderLight
-import com.example.ui.theme.DarkEmeraldElevated
-import com.example.ui.theme.DarkEmeraldSurface
-import com.example.ui.theme.RemoveRed
-import com.example.ui.theme.RemoveRedLight
-import com.example.ui.theme.StatusWarningAmber
-import com.example.ui.theme.TextLightMuted
-import com.example.ui.theme.TextLightPrimary
-import com.example.ui.theme.TextLightSecondary
-import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.theme.WhatsAppTeal
+import com.example.ui.theme.ColorAccentBlue
+import com.example.ui.theme.ColorAccentBlueTranslucent
+import com.example.ui.theme.ColorAlertAmber
+import com.example.ui.theme.ColorAlertAmberTranslucent
+import com.example.ui.theme.ColorBrandGreen
+import com.example.ui.theme.ColorBrandGreenTranslucent
+import com.example.ui.theme.ColorCardBackground
+import com.example.ui.theme.ColorCardBorder
+import com.example.ui.theme.ColorDangerRed
+import com.example.ui.theme.ColorDangerRedTranslucent
+import com.example.ui.theme.ColorScreenBackground
+import com.example.ui.theme.ColorTextMuted
+import com.example.ui.theme.ColorTextPrimary
+import com.example.ui.theme.ColorTextSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,157 +74,183 @@ fun HistoryScreen(
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(DarkEmeraldBg)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    val dateFormatter = remember { SimpleDateFormat("yyyy/MM/dd · HH:mm", Locale.getDefault()) }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(ColorScreenBackground)
         ) {
-            Text(
-                text = "سجل المراقبة والتشخيص (${historyList.size})",
-                color = TextLightPrimary,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
+            // Header: Title with count
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "سجل العمليات (${historyList.size})",
+                    color = ColorTextPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Two side-by-side action cards (تصدير CSV ومسح السجل)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Card 1: Export CSV
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clickable { onExportHistory() }
+                        .testTag("button_export_history_screen"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
+                    border = BorderStroke(1.dp, ColorCardBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = null,
+                            tint = ColorBrandGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "تصدير CSV",
+                            color = ColorBrandGreen,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Card 2: Clear History
+                if (historyList.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clickable { onClearHistory() }
+                            .testTag("button_clear_history_log"),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
+                        border = BorderStroke(1.dp, ColorCardBorder),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = ColorDangerRed,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "مسح السجل",
+                                color = ColorDangerRed,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Diagnostic Filter Chips
+            val filters: List<Pair<AuditFilter, String>> = listOf(
+                AuditFilter.ALL to "الكل",
+                AuditFilter.SAVED to "حُفظ",
+                AuditFilter.DUPLICATE to "مكرر",
+                AuditFilter.NEEDS_REVIEW to "مراجعة",
+                AuditFilter.EXCLUDED to "مستبعد"
             )
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (historyList.isNotEmpty()) {
-                    TextButton(
-                        onClick = onClearHistory,
-                        modifier = Modifier.testTag("button_clear_history_log")
-                    ) {
-                        Text(
-                            text = "مسح",
-                            color = RemoveRed,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = onExportHistory,
-                    modifier = Modifier.testTag("button_export_history_screen"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = WhatsAppGreen,
-                        contentColor = Color(0xFF071C17)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = null,
-                        tint = Color(0xFF071C17),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "تصدير CSV",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // Diagnostic Filter Chips Bar
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(AuditFilter.values()) { filter ->
-                val isSelected = filter == selectedFilter
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onFilterSelected(filter) },
-                    label = {
-                        Text(
-                            text = filter.title,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = DarkEmeraldElevated,
-                        labelColor = TextLightSecondary,
-                        selectedContainerColor = WhatsAppGreen,
-                        selectedLabelColor = Color.White
-                    ),
-                    border = BorderStroke(
-                        0.5.dp,
-                        if (isSelected) WhatsAppGreen else DarkEmeraldBorder
-                    ),
-                    modifier = Modifier.testTag("filter_chip_${filter.name.lowercase()}")
-                )
-            }
-        }
-
-        if (historyList.isEmpty()) {
-            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+                filters.forEach { (filter, label) ->
+                    val isSelected = selectedFilter == filter
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(DarkEmeraldElevated)
-                            .border(1.dp, DarkEmeraldBorder, CircleShape),
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSelected) ColorBrandGreen else ColorCardBackground)
+                            .border(
+                                1.dp,
+                                if (isSelected) ColorBrandGreen else ColorCardBorder,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .clickable { onFilterSelected(filter) }
+                            .padding(horizontal = 16.dp, vertical = 7.dp)
+                            .testTag("audit_filter_${filter.name.lowercase()}"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Empty History",
-                            modifier = Modifier.size(36.dp),
-                            tint = WhatsAppGreen
+                        Text(
+                            text = label,
+                            color = if (isSelected) Color(0xFF0C1512) else ColorTextSecondary,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No Activity Recorded",
-                        color = TextLightPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Detected WhatsApp leads, auto-saves, and scanning events will be logged here.",
-                        color = TextLightMuted,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(
-                    items = historyList,
-                    key = { it.id }
-                ) { item ->
-                    HistoryItemCard(item = item)
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // History List
+            if (historyList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "لا توجد سجلات تطابق الفلتر المحدد",
+                        color = ColorTextSecondary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 88.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(
+                        items = historyList,
+                        key = { it.id }
+                    ) { item ->
+                        HistoryCard(item = item, dateFormatter = dateFormatter)
+                    }
                 }
             }
         }
@@ -229,101 +258,125 @@ fun HistoryScreen(
 }
 
 @Composable
-fun HistoryItemCard(
+private fun HistoryCard(
     item: HistoryEntity,
-    modifier: Modifier = Modifier
+    dateFormatter: SimpleDateFormat
 ) {
-    val dateStr = remember(item.timestamp) {
-        SimpleDateFormat("MMM d, yyyy • h:mm:ss a", Locale.getDefault()).format(Date(item.timestamp))
+    val (statusLabel, statusBg, statusTextColor) = when (item.status) {
+        "Saved" -> Triple("تم الحفظ", ColorBrandGreenTranslucent, ColorBrandGreen)
+        "Duplicate" -> Triple("مكرر", ColorAlertAmberTranslucent, ColorAlertAmber)
+        "Failed" -> Triple("فشل", ColorDangerRedTranslucent, ColorDangerRed)
+        else -> Triple(item.status, ColorAccentBlueTranslucent, ColorAccentBlue)
     }
 
     Card(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .testTag("history_item_${item.id}"),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkEmeraldSurface),
-        border = BorderStroke(1.dp, DarkEmeraldBorder)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
+        border = BorderStroke(1.dp, ColorCardBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Top Row: Status badge + Contact Name & LTR Phone
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = item.phoneNumber,
-                    color = WhatsAppGreen,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                StatusBadge(status = item.status)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            if (item.contactName.isNotBlank() && item.contactName != "N/A") {
-                Text(
-                    text = item.contactName,
-                    color = TextLightPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-            }
-            Text(
-                text = "Source: ${item.source} • $dateStr",
-                color = TextLightMuted,
-                fontSize = 12.sp
-            )
-            if (item.details.isNotBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkEmeraldElevated)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Status Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(statusBg)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = statusLabel,
+                            color = statusTextColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Text(
-                        text = item.details,
-                        color = TextLightSecondary,
-                        fontSize = 11.sp
+                        text = item.contactName.ifBlank { "عميل غير مسمى" },
+                        color = ColorTextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Phone in LTR
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Text(
+                        text = item.phoneNumber,
+                        color = ColorTextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        style = androidx.compose.ui.text.TextStyle(
+                            textDirection = TextDirection.Ltr
+                        )
                     )
                 }
             }
+
+            // Divider
+            HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+
+            // Middle: Description / Details
+            if (item.details.isNotBlank()) {
+                Text(
+                    text = item.details,
+                    color = ColorTextSecondary,
+                    fontSize = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Bottom Row: Source Badge (WhatsApp) + Timestamp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = null,
+                        tint = ColorBrandGreen,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = item.source.ifBlank { "واتساب" },
+                        color = ColorTextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Text(
+                    text = dateFormatter.format(Date(item.timestamp)),
+                    color = ColorTextMuted,
+                    fontSize = 11.sp
+                )
+            }
         }
-    }
-}
-
-@Composable
-fun StatusBadge(
-    status: String,
-    modifier: Modifier = Modifier
-) {
-    val (bg, textColor, borderCol) = when (status) {
-        "NEW LEAD", "Queued" -> Triple(Color(0x3338BDF8), Color(0xFF38BDF8), Color(0x6638BDF8))
-        "Saved" -> Triple(Color(0x3325D366), Color(0xFF4ADE80), Color(0x6625D366))
-        "Needs Review" -> Triple(Color(0x33F59E0B), Color(0xFFFBBF24), Color(0x66F59E0B))
-        "Group Excluded" -> Triple(Color(0x3364748B), Color(0xFF94A3B8), Color(0x6664748B))
-        "Duplicate" -> Triple(Color(0x33FBBF24), Color(0xFFFCD34D), Color(0x66FBBF24))
-        "Removed" -> Triple(RemoveRedLight, RemoveRed, Color(0x66EF4444))
-        "Failed", "Invalid Number", "Excluded" -> Triple(Color(0x33EF4444), Color(0xFFF87171), Color(0x66EF4444))
-        "System Excluded" -> Triple(Color(0x3364748B), Color(0xFF94A3B8), Color(0x6664748B))
-        "Phone number unavailable" -> Triple(Color(0x33A855F7), Color(0xFFC084FC), Color(0x66A855F7))
-        else -> Triple(Color(0x3364748B), Color(0xFFCBD5E1), Color(0x6664748B))
-    }
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .border(0.5.dp, borderCol, RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Text(
-            text = status,
-            color = textColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

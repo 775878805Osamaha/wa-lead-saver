@@ -51,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +59,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.example.ui.theme.ColorAlertAmber
+import com.example.ui.theme.ColorAlertAmberTranslucent
+import com.example.ui.theme.ColorBrandGreen
+import com.example.ui.theme.ColorBrandGreenTranslucent
+import com.example.ui.theme.ColorCardBackground
+import com.example.ui.theme.ColorCardBorder
+import com.example.ui.theme.ColorDangerRed
+import com.example.ui.theme.ColorDangerRedTranslucent
+import com.example.ui.theme.ColorScreenBackground
+import com.example.ui.theme.ColorTextPrimary
+import com.example.ui.theme.ColorTextSecondary
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -341,47 +362,54 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars),
-                color = com.example.ui.theme.CrmCardSurface,
-                shadowElevation = 4.dp
-            ) {
-                Column {
-                    HorizontalDivider(color = com.example.ui.theme.CrmBorder, thickness = 1.dp)
-                    NavigationBar(
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                ) {
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp),
-                        containerColor = com.example.ui.theme.CrmCardSurface,
-                        tonalElevation = 0.dp,
-                        windowInsets = WindowInsets(0, 0, 0, 0)
+                            .height(66.dp),
+                        shape = RoundedCornerShape(26.dp),
+                        color = ColorCardBackground,
+                        border = BorderStroke(1.dp, ColorCardBorder),
+                        shadowElevation = 8.dp
                     ) {
-                        AppTab.entries.forEach { tab ->
-                            val isSelected = !showQueueScreen && currentTab == tab
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = {
-                                    showQueueScreen = false
-                                    currentTab = tab
-                                    if (tab != AppTab.LEADS) {
-                                        viewModel.selectLead(null)
-                                    }
-                                },
-                                icon = {
-                                    val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
-                                    if (badgeCount > 0) {
-                                        BadgedBox(
-                                            badge = {
-                                                Badge(
-                                                    containerColor = com.example.ui.theme.CrmPrimary,
-                                                    contentColor = Color.White
-                                                ) {
-                                                    Text("$badgeCount", fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                                }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AppTab.entries.forEach { tab ->
+                                val isSelected = !showQueueScreen && currentTab == tab
+                                val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(if (isSelected) ColorBrandGreenTranslucent else Color.Transparent)
+                                        .clickable {
+                                            showQueueScreen = false
+                                            currentTab = tab
+                                            if (tab != AppTab.LEADS) {
+                                                viewModel.selectLead(null)
                                             }
-                                        ) {
+                                        }
+                                        .testTag("nav_tab_${tab.name.lowercase()}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Box {
                                             Icon(
                                                 imageVector = when (tab) {
                                                     AppTab.DASHBOARD -> Icons.Default.Dashboard
@@ -390,61 +418,63 @@ fun MainScreen(
                                                     AppTab.SETTINGS -> Icons.Default.Settings
                                                 },
                                                 contentDescription = tab.title,
+                                                tint = if (isSelected) ColorBrandGreen else ColorTextSecondary,
                                                 modifier = Modifier.size(22.dp)
                                             )
+
+                                            if (badgeCount > 0) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.TopEnd)
+                                                        .offset(x = 6.dp, y = (-4).dp)
+                                                        .clip(CircleShape)
+                                                        .background(ColorBrandGreen)
+                                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "$badgeCount",
+                                                        color = Color(0xFF0C1512),
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
                                         }
-                                    } else {
-                                        Icon(
-                                            imageVector = when (tab) {
-                                                AppTab.DASHBOARD -> Icons.Default.Dashboard
-                                                AppTab.LEADS -> Icons.Default.People
-                                                AppTab.HISTORY -> Icons.Default.History
-                                                AppTab.SETTINGS -> Icons.Default.Settings
-                                            },
-                                            contentDescription = tab.title,
-                                            modifier = Modifier.size(22.dp)
+
+                                        Spacer(modifier = Modifier.height(3.dp))
+
+                                        Text(
+                                            text = tab.title,
+                                            color = if (isSelected) ColorBrandGreen else ColorTextSecondary,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                         )
                                     }
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 11.sp
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = com.example.ui.theme.CrmPrimary,
-                                    selectedTextColor = com.example.ui.theme.CrmPrimary,
-                                    indicatorColor = com.example.ui.theme.CrmSelectedNavBg,
-                                    unselectedIconColor = com.example.ui.theme.CrmTextSecondary,
-                                    unselectedTextColor = com.example.ui.theme.CrmTextSecondary
-                                ),
-                                modifier = Modifier.testTag("nav_tab_${tab.name.lowercase()}")
-                            )
+                                }
+                            }
                         }
                     }
                 }
             }
         },
-        containerColor = com.example.ui.theme.CrmBackground
+        containerColor = ColorScreenBackground
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(com.example.ui.theme.CrmBackground)
+                .background(ColorScreenBackground)
         ) {
             if (!licenseStatus.isSaveAllowed && licenseStatus !is LicenseStatus.NotAuthenticated) {
                 val (bgColor, textColor, borderColor) = when (licenseStatus) {
                     is LicenseStatus.PendingActivation, is LicenseStatus.DeviceLimitExceeded ->
-                        Triple(Color(0xFFFEF3C7), Color(0xFF92400E), Color(0xFFFDE68A))
+                        Triple(ColorAlertAmberTranslucent, ColorAlertAmber, ColorAlertAmber)
                     else ->
-                        Triple(Color(0xFFFEE2E2), Color(0xFF991B1B), Color(0xFFFECACA))
+                        Triple(ColorDangerRedTranslucent, ColorDangerRed, ColorDangerRed)
                 }
                 Surface(
                     color = bgColor,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+                    border = BorderStroke(1.dp, borderColor),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("license_status_banner")

@@ -79,6 +79,7 @@ import com.example.ui.theme.DarkEmeraldBorderLight
 import com.example.ui.theme.DarkEmeraldElevated
 import com.example.ui.theme.DarkEmeraldHeader
 import com.example.ui.theme.DarkEmeraldSurface
+import com.example.ui.theme.ColorDangerRed
 import com.example.ui.theme.RemoveRed
 import com.example.ui.theme.RemoveRedLight
 import com.example.ui.theme.TextLightMuted
@@ -124,7 +125,7 @@ fun LeadDetailsScreen(
                         text = stringResource(R.string.lead_details),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = TextLightPrimary
                     )
                 },
                 navigationIcon = {
@@ -135,7 +136,7 @@ fun LeadDetailsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = TextLightPrimary
                         )
                     }
                 },
@@ -147,7 +148,7 @@ fun LeadDetailsScreen(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = stringResource(R.string.edit_lead),
-                            tint = Color.White
+                            tint = TextLightPrimary
                         )
                     }
                     IconButton(
@@ -157,7 +158,7 @@ fun LeadDetailsScreen(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = stringResource(R.string.delete_lead),
-                            tint = Color(0xFFFCA5A5)
+                            tint = ColorDangerRed
                         )
                     }
                 },
