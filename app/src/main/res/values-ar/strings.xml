@@ -73,10 +73,6 @@
     <string name="conflicts_detected_count">تم اكتشاف %1$d تعارض</string>
     <string name="conflicts_found">تم العثور على %1$d تعارض</string>
     <string name="contact_list_clean">قائمة جهات الاتصال موثقة ولا تعارضات</string>
-    <string name="contact_name_prefix">بادئة اسم جهة الاتصال</string>
-    <string name="contact_name_prefix_desc">تُحفظ بصيغة [البادئة]-[الرقم] في الهاتف</string>
-    <string name="contact_name_prefix_sub">توليد: [البادئة]-[الرقم] (مثال: WA-Lead-+967...)</string>
-    <string name="contact_name_prefix_title">بادئة اسم جهة الاتصال</string>
     <string name="contacts_permission">إذن جهات الاتصال</string>
     <string name="contacts_permission_granted">تم منح إذن جهات الاتصال</string>
     <string name="contacts_permission_required">إذن جهات الاتصال مطلوب لحفظ الأرقام</string>
@@ -280,10 +276,6 @@
     <string name="phone_number_unavailable">رقم الهاتف غير متاح</string>
     <string name="pick_from_gallery">اختيار من المعرض</string>
     <string name="pick_gallery">اختيار صورة</string>
-    <string name="prefix_example_pill">مثال: %1$s-%2$s771234567</string>
-    <string name="prefix_saved">تم حفظ بادئة الاسم</string>
-    <string name="prefix_updated_short">تم تحديث بادئة الاسم</string>
-    <string name="prefix_updated_toast">تم تحديث بادئة الاسم إلى \'%1$s\'</string>
     <string name="preset_internal_line">خط الشركة الداخلي</string>
     <string name="preset_shortcode">رسائل الأرقام القصيرة</string>
     <string name="preset_toll_free">الدعم المجاني</string>
@@ -483,10 +475,6 @@
     <string name="admin_dialog_stop_title">توقيف حساب العميل</string>
     <string name="admin_customer_registered_at">تاريخ التسجيل</string>
     <string name="admin_devices_usage">الأجهزة</string>
-    <string name="settings_default_contact_name_title">اسم جهة الاتصال الافتراضي</string>
-    <string name="settings_default_contact_name_desc">الاسم المستخدم عند حفظ جهات الاتصال الجديدة</string>
-    <string name="settings_default_contact_name_empty_error">لا يمكن أن يكون اسم جهة الاتصال الافتراضي فارغاً</string>
-    <string name="settings_default_contact_name_invalid_error">اسم جهة اتصال غير صالح. لا يمكن استخدام أسماء تشير للنفس (\"أنت\"، \"أنا\") أو نصوص النظام.</string>
 
     <!-- Guest Mode, Account & Notification Access Dialog Strings (Arabic) -->
     <string name="auth_continue_as_guest">المتابعة واستكشاف التطبيق</string>

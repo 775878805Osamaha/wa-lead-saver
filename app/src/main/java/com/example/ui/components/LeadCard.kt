@@ -96,18 +96,23 @@ fun CrmLeadCard(
     onChangeStatusClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val status = LeadStatus.fromString(lead.status)
-    val tags = lead.getTagList()
+    val status = remember(lead.status) { LeadStatus.fromString(lead.status) }
+    val tags = remember(lead.tags) { lead.getTagList() }
+    val relativeTime = remember(lead.updatedAt, lead.createdAt) {
+        formatRelativeTime(lead.updatedAt.coerceAtLeast(lead.createdAt))
+    }
     var showMenu by remember { mutableStateOf(false) }
 
     // Status chip colors
-    val (statusBg, statusTextColor) = when (status) {
-        LeadStatus.NEW -> Pair(CrmPaleBlue, Color(0xFF1D4ED8))
-        LeadStatus.FOLLOW_UP -> Pair(Color(0xFFF3E8FF), Color(0xFF7E22CE))
-        LeadStatus.INTERESTED -> Pair(CrmPaleAmber, Color(0xFFB45309))
-        LeadStatus.SOLD -> Pair(CrmPaleEmerald, CrmPrimary)
-        LeadStatus.CONTACTED -> Pair(CrmPaleEmerald, Color(0xFF0F766E))
-        LeadStatus.NOT_INTERESTED -> Pair(Color(0xFFF1F5F9), Color(0xFF475569))
+    val (statusBg, statusTextColor) = remember(status) {
+        when (status) {
+            LeadStatus.NEW -> Pair(CrmPaleBlue, Color(0xFF1D4ED8))
+            LeadStatus.FOLLOW_UP -> Pair(Color(0xFFF3E8FF), Color(0xFF7E22CE))
+            LeadStatus.INTERESTED -> Pair(CrmPaleAmber, Color(0xFFB45309))
+            LeadStatus.SOLD -> Pair(CrmPaleEmerald, CrmPrimary)
+            LeadStatus.CONTACTED -> Pair(CrmPaleEmerald, Color(0xFF0F766E))
+            LeadStatus.NOT_INTERESTED -> Pair(Color(0xFFF1F5F9), Color(0xFF475569))
+        }
     }
 
     Card(
@@ -205,7 +210,7 @@ fun CrmLeadCard(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = formatRelativeTime(lead.updatedAt.coerceAtLeast(lead.createdAt)),
+                        text = relativeTime,
                         fontSize = 11.sp,
                         color = CrmTextMuted
                     )
@@ -565,6 +570,10 @@ fun LeadCard(
     }
 }
 
+private val relativeDateFormatter = ThreadLocal.withInitial {
+    SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
+}
+
 private fun formatRelativeTime(timestamp: Long): String {
     val diff = System.currentTimeMillis() - timestamp
     val seconds = diff / 1000
@@ -577,6 +586,6 @@ private fun formatRelativeTime(timestamp: Long): String {
         minutes < 60 -> "منذ $minutes دقيقة"
         hours < 24 -> "منذ $hours ساعة"
         days == 1L -> "أمس"
-        else -> SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(timestamp))
+        else -> relativeDateFormatter.get()?.format(Date(timestamp)).orEmpty()
     }
 }

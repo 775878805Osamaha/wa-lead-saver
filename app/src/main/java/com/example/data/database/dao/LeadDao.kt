@@ -4,12 +4,14 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.data.database.entity.LeadEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LeadDao {
+    @Transaction
     @Query("SELECT * FROM leads ORDER BY createdAt DESC, detectedAt DESC")
     fun getAllLeads(): Flow<List<LeadEntity>>
 
@@ -22,6 +24,7 @@ interface LeadDao {
     @Query("SELECT * FROM leads WHERE (normalizedNumber = :normalizedNumber OR phoneNumber = :phoneNumber) AND id != :excludeId LIMIT 1")
     suspend fun findDuplicateExcludingId(normalizedNumber: String, phoneNumber: String, excludeId: Long): LeadEntity?
 
+    @Transaction
     @Query("SELECT * FROM leads WHERE isSaved = 0 ORDER BY createdAt DESC, detectedAt DESC")
     fun getQueuedLeads(): Flow<List<LeadEntity>>
 
@@ -34,17 +37,23 @@ interface LeadDao {
     @Query("SELECT COUNT(*) FROM leads WHERE isSaved = 0")
     fun getQueueCount(): Flow<Int>
 
+    @Transaction
     @Query("SELECT * FROM leads WHERE isSaved = 0 ORDER BY createdAt DESC, detectedAt DESC")
     suspend fun getQueuedLeadsSnapshot(): List<LeadEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLead(lead: LeadEntity): Long
 
+    @Transaction
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLeads(leads: List<LeadEntity>): List<Long>
 
     @Update
     suspend fun updateLead(lead: LeadEntity)
+
+    @Transaction
+    @Update
+    suspend fun updateLeads(leads: List<LeadEntity>)
 
     @Query("UPDATE leads SET status = :status, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateLeadStatus(id: Long, status: String, updatedAt: Long)

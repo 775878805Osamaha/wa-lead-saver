@@ -80,10 +80,6 @@
     <string name="conflicts_detected_count">%1$d conflicts detected</string>
     <string name="conflicts_found">%1$d Conflicts Found</string>
     <string name="contact_list_clean">Contact list is verified and merged</string>
-    <string name="contact_name_prefix">Contact Name Prefix</string>
-    <string name="contact_name_prefix_desc">Saved as [Prefix]-[Number] in Contacts</string>
-    <string name="contact_name_prefix_sub">Generates: [Prefix]-[Number] (e.g. WA-Lead-+967...)</string>
-    <string name="contact_name_prefix_title">Default Contact Prefix</string>
     <string name="contacts_permission">Contacts Permission</string>
     <string name="contacts_permission_granted">Contacts permission granted</string>
     <string name="contacts_permission_required">Contacts permission is required to save leads</string>
@@ -287,10 +283,6 @@
     <string name="phone_number_unavailable">Phone number unavailable</string>
     <string name="pick_from_gallery">Pick from Gallery</string>
     <string name="pick_gallery">Select Image</string>
-    <string name="prefix_example_pill">Example: %1$s-%2$s771234567</string>
-    <string name="prefix_saved">Contact prefix saved</string>
-    <string name="prefix_updated_short">Prefix updated</string>
-    <string name="prefix_updated_toast">Prefix updated to \'%1$s\'</string>
     <string name="preset_internal_line">Internal Company Line</string>
     <string name="preset_shortcode">Shortcode SMS</string>
     <string name="preset_toll_free">Toll-Free Support</string>
@@ -490,11 +482,6 @@
     <string name="admin_dialog_stop_title">Stop Customer Account</string>
     <string name="admin_customer_registered_at">Registered</string>
     <string name="admin_devices_usage">Devices</string>
-    <string name="settings_default_contact_name_title">Default Contact Name</string>
-    <string name="settings_default_contact_name_desc">Name used when saving new leads to Contacts</string>
-    <string name="settings_default_contact_name_placeholder">e.g. زبون متجر أومكس or OMX Customer</string>
-    <string name="settings_default_contact_name_empty_error">Default Contact Name cannot be empty</string>
-    <string name="settings_default_contact_name_invalid_error">Invalid contact name. Cannot be self-referential (\"You\", \"Me\") or system text.</string>
 
     <!-- Guest Mode, Account & Notification Access Dialog Strings -->
     <string name="auth_continue_as_guest">Continue without Account</string>

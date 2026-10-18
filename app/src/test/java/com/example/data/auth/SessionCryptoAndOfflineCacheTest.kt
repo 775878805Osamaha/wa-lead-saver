@@ -246,19 +246,18 @@ class SessionCryptoAndOfflineCacheTest {
     @Test
     fun testExistingAppDataNotDeletedWhenCorruptSessionCleared() = runBlocking {
         val settingsDataStore = com.example.data.datastore.SettingsDataStore(context)
-        val setResult = settingsDataStore.setDefaultContactName("زبون متجر أومكس المميز")
-        assertTrue(setResult.isSuccess)
+        settingsDataStore.setCountryCode("+966")
 
         // Check that settings are saved
         val initialSettings = settingsDataStore.settingsFlow.first()
-        assertEquals("زبون متجر أومكس المميز", initialSettings.defaultContactName)
+        assertEquals("+966", initialSettings.countryCode)
 
         // Now simulate a corrupt session cleanup
         sessionManager.clearInvalidSessionPayload()
 
         // Verify app settings and database data are completely preserved
         val settingsAfterSessionClean = settingsDataStore.settingsFlow.first()
-        assertEquals("زبون متجر أومكس المميز", settingsAfterSessionClean.defaultContactName)
+        assertEquals("+966", settingsAfterSessionClean.countryCode)
     }
 
     @Test

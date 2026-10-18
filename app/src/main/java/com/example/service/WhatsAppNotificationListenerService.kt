@@ -19,12 +19,19 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
     private lateinit var settingsDataStore: SettingsDataStore
     private lateinit var repository: LeadRepository
 
+    private val cachedSettings = java.util.concurrent.atomic.AtomicReference(com.example.data.datastore.AppSettings())
+
     override fun onCreate() {
         super.onCreate()
         val appCtx = applicationContext
         val database = AppDatabase.getDatabase(appCtx)
         settingsDataStore = SettingsDataStore(appCtx)
         repository = LeadRepository(appCtx, database, settingsDataStore)
+        serviceScope.launch {
+            settingsDataStore.settingsFlow.collect { settings ->
+                cachedSettings.set(settings)
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -45,14 +52,16 @@ class WhatsAppNotificationListenerService : NotificationListenerService() {
 
         val source = if (isBusinessWhatsApp) "WhatsApp Business" else "WhatsApp"
 
+        val currentSettings = cachedSettings.get()
+        if (isStandardWhatsApp && !currentSettings.monitorWhatsApp) {
+            return
+        }
+        if (isBusinessWhatsApp && !currentSettings.monitorWhatsAppBusiness) {
+            return
+        }
+
         serviceScope.launch {
-            val settings = settingsDataStore.settingsFlow.first()
-            if (isStandardWhatsApp && !settings.monitorWhatsApp) {
-                return@launch
-            }
-            if (isBusinessWhatsApp && !settings.monitorWhatsAppBusiness) {
-                return@launch
-            }
+            val settings = cachedSettings.get()
 
             val notification = sbn.notification ?: return@launch
             val extras = notification.extras ?: return@launch

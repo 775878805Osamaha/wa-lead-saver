@@ -231,6 +231,8 @@ fun MainScreen(
     val scannedNumbers by viewModel.scannedNumbers.collectAsStateWithLifecycle(emptyList())
     val isProcessingScan by viewModel.isProcessingScan.collectAsStateWithLifecycle(false)
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle(false)
+    val isSavingLeads by viewModel.isSavingLeads.collectAsStateWithLifecycle(false)
+    val saveProgress by viewModel.saveProgress.collectAsStateWithLifecycle(null)
     val licenseStatus by viewModel.licenseStatus.collectAsStateWithLifecycle(LicenseStatus.Active)
     val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
 
@@ -494,6 +496,8 @@ fun MainScreen(
                     onClearAll = {
                         viewModel.clearQueue()
                     },
+                    isSaving = isSavingLeads,
+                    saveProgress = saveProgress,
                     onToggleClassification = { lead, isConfirmed ->
                         viewModel.updateLeadClassification(
                             lead.id,
@@ -533,7 +537,6 @@ fun MainScreen(
                             onViewAuditLog = { currentTab = AppTab.HISTORY },
                             onOpenSaveExistingContacts = { showSaveExistingDialog = true },
                             onSnapAndSave = { showPhotoScanDialog = true },
-                            onPrefixChange = { viewModel.setContactPrefix(it) },
                             onAutoSaveChange = { enabled ->
                                 if (enabled && !isListenerActive) {
                                     showNotificationPermissionDialog = true
@@ -617,9 +620,7 @@ fun MainScreen(
                             viewModel.setMonitorWhatsAppBusiness(enabled)
                         },
                         onIgnoreGroupMessagesChange = { viewModel.setIgnoreGroupMessages(it) },
-                        onPrefixChange = { viewModel.setContactPrefix(it) },
                         onCountryCodeChange = { viewModel.setCountryCode(it) },
-                        onDefaultContactNameChange = { viewModel.setDefaultContactName(it) },
                         onRequestContactsPermission = {
                             permissionLauncher.launch(permissionsToRequest.toTypedArray())
                         },
@@ -629,7 +630,10 @@ fun MainScreen(
                             showLoginDialog = true
                         },
                         onOpenAdmin = onOpenAdminDashboard,
-                        onLogout = { authViewModel?.logout() }
+                        onLogout = { authViewModel?.logout() },
+                        isNotificationListenerActiveState = isListenerActive,
+                        hasContactsPermissionState = hasContactsPermission,
+                        isBatteryOptimizationIgnoredState = isBatteryIgnored
                     )
                 }
             }

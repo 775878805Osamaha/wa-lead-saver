@@ -14,11 +14,15 @@ import com.example.data.model.LeadSource
 import com.example.data.model.LeadStatus
 import com.example.data.datastore.AppSettings
 import com.example.data.datastore.SettingsDataStore
+import com.example.util.ContactNamingHelper
 import com.example.util.ContactsHelper
 import com.example.util.PhoneNumberHelper
+import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 sealed class ProcessResult {
     data class Queued(val number: String) : ProcessResult()
@@ -132,12 +136,6 @@ class LeadRepository(
         return !licenseManager.isSaveAllowedSync()
     }
 
-    suspend fun getEffectiveDefaultContactName(): String {
-        val currentSettings = settings.first()
-        return currentSettings.defaultContactName.takeIf { it.isNotBlank() }
-            ?: AppSettings.DEFAULT_CONTACT_NAME
-    }
-
     suspend fun processCaptureEvaluation(evaluation: CaptureEvaluation): ProcessResult {
         return when (evaluation) {
             is CaptureEvaluation.Excluded -> {
@@ -191,7 +189,7 @@ class LeadRepository(
     ): ProcessResult {
         val currentSettings = settings.first()
         val normalized = PhoneNumberHelper.normalize(rawCandidate, currentSettings.countryCode)
-        val contactName = getEffectiveDefaultContactName()
+        val contactName = ContactNamingHelper.generateContactName(normalized)
 
         val license = licenseManager.checkLicense()
         if (!license.isSaveAllowed) {
@@ -393,7 +391,7 @@ class LeadRepository(
         }
     }
 
-    suspend fun saveLead(lead: LeadEntity): SaveLeadResult {
+    suspend fun saveLead(lead: LeadEntity): SaveLeadResult = withContext(Dispatchers.IO) {
         val license = licenseManager.checkLicense()
         if (!license.isSaveAllowed) {
             val errMsg = when (license) {
@@ -404,15 +402,16 @@ class LeadRepository(
                 is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
                 else -> "عملية الحفظ غير مصرح بها."
             }
-            return SaveLeadResult.LicenseBlocked(errMsg)
+            return@withContext SaveLeadResult.LicenseBlocked(errMsg)
         }
 
         if (!ContactsHelper.hasWritePermission(context)) {
-            return SaveLeadResult.MissingPermission
+            return@withContext SaveLeadResult.MissingPermission
         }
 
-        val contactName = getEffectiveDefaultContactName()
-        if (ContactsHelper.contactExists(context, lead.normalizedNumber)) {
+        val contactName = ContactNamingHelper.generateContactName(lead.normalizedNumber)
+        val existingInDb = if (lead.id > 0) leadDao.getLeadById(lead.id) else null
+        if (lead.isSaved || existingInDb?.isSaved == true || ContactsHelper.contactExists(context, lead.normalizedNumber)) {
             leadDao.markAsSavedWithName(lead.id, contactName)
             recordHistory(
                 phoneNumber = lead.normalizedNumber,
@@ -421,11 +420,12 @@ class LeadRepository(
                 status = "Duplicate",
                 details = "Found existing contact during manual save"
             )
-            return SaveLeadResult.Duplicate
+            return@withContext SaveLeadResult.Duplicate
         }
 
-        val result = ContactsHelper.saveContact(context, contactName, lead.normalizedNumber)
-        return if (result.isSuccess && result.getOrNull() == true) {
+        // skipDuplicateCheck = true because contactExists was already confirmed false right above
+        val result = ContactsHelper.saveContact(context, contactName, lead.normalizedNumber, skipDuplicateCheck = true)
+        return@withContext if (result.isSuccess && result.getOrNull() == true) {
             leadDao.markAsSavedWithName(lead.id, contactName)
             recordHistory(
                 phoneNumber = lead.normalizedNumber,
@@ -448,7 +448,7 @@ class LeadRepository(
         }
     }
 
-    suspend fun saveAllQueued(): BatchSaveResult {
+    suspend fun saveAllQueued(onProgress: ((current: Int, total: Int) -> Unit)? = null): BatchSaveResult = withContext(Dispatchers.IO) {
         val license = licenseManager.checkLicense()
         if (!license.isSaveAllowed) {
             val errMsg = when (license) {
@@ -459,55 +459,163 @@ class LeadRepository(
                 is com.example.data.auth.LicenseStatus.NotAuthenticated -> license.message
                 else -> "عملية الحفظ غير مصرح بها."
             }
-            return BatchSaveResult(0, 0, false, isStopped = true, blockedMessage = errMsg)
+            return@withContext BatchSaveResult(0, 0, false, isStopped = true, blockedMessage = errMsg)
         }
 
         if (!ContactsHelper.hasWritePermission(context)) {
-            return BatchSaveResult(0, 0, true)
+            return@withContext BatchSaveResult(0, 0, true)
         }
 
         val queued = leadDao.getQueuedLeadsSnapshot()
-        var savedCount = 0
-        var duplicateCount = 0
-        val contactName = getEffectiveDefaultContactName()
+        if (queued.isEmpty()) {
+            return@withContext BatchSaveResult(0, 0, false)
+        }
+
+        val total = queued.size
+        var currentProgress = 0
+        onProgress?.invoke(0, total)
+
+        val existingNumbers = ContactsHelper.findExistingNumbers(context, queued.map { it.normalizedNumber })
+        val leadsToSave = mutableListOf<Triple<LeadEntity, String, String>>() // (lead, contactName, normalized)
+        val duplicates = mutableListOf<Pair<LeadEntity, String>>() // (lead, contactName)
 
         for (lead in queued) {
-            if (ContactsHelper.contactExists(context, lead.normalizedNumber)) {
-                leadDao.markAsSavedWithName(lead.id, contactName)
-                recordHistory(
+            val contactName = ContactNamingHelper.generateContactName(lead.normalizedNumber)
+            if (existingNumbers.contains(lead.normalizedNumber) || ContactsHelper.contactExists(context, lead.normalizedNumber)) {
+                duplicates.add(lead to contactName)
+            } else {
+                leadsToSave.add(Triple(lead, contactName, lead.normalizedNumber))
+            }
+        }
+
+        var savedCount = 0
+        val duplicateCount = duplicates.size
+        val historyRecords = mutableListOf<HistoryEntity>()
+        val leadsToUpdate = mutableListOf<LeadEntity>()
+        val now = System.currentTimeMillis()
+
+        // Batch duplicate records
+        for ((lead, contactName) in duplicates) {
+            leadsToUpdate.add(
+                lead.copy(
+                    isSaved = true,
+                    status = "SAVED",
+                    contactName = contactName,
+                    displayName = contactName,
+                    updatedAt = now
+                )
+            )
+            historyRecords.add(
+                HistoryEntity(
                     phoneNumber = lead.normalizedNumber,
                     contactName = contactName,
                     source = lead.source,
                     status = "Duplicate",
                     details = "Found existing contact during bulk save"
                 )
-                duplicateCount++
-            } else {
-                val res = ContactsHelper.saveContact(context, contactName, lead.normalizedNumber)
-                if (res.isSuccess && res.getOrNull() == true) {
-                    leadDao.markAsSavedWithName(lead.id, contactName)
-                    recordHistory(
-                        phoneNumber = lead.normalizedNumber,
-                        contactName = contactName,
-                        source = lead.source,
-                        status = "Saved",
-                        details = "Bulk saved to Contacts"
+            )
+            currentProgress++
+            onProgress?.invoke(currentProgress, total)
+        }
+
+        // Batch save new contacts to ContactsProvider
+        if (leadsToSave.isNotEmpty()) {
+            val contactsList = leadsToSave.map { it.second to it.third }
+            val batchResult = ContactsHelper.saveContactsBatch(context, contactsList)
+            if (batchResult.isSuccess && batchResult.getOrDefault(0) > 0) {
+                val successfulCount = batchResult.getOrDefault(0)
+                for (i in 0 until minOf(successfulCount, leadsToSave.size)) {
+                    val (lead, contactName, _) = leadsToSave[i]
+                    leadsToUpdate.add(
+                        lead.copy(
+                            isSaved = true,
+                            status = "SAVED",
+                            contactName = contactName,
+                            displayName = contactName,
+                            updatedAt = now
+                        )
+                    )
+                    historyRecords.add(
+                        HistoryEntity(
+                            phoneNumber = lead.normalizedNumber,
+                            contactName = contactName,
+                            source = lead.source,
+                            status = "Saved",
+                            details = "Bulk saved to Contacts"
+                        )
                     )
                     savedCount++
-                } else {
-                    val err = res.exceptionOrNull()?.message ?: "Bulk save failed"
-                    recordHistory(
-                        phoneNumber = lead.normalizedNumber,
-                        contactName = contactName,
-                        source = lead.source,
-                        status = "Failed",
-                        details = err
+                    currentProgress++
+                    onProgress?.invoke(currentProgress, total)
+                }
+                for (i in successfulCount until leadsToSave.size) {
+                    val (lead, contactName, _) = leadsToSave[i]
+                    historyRecords.add(
+                        HistoryEntity(
+                            phoneNumber = lead.normalizedNumber,
+                            contactName = contactName,
+                            source = lead.source,
+                            status = "Failed",
+                            details = "Bulk save failed for this contact"
+                        )
                     )
+                    currentProgress++
+                    onProgress?.invoke(currentProgress, total)
+                }
+            } else {
+                // Fallback: Individual save with skipDuplicateCheck
+                for ((lead, contactName, normalized) in leadsToSave) {
+                    val res = ContactsHelper.saveContact(context, contactName, normalized, skipDuplicateCheck = true)
+                    if (res.isSuccess && res.getOrNull() == true) {
+                        leadsToUpdate.add(
+                            lead.copy(
+                                isSaved = true,
+                                status = "SAVED",
+                                contactName = contactName,
+                                displayName = contactName,
+                                updatedAt = now
+                            )
+                        )
+                        historyRecords.add(
+                            HistoryEntity(
+                                phoneNumber = lead.normalizedNumber,
+                                contactName = contactName,
+                                source = lead.source,
+                                status = "Saved",
+                                details = "Bulk saved to Contacts"
+                            )
+                        )
+                        savedCount++
+                    } else {
+                        val err = res.exceptionOrNull()?.message ?: "Bulk save failed"
+                        historyRecords.add(
+                            HistoryEntity(
+                                phoneNumber = lead.normalizedNumber,
+                                contactName = contactName,
+                                source = lead.source,
+                                status = "Failed",
+                                details = err
+                            )
+                        )
+                    }
+                    currentProgress++
+                    onProgress?.invoke(currentProgress, total)
                 }
             }
         }
 
-        return BatchSaveResult(savedCount, duplicateCount, false)
+        // Apply all database updates in a single atomic Room transaction
+        database.withTransaction {
+            if (leadsToUpdate.isNotEmpty()) {
+                leadDao.updateLeads(leadsToUpdate)
+            }
+            if (historyRecords.isNotEmpty()) {
+                historyDao.insertHistoryList(historyRecords)
+            }
+        }
+
+        onProgress?.invoke(total, total)
+        return@withContext BatchSaveResult(savedCount, duplicateCount, false)
     }
 
     suspend fun removeLead(lead: LeadEntity) {
@@ -563,16 +671,8 @@ class LeadRepository(
         settingsDataStore.setIgnoreGroupMessages(enabled)
     }
 
-    suspend fun setContactPrefix(prefix: String) {
-        settingsDataStore.setContactPrefix(prefix)
-    }
-
     suspend fun setCountryCode(countryCode: String) {
         settingsDataStore.setCountryCode(countryCode)
-    }
-
-    suspend fun setDefaultContactName(name: String): Result<Unit> {
-        return settingsDataStore.setDefaultContactName(name)
     }
 
     suspend fun createLead(
@@ -607,7 +707,7 @@ class LeadRepository(
             return Result.failure(IllegalStateException("رقم الهاتف مسجل بالفعل"))
         }
 
-        val effectiveName = displayName.trim().ifBlank { getEffectiveDefaultContactName() }
+        val effectiveName = displayName.trim().ifBlank { ContactNamingHelper.generateContactName(normalized) }
         val now = System.currentTimeMillis()
         val newLead = LeadEntity(
             phoneNumber = phoneNumber.trim(),

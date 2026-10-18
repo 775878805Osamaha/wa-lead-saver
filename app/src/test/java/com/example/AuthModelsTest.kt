@@ -94,10 +94,9 @@ class AuthModelsTest {
     }
 
     @Test
-    fun testDefaultContactNameRemainsConfigurableWithCorrectDefault() {
-        assertEquals("زبون متجر أومكس", com.example.data.datastore.AppSettings.DEFAULT_CONTACT_NAME)
-        val defaultSettings = com.example.data.datastore.AppSettings()
-        assertEquals("زبون متجر أومكس", defaultSettings.defaultContactName)
+    fun testUnifiedContactNamingStandard() {
+        val generated = com.example.util.ContactNamingHelper.generateContactName("+967771390131")
+        assertEquals("زبون +967771390131", generated)
     }
 
     @Test

@@ -23,11 +23,13 @@ import com.example.util.WhatsAppHelper
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -126,7 +128,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             SortOrder.LAST_CONTACTED -> list.sortedByDescending { it.lastContactAt ?: 0L }
             SortOrder.NAME_AZ -> list.sortedBy { it.effectiveName.lowercase() }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+    }.flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val totalSavedCount: StateFlow<Int> = repository.totalSavedCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
@@ -159,7 +162,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 it.status.contains("unavailable", ignoreCase = true)
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+    }.flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val settings: StateFlow<AppSettings> = repository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AppSettings())
@@ -219,35 +223,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _isSavingLeads = MutableStateFlow(false)
+    val isSavingLeads: StateFlow<Boolean> = _isSavingLeads.asStateFlow()
+
+    private val _saveProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+    val saveProgress: StateFlow<Pair<Int, Int>?> = _saveProgress.asStateFlow()
+
     fun clearUserMessage() {
         _userMessage.value = null
     }
 
     fun saveLead(lead: LeadEntity) {
+        if (_isSavingLeads.value) return
         viewModelScope.launch {
-            when (val res = repository.saveLead(lead)) {
-                is SaveLeadResult.Success -> _userMessage.value = "Contact saved successfully"
-                is SaveLeadResult.Duplicate -> _userMessage.value = "Contact already exists"
-                is SaveLeadResult.MissingPermission -> _userMessage.value = "Contacts permission required to save contacts"
-                is SaveLeadResult.Failed -> _userMessage.value = "Failed to save contact"
-                is SaveLeadResult.AccountStopped -> _userMessage.value = res.message
-                is SaveLeadResult.LicenseBlocked -> _userMessage.value = res.message
+            _isSavingLeads.value = true
+            try {
+                when (val res = repository.saveLead(lead)) {
+                    is SaveLeadResult.Success -> _userMessage.value = "Contact saved successfully"
+                    is SaveLeadResult.Duplicate -> _userMessage.value = "Contact already exists"
+                    is SaveLeadResult.MissingPermission -> _userMessage.value = "Contacts permission required to save contacts"
+                    is SaveLeadResult.Failed -> _userMessage.value = "Failed to save contact"
+                    is SaveLeadResult.AccountStopped -> _userMessage.value = res.message
+                    is SaveLeadResult.LicenseBlocked -> _userMessage.value = res.message
+                }
+            } finally {
+                _isSavingLeads.value = false
+                refreshStatuses()
             }
-            refreshStatuses()
         }
     }
 
     fun saveAllQueued() {
+        if (_isSavingLeads.value) return
         viewModelScope.launch {
-            val result = repository.saveAllQueued()
-            if (result.isStopped) {
-                _userMessage.value = result.blockedMessage ?: "الحساب متوقف من الإدارة."
-            } else if (result.missingPermission) {
-                _userMessage.value = "Contacts permission required to save contacts"
-            } else {
-                _userMessage.value = "Saved ${result.savedCount} leads. Skipped ${result.duplicateCount} duplicates."
+            _isSavingLeads.value = true
+            _saveProgress.value = Pair(0, 0)
+            try {
+                val result = repository.saveAllQueued { current, total ->
+                    _saveProgress.value = Pair(current, total)
+                }
+                if (result.isStopped) {
+                    _userMessage.value = result.blockedMessage ?: "الحساب متوقف من الإدارة."
+                } else if (result.missingPermission) {
+                    _userMessage.value = "Contacts permission required to save contacts"
+                } else {
+                    _userMessage.value = "Saved ${result.savedCount} leads. Skipped ${result.duplicateCount} duplicates."
+                }
+            } finally {
+                _isSavingLeads.value = false
+                _saveProgress.value = null
+                refreshStatuses()
             }
-            refreshStatuses()
         }
     }
 
@@ -295,24 +321,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setContactPrefix(prefix: String) {
-        viewModelScope.launch {
-            repository.setContactPrefix(prefix)
-        }
-    }
-
     fun setCountryCode(countryCode: String) {
         viewModelScope.launch {
             repository.setCountryCode(countryCode)
-        }
-    }
-
-    fun setDefaultContactName(name: String) {
-        viewModelScope.launch {
-            val result = repository.setDefaultContactName(name)
-            if (result.isFailure) {
-                _userMessage.value = result.exceptionOrNull()?.message ?: "Invalid contact name"
-            }
         }
     }
 

@@ -25,7 +25,6 @@ import com.example.data.datastore.AppSettings
 import com.example.data.model.CaptureStats
 import com.example.ui.components.AutoSaveLeadsCard
 import com.example.ui.components.CaptureAccuracyDashboard
-import com.example.ui.components.ContactPrefixCard
 import com.example.ui.components.DiagnosticAuditLogCard
 import com.example.ui.components.NotificationStatusCard
 import com.example.ui.components.RecentActivityCard
@@ -64,7 +63,6 @@ fun DashboardScreen(
     onViewAuditLog: () -> Unit = {},
     onOpenSaveExistingContacts: () -> Unit,
     onSnapAndSave: () -> Unit,
-    onPrefixChange: (String) -> Unit,
     onAutoSaveChange: (Boolean) -> Unit,
     onSimulateIncomingLead: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -139,13 +137,6 @@ fun DashboardScreen(
             // 3. Diagnostic / Audit Log
             DiagnosticAuditLogCard(
                 onClick = onViewAuditLog
-            )
-
-            // Prefix Configuration Card
-            ContactPrefixCard(
-                currentPrefix = settings.contactPrefix,
-                countryCode = settings.countryCode,
-                onPrefixChange = onPrefixChange
             )
 
             // Auto-Save Configuration Card

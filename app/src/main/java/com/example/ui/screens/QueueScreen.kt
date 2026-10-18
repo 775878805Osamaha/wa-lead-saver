@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,11 +64,13 @@ fun QueueScreen(
     onEditLeadName: (LeadEntity) -> Unit,
     onSaveAll: () -> Unit,
     onClearAll: () -> Unit,
+    isSaving: Boolean = false,
+    saveProgress: Pair<Int, Int>? = null,
     onToggleClassification: ((LeadEntity, Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val confirmedCount = queuedLeads.count { !it.tags.contains("NEEDS_REVIEW") }
-    val needsReviewCount = queuedLeads.count { it.tags.contains("NEEDS_REVIEW") }
+    val confirmedCount = remember(queuedLeads) { queuedLeads.count { !it.tags.contains("NEEDS_REVIEW") } }
+    val needsReviewCount = remember(queuedLeads) { queuedLeads.count { it.tags.contains("NEEDS_REVIEW") } }
 
     Column(
         modifier = modifier
@@ -201,66 +204,109 @@ fun QueueScreen(
                 color = DarkEmeraldSurface,
                 border = BorderStroke(1.dp, DarkEmeraldBorder)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Button(
-                        onClick = onSaveAll,
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(50.dp)
-                            .testTag("button_save_all"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = WhatsAppGreen,
-                            contentColor = Color.White
+                    if (isSaving && saveProgress != null && saveProgress.second > 0) {
+                        val progressFraction = saveProgress.first.toFloat() / saveProgress.second.toFloat()
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { progressFraction.coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = WhatsAppGreen,
+                            trackColor = DarkEmeraldElevated
                         )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Save All (${queuedLeads.size})",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    Button(
-                        onClick = onClearAll,
-                        modifier = Modifier
-                            .weight(1.0f)
-                            .height(50.dp)
-                            .testTag("button_clear_all"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = RemoveRedLight,
-                            contentColor = RemoveRed
-                        ),
-                        border = BorderStroke(1.dp, RemoveRed.copy(alpha = 0.5f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = RemoveRed
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Clear All",
-                            color = RemoveRed,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Button(
+                            onClick = onSaveAll,
+                            enabled = !isSaving,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(50.dp)
+                                .testTag("button_save_all"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = WhatsAppGreen,
+                                contentColor = Color.White,
+                                disabledContainerColor = WhatsAppGreen.copy(alpha = 0.5f),
+                                disabledContentColor = Color.White.copy(alpha = 0.7f)
+                            )
+                        ) {
+                            if (isSaving) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (saveProgress != null && saveProgress.second > 0) {
+                                        "Saving (${saveProgress.first}/${saveProgress.second})..."
+                                    } else {
+                                        "Saving..."
+                                    },
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Save,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Save All (${queuedLeads.size})",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = onClearAll,
+                            enabled = !isSaving,
+                            modifier = Modifier
+                                .weight(1.0f)
+                                .height(50.dp)
+                                .testTag("button_clear_all"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = RemoveRedLight,
+                                contentColor = RemoveRed,
+                                disabledContainerColor = RemoveRedLight.copy(alpha = 0.5f),
+                                disabledContentColor = RemoveRed.copy(alpha = 0.5f)
+                            ),
+                            border = BorderStroke(1.dp, RemoveRed.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = RemoveRed
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Clear All",
+                                color = RemoveRed,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

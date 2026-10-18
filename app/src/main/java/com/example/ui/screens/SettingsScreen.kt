@@ -84,7 +84,6 @@ import com.example.ui.theme.CrmTextMuted
 import com.example.ui.theme.CrmTextPrimary
 import com.example.ui.theme.CrmTextSecondary
 import com.example.ui.theme.CrmWarning
-import com.example.util.ContactNameValidator
 import com.example.util.PermissionHelper
 
 /**
@@ -105,45 +104,49 @@ fun SettingsScreen(
     onMonitorWhatsAppChange: (Boolean) -> Unit,
     onMonitorWhatsAppBusinessChange: (Boolean) -> Unit,
     onIgnoreGroupMessagesChange: (Boolean) -> Unit = {},
-    onPrefixChange: (String) -> Unit,
     onCountryCodeChange: (String) -> Unit,
-    onDefaultContactNameChange: (String) -> Unit = {},
     onRequestContactsPermission: () -> Unit,
     onOpenSamsungGuide: () -> Unit,
     onOpenLogin: () -> Unit = {},
     onOpenAdmin: () -> Unit = {},
     onLogout: () -> Unit = {},
+    isNotificationListenerActiveState: Boolean? = null,
+    hasContactsPermissionState: Boolean? = null,
+    isBatteryOptimizationIgnoredState: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var isNotificationListenerActive by remember {
+    var isNotificationListenerActiveLocal by remember {
         mutableStateOf(PermissionHelper.isNotificationListenerEnabled(context))
     }
-    var hasContactsPermission by remember {
+    var hasContactsPermissionLocal by remember {
         mutableStateOf(PermissionHelper.hasContactsPermission(context))
     }
-    var isBatteryOptimizationIgnored by remember {
+    var isBatteryOptimizationIgnoredLocal by remember {
         mutableStateOf(PermissionHelper.isBatteryOptimizationIgnored(context))
     }
 
-    var prefixInput by remember(settings.contactPrefix) {
-        mutableStateOf(settings.contactPrefix)
-    }
+    val isNotificationListenerActive = isNotificationListenerActiveState ?: isNotificationListenerActiveLocal
+    val hasContactsPermission = hasContactsPermissionState ?: hasContactsPermissionLocal
+    val isBatteryOptimizationIgnored = isBatteryOptimizationIgnoredState ?: isBatteryOptimizationIgnoredLocal
+
     var countryCodeInput by remember(settings.countryCode) {
         mutableStateOf(settings.countryCode)
     }
-    var defaultContactNameInput by remember(settings.defaultContactName) {
-        mutableStateOf(settings.defaultContactName)
-    }
-    var defaultContactNameError by remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                isNotificationListenerActive = PermissionHelper.isNotificationListenerEnabled(context)
-                hasContactsPermission = PermissionHelper.hasContactsPermission(context)
-                isBatteryOptimizationIgnored = PermissionHelper.isBatteryOptimizationIgnored(context)
+                if (isNotificationListenerActiveState == null) {
+                    isNotificationListenerActiveLocal = PermissionHelper.isNotificationListenerEnabled(context)
+                }
+                if (hasContactsPermissionState == null) {
+                    hasContactsPermissionLocal = PermissionHelper.hasContactsPermission(context)
+                }
+                if (isBatteryOptimizationIgnoredState == null) {
+                    isBatteryOptimizationIgnoredLocal = PermissionHelper.isBatteryOptimizationIgnored(context)
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -245,11 +248,11 @@ fun SettingsScreen(
         }
 
         // ==========================================
-        // 2. CONTACT NAMING & NORMALIZATION CARD
+        // 2. NORMALIZATION CARD
         // ==========================================
         SettingsSectionHeader(
-            titleAr = "تسمية جهات الاتصال والتهيئة",
-            titleEn = "Contact Naming & Normalization"
+            titleAr = "تهيئة الأرقام ورمز الدولة",
+            titleEn = "Number Normalization"
         )
 
         Card(
@@ -260,170 +263,7 @@ fun SettingsScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Option 1: Default Contact Name
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(CrmPaleBlue),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = CrmInfoBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_default_contact_name_title),
-                            color = CrmTextPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_default_contact_name_desc),
-                            color = CrmTextSecondary,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = defaultContactNameInput,
-                        onValueChange = {
-                            defaultContactNameInput = it
-                            if (defaultContactNameError != null) defaultContactNameError = null
-                        },
-                        placeholder = {
-                            Text(stringResource(R.string.settings_default_contact_name_placeholder), color = CrmTextMuted, fontSize = 13.sp)
-                        },
-                        isError = defaultContactNameError != null,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = CrmTextPrimary,
-                            unfocusedTextColor = CrmTextPrimary,
-                            focusedBorderColor = CrmPrimary,
-                            unfocusedBorderColor = CrmBorder,
-                            focusedContainerColor = CrmCardSurface,
-                            unfocusedContainerColor = CrmCardSurface
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("settings_input_default_contact_name"),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val trimmed = defaultContactNameInput.trim()
-                            if (trimmed.isEmpty()) {
-                                defaultContactNameError = context.getString(R.string.settings_default_contact_name_empty_error)
-                            } else if (!ContactNameValidator.isValid(trimmed)) {
-                                defaultContactNameError = context.getString(R.string.settings_default_contact_name_invalid_error)
-                            } else {
-                                defaultContactNameError = null
-                                onDefaultContactNameChange(trimmed)
-                            }
-                        },
-                        modifier = Modifier.testTag("settings_save_default_contact_name_btn"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = CrmPrimary,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("حفظ", fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                if (defaultContactNameError != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = defaultContactNameError ?: "",
-                        color = CrmDanger,
-                        fontSize = 11.sp,
-                        modifier = Modifier.testTag("settings_default_contact_name_error")
-                    )
-                }
-
-                HorizontalDivider(color = CrmBorder, thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
-
-                // Option 2: Contact Name Prefix
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(CrmPaleEmerald),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = null,
-                            tint = CrmPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "بادئة اسم جهة الاتصال",
-                            color = CrmTextPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "تنشئ الاسم بصيغة: [البادئة]-[الرقم] (مثال: WA-Lead-+967...)",
-                            color = CrmTextSecondary,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = prefixInput,
-                        onValueChange = { prefixInput = it },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = CrmTextPrimary,
-                            unfocusedTextColor = CrmTextPrimary,
-                            focusedBorderColor = CrmPrimary,
-                            unfocusedBorderColor = CrmBorder,
-                            focusedContainerColor = CrmCardSurface,
-                            unfocusedContainerColor = CrmCardSurface
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("settings_input_prefix"),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { onPrefixChange(prefixInput) },
-                        modifier = Modifier.testTag("settings_save_prefix_btn"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = CrmPrimary,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("حفظ", fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                HorizontalDivider(color = CrmBorder, thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
-
-                // Option 3: Country Code Normalization
+                // Country Code Normalization
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
