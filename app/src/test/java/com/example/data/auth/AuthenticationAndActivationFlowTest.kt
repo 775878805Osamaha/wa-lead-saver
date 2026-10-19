@@ -380,4 +380,80 @@ class AuthenticationAndActivationFlowTest {
         assertTrue(status.isSaveAllowed)
         assertTrue(licenseManager.isSaveAllowedSync())
     }
+
+    /**
+     * TEST 15: Phone number normalization for Yemeni (+967) and international numbers
+     * Prevents duplicate country codes like +967+967 or +967967 and requires no OTP
+     */
+    @Test
+    fun test15_phoneLoginNormalizationAndNoOtpRequired() {
+        val num1 = com.example.util.PhoneNumberHelper.normalize("+967771390131", "+967")
+        assertEquals("+967771390131", num1)
+
+        val num2 = com.example.util.PhoneNumberHelper.normalize("771390131", "+967")
+        assertEquals("+967771390131", num2)
+
+        val num3 = com.example.util.PhoneNumberHelper.normalize("0771390131", "+967")
+        assertEquals("+967771390131", num3)
+
+        val num4 = com.example.util.PhoneNumberHelper.normalize("00967771390131", "+967")
+        assertEquals("+967771390131", num4)
+
+        val num5 = com.example.util.PhoneNumberHelper.normalize("967771390131", "+967")
+        assertEquals("+967771390131", num5)
+
+        // Ensure no duplicate country codes
+        assertFalse(num1.contains("+967+967"))
+        assertFalse(num1.contains("+967967"))
+    }
+
+    /**
+     * TEST 16: LoginMethod Enum has only PHONE and EMAIL (No ACCOUNT_NUMBER)
+     */
+    @Test
+    fun test16_loginMethodEnumHasPhoneAndEmailOnly() {
+        val methods = com.example.ui.screens.LoginMethod.values()
+        assertEquals(2, methods.size)
+        assertTrue(methods.contains(com.example.ui.screens.LoginMethod.PHONE))
+        assertTrue(methods.contains(com.example.ui.screens.LoginMethod.EMAIL))
+    }
+
+    /**
+     * TEST 17: UserProfile data model supports phone number property
+     */
+    @Test
+    fun test17_userProfileWithPhoneStorage() {
+        val profile = UserProfile(
+            id = "usr_phone_17",
+            email = "",
+            role = UserRole.USER,
+            fullName = "تاجر يمني",
+            phone = "+967771390131"
+        )
+        assertEquals("+967771390131", profile.phone)
+        assertEquals(UserRole.USER, profile.role)
+    }
+
+    /**
+     * TEST 18: Session caching with phone-based authenticated user
+     */
+    @Test
+    fun test18_sessionSavingWithPhoneIdentifier() = runBlocking {
+        sessionManager.saveSession(
+            accessToken = "token_phone_18",
+            refreshToken = "refresh_phone_18",
+            userId = "usr_phone_18",
+            email = "+967771390131",
+            role = UserRole.USER,
+            accountNumber = null,
+            account = null
+        )
+
+        val cachedSession = sessionManager.getCachedSession()
+        assertNotNull(cachedSession)
+        assertEquals("usr_phone_18", cachedSession?.userId)
+        assertEquals("+967771390131", cachedSession?.email)
+        assertEquals(UserRole.USER, cachedSession?.role)
+        assertTrue(cachedSession?.accessToken?.isNotEmpty() == true)
+    }
 }

@@ -259,8 +259,17 @@ fun MainScreen(
 
     val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
 
+    // Automatic seamless transition to Main Screen upon successful authentication without pressing Back
+    LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated && showLoginDialog) {
+            showLoginDialog = false
+            loginDialogReason = null
+        }
+    }
+
     androidx.activity.compose.BackHandler(enabled = showLoginDialog) {
         showLoginDialog = false
+        loginDialogReason = null
     }
 
     androidx.activity.compose.BackHandler(enabled = showQueueScreen) {

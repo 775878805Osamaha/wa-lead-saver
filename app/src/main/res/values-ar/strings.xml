@@ -402,8 +402,11 @@
     <string name="where_leads_originated">المصادر الأساسية للعملاء</string>
     <string name="auth_welcome_subtitle">الأتمتة الذكية لحفظ ومزامنة عملاء واتساب</string>
     <string name="auth_login_title">تسجيل الدخول إلى حسابك</string>
+    <string name="auth_tab_phone">رقم الجوال</string>
     <string name="auth_tab_account_number">رقم الحساب</string>
     <string name="auth_tab_email">البريد الإلكتروني</string>
+    <string name="auth_phone_label">رقم الجوال</string>
+    <string name="auth_phone_placeholder">مثال: 771390131 أو +967771390131</string>
     <string name="auth_account_or_email_label">رقم الحساب</string>
     <string name="auth_account_placeholder">مثال: OMX-100001</string>
     <string name="auth_email_label">البريد الإلكتروني</string>

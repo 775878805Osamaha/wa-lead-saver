@@ -172,7 +172,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun registerUser(
         fullName: String,
-        email: String,
+        emailOrPhone: String,
         password: String,
         onSuccess: () -> Unit
     ) {
@@ -183,9 +183,13 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _registrationSuccessMessage.value = null
             _unconfirmedEmail.value = null
             try {
-                val res = authRepository.registerCustomer(fullName, email, password)
+                val res = authRepository.registerCustomer(fullName, emailOrPhone, password)
                 if (res.isSuccess) {
-                    val msg = "تم إنشاء الحساب بنجاح.\nيرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
+                    val msg = if (emailOrPhone.contains("@")) {
+                        "تم إنشاء الحساب بنجاح.\nيرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
+                    } else {
+                        "تم إنشاء الحساب بنجاح!\nيمكنك الآن تسجيل الدخول مباشرة برقم الجوال وكلمة المرور."
+                    }
                     _registrationSuccessMessage.value = msg
                     _successMessage.value = msg
                     onSuccess()

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -57,6 +58,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -112,11 +116,11 @@ fun LoginScreen(
     var isRecoveryMode by remember { mutableStateOf(false) }
 
     // Login state
-    var accountOrEmail by remember { mutableStateOf("") }
+    var phoneOrEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
-    var loginMethod by remember { mutableStateOf(LoginMethod.ACCOUNT_NUMBER) }
+    var loginMethod by remember { mutableStateOf(LoginMethod.PHONE) }
 
     // Recovery state
     var recoveryEmail by remember { mutableStateOf("") }
@@ -124,13 +128,21 @@ fun LoginScreen(
 
     // Register state
     var regFullName by remember { mutableStateOf("") }
-    var regEmail by remember { mutableStateOf("") }
+    var regPhoneOrEmail by remember { mutableStateOf("") }
+    var regMethod by remember { mutableStateOf(LoginMethod.PHONE) }
     var regPassword by remember { mutableStateOf("") }
     var regConfirmPassword by remember { mutableStateOf("") }
     var regPasswordVisible by remember { mutableStateOf(false) }
     var regValidationErr by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Auto-dismiss and transition to Main Screen immediately upon successful authentication
+    androidx.compose.runtime.LaunchedEffect(authState) {
+        if (authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin) {
+            onDismiss?.invoke()
+        }
+    }
 
     androidx.activity.compose.BackHandler(enabled = isRecoveryMode) {
         isRecoveryMode = false
@@ -187,18 +199,34 @@ fun LoginScreen(
                         }
                     }
 
-                    // Brand Header Logo Circle with Green Gradient
+                    // Brand Header Logo Circle with Green Gradient and Glowing Shadow (box-shadow: 0 0 26px rgba(46,230,113,0.28))
                     Box(
                         modifier = Modifier
                             .size(76.dp)
+                            .shadow(
+                                elevation = 12.dp,
+                                shape = CircleShape,
+                                ambientColor = Color(0x472EE671),
+                                spotColor = Color(0x472EE671)
+                            )
+                            .drawBehind {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(Color(0x472EE671), Color(0x152EE671), Color.Transparent),
+                                        radius = size.maxDimension * 0.95f
+                                    ),
+                                    radius = size.maxDimension * 0.95f
+                                )
+                            }
                             .clip(CircleShape)
-                            .background(BrandGreenGradientVertical),
+                            .background(BrandGreenGradientVertical)
+                            .border(1.dp, Color(0x332EE671), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Chat,
                             contentDescription = "App Logo",
-                            tint = Color(0xFF0C1512),
+                            tint = Color(0xFF06130A),
                             modifier = Modifier.size(38.dp)
                         )
                     }
@@ -222,7 +250,7 @@ fun LoginScreen(
                         modifier = Modifier.padding(bottom = 18.dp)
                     )
 
-                    // Amber Alert Banner if reasonMessage exists
+                    // Amber Alert Banner if reasonMessage exists (rgba(230,160,50,0.08) with 30% border)
                     if (!reasonMessage.isNullOrBlank()) {
                         Card(
                             modifier = Modifier
@@ -230,8 +258,8 @@ fun LoginScreen(
                                 .padding(bottom = 16.dp)
                                 .testTag("login_reason_banner"),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = ColorAlertAmberTranslucent),
-                            border = BorderStroke(1.dp, ColorAlertAmber)
+                            colors = CardDefaults.cardColors(containerColor = Color(0x14E6A032)),
+                            border = BorderStroke(1.dp, Color(0x4DE6A032))
                         ) {
                             Row(
                                 modifier = Modifier.padding(14.dp),
@@ -343,13 +371,23 @@ fun LoginScreen(
                                 Spacer(modifier = Modifier.height(18.dp))
 
                                 // Send recovery button
+                                val isRecoveryValid = !isLoading && recoveryEmail.isNotBlank()
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(48.dp)
+                                        .shadow(
+                                            elevation = if (isRecoveryValid) 8.dp else 0.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = Color(0x402EE671),
+                                            spotColor = Color(0x402EE671)
+                                        )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (!isLoading && recoveryEmail.isNotBlank()) BrandGreenGradient else androidx.compose.ui.graphics.Brush.linearGradient(listOf(ColorCardBorder, ColorCardBorder)))
-                                        .clickable(enabled = !isLoading && recoveryEmail.isNotBlank()) {
+                                        .background(
+                                            if (isRecoveryValid) Brush.horizontalGradient(listOf(Color(0xFF2EE671), Color(0xFF16A34A)))
+                                            else Brush.linearGradient(listOf(Color(0xFF1F271F), Color(0xFF1F271F)))
+                                        )
+                                        .clickable(enabled = isRecoveryValid) {
                                             keyboardController?.hide()
                                             authViewModel.sendPasswordRecoveryEmail(recoveryEmail) {
                                                 recoveryEmailSent = true
@@ -359,13 +397,13 @@ fun LoginScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF0C1512), strokeWidth = 2.dp)
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF06130A), strokeWidth = 2.dp)
                                     } else {
                                         Text(
                                             text = stringResource(R.string.auth_recovery_send_button),
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0C1512)
+                                            color = if (isRecoveryValid) Color(0xFF06130A) else Color(0xFF7A8580)
                                         )
                                     }
                                 }
@@ -407,19 +445,96 @@ fun LoginScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
+                                // Register Method Selector (Phone vs Email) - Fixed 50%/50% Width
+                                val regTabGradient = Brush.horizontalGradient(listOf(Color(0xFF2EE671), Color(0xFF16A34A)))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF0E100E), RoundedCornerShape(10.dp))
+                                        .border(1.dp, Color(0xFF1F271F), RoundedCornerShape(10.dp))
+                                        .padding(4.dp)
+                                        .testTag("reg_method_selector"),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f, fill = true)
+                                            .height(38.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (regMethod == LoginMethod.PHONE) regTabGradient else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
+                                            .clickable { regMethod = LoginMethod.PHONE }
+                                            .testTag("reg_tab_phone"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Phone,
+                                                contentDescription = null,
+                                                tint = if (regMethod == LoginMethod.PHONE) Color(0xFF06130A) else Color(0xFF7A8580),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.auth_tab_phone),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (regMethod == LoginMethod.PHONE) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (regMethod == LoginMethod.PHONE) Color(0xFF06130A) else Color(0xFF7A8580)
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f, fill = true)
+                                            .height(38.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (regMethod == LoginMethod.EMAIL) regTabGradient else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
+                                            .clickable { regMethod = LoginMethod.EMAIL }
+                                            .testTag("reg_tab_email"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Email,
+                                                contentDescription = null,
+                                                tint = if (regMethod == LoginMethod.EMAIL) Color(0xFF06130A) else Color(0xFF7A8580),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.auth_tab_email),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (regMethod == LoginMethod.EMAIL) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (regMethod == LoginMethod.EMAIL) Color(0xFF06130A) else Color(0xFF7A8580)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                val regInputLabel = if (regMethod == LoginMethod.PHONE) stringResource(R.string.auth_phone_label) else stringResource(R.string.auth_email_label)
+                                val regInputPlaceholder = if (regMethod == LoginMethod.PHONE) stringResource(R.string.auth_phone_placeholder) else stringResource(R.string.auth_email_placeholder)
+                                val regInputIcon = if (regMethod == LoginMethod.PHONE) Icons.Default.Phone else Icons.Default.Email
+                                val regInputKeyboard = if (regMethod == LoginMethod.PHONE) KeyboardType.Phone else KeyboardType.Email
+
                                 OutlinedTextField(
-                                    value = regEmail,
-                                    onValueChange = { regEmail = it },
-                                    label = { Text(stringResource(R.string.auth_email_label)) },
-                                    placeholder = { Text(stringResource(R.string.auth_email_placeholder)) },
+                                    value = regPhoneOrEmail,
+                                    onValueChange = { regPhoneOrEmail = it },
+                                    label = { Text(regInputLabel) },
+                                    placeholder = { Text(regInputPlaceholder) },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Email, contentDescription = null, tint = ColorBrandGreen)
+                                        Icon(regInputIcon, contentDescription = null, tint = ColorBrandGreen)
                                     },
                                     singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                                    keyboardOptions = KeyboardOptions(keyboardType = regInputKeyboard, imeAction = ImeAction.Next),
                                     colors = authTextFieldColors(),
                                     shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth().testTag("reg_email_input")
+                                    modifier = Modifier.fillMaxWidth().testTag(if (regMethod == LoginMethod.PHONE) "reg_phone_input" else "reg_email_input")
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -473,14 +588,24 @@ fun LoginScreen(
 
                                 Spacer(modifier = Modifier.height(18.dp))
 
-                                // Register Action Button
+                                // Register Action Button (Full width green gradient with shadow box-shadow: 0 6px 18px rgba(46,230,113,0.25))
+                                val isRegValid = !isLoading && regFullName.isNotBlank() && regPhoneOrEmail.isNotBlank() && regPassword.isNotBlank()
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(48.dp)
+                                        .shadow(
+                                            elevation = if (isRegValid) 8.dp else 0.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = Color(0x402EE671),
+                                            spotColor = Color(0x402EE671)
+                                        )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (!isLoading && regFullName.isNotBlank() && regEmail.isNotBlank() && regPassword.isNotBlank()) BrandGreenGradient else androidx.compose.ui.graphics.Brush.linearGradient(listOf(ColorCardBorder, ColorCardBorder)))
-                                        .clickable(enabled = !isLoading && regFullName.isNotBlank() && regEmail.isNotBlank() && regPassword.isNotBlank()) {
+                                        .background(
+                                            if (isRegValid) Brush.horizontalGradient(listOf(Color(0xFF2EE671), Color(0xFF16A34A)))
+                                            else Brush.linearGradient(listOf(Color(0xFF1F271F), Color(0xFF1F271F)))
+                                        )
+                                        .clickable(enabled = isRegValid) {
                                             keyboardController?.hide()
                                             regValidationErr = null
                                             if (regPassword != regConfirmPassword) {
@@ -491,11 +616,12 @@ fun LoginScreen(
                                                 regValidationErr = "يجب ألا تقل كلمة المرور عن 6 أحرف"
                                                 return@clickable
                                             }
-                                            authViewModel.registerUser(regFullName, regEmail, regPassword) {
+                                            authViewModel.registerUser(regFullName, regPhoneOrEmail, regPassword) {
                                                 isRegisterMode = false
-                                                loginMethod = LoginMethod.EMAIL
-                                                accountOrEmail = regEmail
+                                                loginMethod = regMethod
+                                                phoneOrEmail = regPhoneOrEmail
                                                 regFullName = ""
+                                                regPhoneOrEmail = ""
                                                 regPassword = ""
                                                 regConfirmPassword = ""
                                             }
@@ -504,35 +630,36 @@ fun LoginScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF0C1512), strokeWidth = 2.dp)
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF06130A), strokeWidth = 2.dp)
                                     } else {
                                         Text(
                                             text = stringResource(R.string.auth_register_title),
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0C1512)
+                                            color = if (isRegValid) Color(0xFF06130A) else Color(0xFF7A8580)
                                         )
                                     }
                                 }
                             } else {
-                                // Login Mode Selector (Account Number vs Email)
+                                // Login Mode Selector (Phone Number vs Email) - Fixed 50%/50% Width
+                                val loginTabGradient = Brush.horizontalGradient(listOf(Color(0xFF2EE671), Color(0xFF16A34A)))
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(ColorScreenBackground, RoundedCornerShape(10.dp))
-                                        .border(1.dp, ColorCardBorder, RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF0E100E), RoundedCornerShape(10.dp))
+                                        .border(1.dp, Color(0xFF1F271F), RoundedCornerShape(10.dp))
                                         .padding(4.dp)
                                         .testTag("login_method_selector"),
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(36.dp)
+                                            .weight(1f, fill = true)
+                                            .height(38.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(if (loginMethod == LoginMethod.ACCOUNT_NUMBER) ColorBrandGreen else Color.Transparent)
-                                            .clickable { loginMethod = LoginMethod.ACCOUNT_NUMBER }
-                                            .testTag("tab_account_number"),
+                                            .background(if (loginMethod == LoginMethod.PHONE) loginTabGradient else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
+                                            .clickable { loginMethod = LoginMethod.PHONE }
+                                            .testTag("tab_phone"),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Row(
@@ -540,26 +667,26 @@ fun LoginScreen(
                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Badge,
+                                                imageVector = Icons.Default.Phone,
                                                 contentDescription = null,
-                                                tint = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Color(0xFF0C1512) else ColorTextSecondary,
+                                                tint = if (loginMethod == LoginMethod.PHONE) Color(0xFF06130A) else Color(0xFF7A8580),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Text(
-                                                text = stringResource(R.string.auth_tab_account_number),
+                                                text = stringResource(R.string.auth_tab_phone),
                                                 fontSize = 12.sp,
-                                                fontWeight = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Color(0xFF0C1512) else ColorTextSecondary
+                                                fontWeight = if (loginMethod == LoginMethod.PHONE) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (loginMethod == LoginMethod.PHONE) Color(0xFF06130A) else Color(0xFF7A8580)
                                             )
                                         }
                                     }
 
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(36.dp)
+                                            .weight(1f, fill = true)
+                                            .height(38.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(if (loginMethod == LoginMethod.EMAIL) ColorBrandGreen else Color.Transparent)
+                                            .background(if (loginMethod == LoginMethod.EMAIL) loginTabGradient else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
                                             .clickable { loginMethod = LoginMethod.EMAIL }
                                             .testTag("tab_email"),
                                         contentAlignment = Alignment.Center
@@ -571,14 +698,14 @@ fun LoginScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Email,
                                                 contentDescription = null,
-                                                tint = if (loginMethod == LoginMethod.EMAIL) Color(0xFF0C1512) else ColorTextSecondary,
+                                                tint = if (loginMethod == LoginMethod.EMAIL) Color(0xFF06130A) else Color(0xFF7A8580),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Text(
                                                 text = stringResource(R.string.auth_tab_email),
                                                 fontSize = 12.sp,
                                                 fontWeight = if (loginMethod == LoginMethod.EMAIL) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (loginMethod == LoginMethod.EMAIL) Color(0xFF0C1512) else ColorTextSecondary
+                                                color = if (loginMethod == LoginMethod.EMAIL) Color(0xFF06130A) else Color(0xFF7A8580)
                                             )
                                         }
                                     }
@@ -586,22 +713,22 @@ fun LoginScreen(
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                val inputLabel = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                                    stringResource(R.string.auth_account_or_email_label)
+                                val inputLabel = if (loginMethod == LoginMethod.PHONE) {
+                                    stringResource(R.string.auth_phone_label)
                                 } else {
                                     stringResource(R.string.auth_email_label)
                                 }
-                                val inputPlaceholder = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) {
-                                    stringResource(R.string.auth_account_placeholder)
+                                val inputPlaceholder = if (loginMethod == LoginMethod.PHONE) {
+                                    stringResource(R.string.auth_phone_placeholder)
                                 } else {
                                     stringResource(R.string.auth_email_placeholder)
                                 }
-                                val inputIcon = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) Icons.Default.Badge else Icons.Default.Email
-                                val inputKeyboardType = if (loginMethod == LoginMethod.ACCOUNT_NUMBER) KeyboardType.Text else KeyboardType.Email
+                                val inputIcon = if (loginMethod == LoginMethod.PHONE) Icons.Default.Phone else Icons.Default.Email
+                                val inputKeyboardType = if (loginMethod == LoginMethod.PHONE) KeyboardType.Phone else KeyboardType.Email
 
                                 OutlinedTextField(
-                                    value = accountOrEmail,
-                                    onValueChange = { accountOrEmail = it },
+                                    value = phoneOrEmail,
+                                    onValueChange = { phoneOrEmail = it },
                                     label = { Text(inputLabel) },
                                     placeholder = { Text(inputPlaceholder) },
                                     leadingIcon = {
@@ -611,7 +738,7 @@ fun LoginScreen(
                                     keyboardOptions = KeyboardOptions(keyboardType = inputKeyboardType, imeAction = ImeAction.Next),
                                     colors = authTextFieldColors(),
                                     shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth().testTag("account_number_input")
+                                    modifier = Modifier.fillMaxWidth().testTag(if (loginMethod == LoginMethod.PHONE) "phone_input" else "email_input")
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -638,7 +765,7 @@ fun LoginScreen(
                                     keyboardActions = KeyboardActions(
                                         onDone = {
                                             keyboardController?.hide()
-                                            authViewModel.login(accountOrEmail, password, rememberMe)
+                                            authViewModel.login(phoneOrEmail, password, rememberMe)
                                         }
                                     ),
                                     colors = authTextFieldColors(),
@@ -661,8 +788,8 @@ fun LoginScreen(
                                         modifier = Modifier
                                             .clickable {
                                                 keyboardController?.hide()
-                                                if (loginMethod == LoginMethod.EMAIL && accountOrEmail.contains("@")) {
-                                                    recoveryEmail = accountOrEmail.trim()
+                                                if (loginMethod == LoginMethod.EMAIL && phoneOrEmail.contains("@")) {
+                                                    recoveryEmail = phoneOrEmail.trim()
                                                 }
                                                 authViewModel.clearMessages()
                                                 isRecoveryMode = true
@@ -706,28 +833,38 @@ fun LoginScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Full Width Login Button
+                                // Full Width Login Button (Green gradient with shadow box-shadow: 0 6px 18px rgba(46,230,113,0.25))
+                                val isLoginValid = !isLoading && phoneOrEmail.isNotBlank() && password.isNotBlank()
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(48.dp)
+                                        .shadow(
+                                            elevation = if (isLoginValid) 8.dp else 0.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = Color(0x402EE671),
+                                            spotColor = Color(0x402EE671)
+                                        )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (!isLoading && accountOrEmail.isNotBlank() && password.isNotBlank()) BrandGreenGradient else androidx.compose.ui.graphics.Brush.linearGradient(listOf(ColorCardBorder, ColorCardBorder)))
-                                        .clickable(enabled = !isLoading && accountOrEmail.isNotBlank() && password.isNotBlank()) {
+                                        .background(
+                                            if (isLoginValid) Brush.horizontalGradient(listOf(Color(0xFF2EE671), Color(0xFF16A34A)))
+                                            else Brush.linearGradient(listOf(Color(0xFF1F271F), Color(0xFF1F271F)))
+                                        )
+                                        .clickable(enabled = isLoginValid) {
                                             keyboardController?.hide()
-                                            authViewModel.login(accountOrEmail, password, rememberMe)
+                                            authViewModel.login(phoneOrEmail, password, rememberMe)
                                         }
                                         .testTag("login_button"),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF0C1512), strokeWidth = 2.dp)
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF06130A), strokeWidth = 2.dp)
                                     } else {
                                         Text(
                                             text = stringResource(R.string.auth_login_button),
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0C1512)
+                                            color = if (isLoginValid) Color(0xFF06130A) else Color(0xFF7A8580)
                                         )
                                     }
                                 }
@@ -735,20 +872,31 @@ fun LoginScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Switch between Login and Register
-                            TextButton(
-                                onClick = {
-                                    isRegisterMode = !isRegisterMode
-                                    regValidationErr = null
-                                    authViewModel.clearMessages()
-                                },
-                                modifier = Modifier.testTag("toggle_register_mode_btn")
+                            // Switch between Login and Register in a single line
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        isRegisterMode = !isRegisterMode
+                                        regValidationErr = null
+                                        authViewModel.clearMessages()
+                                    }
+                                    .testTag("toggle_register_mode_btn")
+                                    .padding(vertical = 6.dp, horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (isRegisterMode) stringResource(R.string.auth_login_title) else stringResource(R.string.auth_register_prompt),
-                                    color = ColorBrandGreen,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
+                                    text = if (isRegisterMode) "لديك حساب بالفعل؟ " else "ليس لديك حساب؟ ",
+                                    color = Color(0xFF7A8580),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Normal
+                                )
+                                Text(
+                                    text = if (isRegisterMode) "تسجيل الدخول" else "إنشاء حساب جديد",
+                                    color = Color(0xFF2EE671),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -761,15 +909,15 @@ fun LoginScreen(
 
 @Composable
 private fun authTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = ColorBrandGreen,
-    unfocusedBorderColor = ColorCardBorder,
-    focusedContainerColor = ColorScreenBackground,
-    unfocusedContainerColor = ColorScreenBackground,
+    focusedBorderColor = Color(0xFF2EE671),
+    unfocusedBorderColor = Color(0xFF1F271F),
+    focusedContainerColor = Color(0xFF0E100E),
+    unfocusedContainerColor = Color(0xFF0E100E),
     focusedTextColor = ColorTextPrimary,
     unfocusedTextColor = ColorTextPrimary,
-    focusedLabelColor = ColorBrandGreen,
-    unfocusedLabelColor = ColorTextSecondary,
-    cursorColor = ColorBrandGreen
+    focusedLabelColor = Color(0xFF2EE671),
+    unfocusedLabelColor = Color(0xFF7A8580),
+    cursorColor = Color(0xFF2EE671)
 )
 
 @Composable
@@ -811,8 +959,8 @@ fun StatusAlertCard(title: String, message: String, bgColor: Color, textColor: C
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = ColorAlertAmberTranslucent),
-        border = BorderStroke(1.dp, ColorAlertAmber)
+        colors = CardDefaults.cardColors(containerColor = Color(0x14E6A032)),
+        border = BorderStroke(1.dp, Color(0x4DE6A032))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = title, fontWeight = FontWeight.Bold, color = ColorAlertAmber, fontSize = 13.sp)
@@ -823,6 +971,6 @@ fun StatusAlertCard(title: String, message: String, bgColor: Color, textColor: C
 }
 
 enum class LoginMethod {
-    ACCOUNT_NUMBER,
+    PHONE,
     EMAIL
 }

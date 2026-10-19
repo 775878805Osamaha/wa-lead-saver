@@ -148,6 +148,105 @@ class SupabaseClient(private val context: Context) {
         }
     }
 
+    /**
+     * Authenticates user using Phone Number + Password via Supabase GoTrue Auth.
+     * Endpoint: POST /auth/v1/token?grant_type=password with body {"phone": "+967...", "password": "..."}
+     * Does NOT use SMS or OTP.
+     */
+    suspend fun signInWithPhone(phone: String, password: String): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val trimmedPhone = phone.trim()
+            val url = "$baseUrl/auth/v1/token?grant_type=password"
+            val bodyJson = JSONObject().apply {
+                put("phone", trimmedPhone)
+                put("password", password)
+            }
+
+            android.util.Log.d("AuthDev", "signInWithPhone: attempting login for phone=$trimmedPhone")
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                val code = response.code
+
+                if (response.isSuccessful) {
+                    android.util.Log.d("AuthDev", "signInWithPhone: success for phone=$trimmedPhone (HTTP $code)")
+                    Result.success(JSONObject(respStr))
+                } else {
+                    val json = try { JSONObject(respStr) } catch (_: Exception) { null }
+                    val errorCode = json?.optString("error_code")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("error")?.takeIf { it.isNotBlank() }
+                    val rawDesc = json?.optString("error_description")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("msg")?.takeIf { it.isNotBlank() }
+                        ?: ""
+
+                    android.util.Log.w(
+                        "AuthDev",
+                        "signInWithPhone failed: HTTP $code, errorCode=$errorCode, desc=$rawDesc"
+                    )
+
+                    val isPhoneProviderDisabled = code in listOf(400, 422) && (
+                        rawDesc.contains("phone provider", ignoreCase = true) ||
+                        rawDesc.contains("Unsupported phone", ignoreCase = true) ||
+                        errorCode?.contains("phone_provider", ignoreCase = true) == true
+                    )
+
+                    val isPhoneNotConfirmed = rawDesc.contains("Phone not confirmed", ignoreCase = true) ||
+                        rawDesc.contains("not confirmed", ignoreCase = true) ||
+                        errorCode?.contains("phone_not_confirmed", ignoreCase = true) == true
+
+                    val isRateLimit = code == 429 ||
+                        (errorCode != null && errorCode.contains("rate_limit", ignoreCase = true)) ||
+                        rawDesc.contains("rate limit", ignoreCase = true) ||
+                        rawDesc.contains("Too many requests", ignoreCase = true)
+
+                    val isUserDisabled = (errorCode != null && (errorCode.contains("user_banned", ignoreCase = true) || errorCode.contains("user_disabled", ignoreCase = true))) ||
+                        rawDesc.contains("User is banned", ignoreCase = true) ||
+                        rawDesc.contains("Account disabled", ignoreCase = true)
+
+                    val isInvalidCredentials = (errorCode != null && (errorCode.contains("invalid_grant", ignoreCase = true) || errorCode.contains("invalid_credentials", ignoreCase = true))) ||
+                        rawDesc.contains("Invalid login credentials", ignoreCase = true) ||
+                        rawDesc.contains("invalid_grant", ignoreCase = true)
+
+                    val cleanMessage = when {
+                        isPhoneProviderDisabled ->
+                            "خدمة تسجيل الدخول برقم الجوال غير مفعلة في إعدادات Supabase (Phone Provider). يُرجى تفعيل Phone Provider واختيار Phone Password Sign In من لوحة التحكم، أو تسجيل الدخول بالبريد الإلكتروني."
+                        isPhoneNotConfirmed ->
+                            "رقم الجوال غير مفعّل أو بانتظار التأكيد."
+                        isRateLimit ->
+                            "تم تجاوز عدد المحاولات المسموح بها، يرجى المحاولة بعد قليل."
+                        isUserDisabled ->
+                            "تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة."
+                        isInvalidCredentials ->
+                            "بيانات الدخول غير صحيحة، يرجى التأكد من رقم الجوال وكلمة المرور."
+                        code >= 500 ->
+                            "خطأ في خادم المصادقة، يرجى المحاولة لاحقاً."
+                        rawDesc.contains("Failed to connect", ignoreCase = true) ||
+                        rawDesc.contains("Unable to resolve host", ignoreCase = true) ||
+                        rawDesc.contains("timeout", ignoreCase = true) ->
+                            "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت."
+                        rawDesc.isNotBlank() -> rawDesc
+                        else -> "فشل تسجيل الدخول برقم الجوال. يرجى التأكد من البيانات والمحاولة لاحقاً."
+                    }
+
+                    Result.failure(Exception(cleanMessage))
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthDev", "signInWithPhone network error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     suspend fun resendConfirmationEmail(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val baseUrl = getBaseUrl()
@@ -372,6 +471,56 @@ class SupabaseClient(private val context: Context) {
                     Result.success(JSONObject(respStr))
                 } else {
                     val errMsg = parseErrorMessage(respStr, "فشل إنشاء حساب المستخدم")
+                    Result.failure(Exception(errMsg))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signUpWithPhone(phone: String, password: String, fullName: String = ""): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val baseUrl = getBaseUrl()
+            val anonKey = getAnonKey()
+            val url = "$baseUrl/auth/v1/signup"
+            val bodyJson = JSONObject().apply {
+                put("phone", phone.trim())
+                put("password", password)
+                if (fullName.isNotBlank()) {
+                    put("data", JSONObject().apply {
+                        put("full_name", fullName.trim())
+                    })
+                }
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", anonKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                val respStr = response.body?.string().orEmpty()
+                if (response.isSuccessful) {
+                    Result.success(JSONObject(respStr))
+                } else {
+                    val json = try { JSONObject(respStr) } catch (_: Exception) { null }
+                    val rawDesc = json?.optString("error_description")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("msg")?.takeIf { it.isNotBlank() }
+                        ?: ""
+                    val isPhoneProviderDisabled = response.code in listOf(400, 422) && (
+                        rawDesc.contains("phone provider", ignoreCase = true) ||
+                        rawDesc.contains("Unsupported phone", ignoreCase = true)
+                    )
+                    val errMsg = when {
+                        isPhoneProviderDisabled ->
+                            "خدمة التسجيل برقم الجوال غير مفعلة في إعدادات Supabase (Phone Provider). يُرجى تفعيلها من لوحة التحكم أو التسجيل بالبريد الإلكتروني."
+                        rawDesc.isNotBlank() -> rawDesc
+                        else -> parseErrorMessage(respStr, "فشل إنشاء الحساب برقم الجوال")
+                    }
                     Result.failure(Exception(errMsg))
                 }
             }

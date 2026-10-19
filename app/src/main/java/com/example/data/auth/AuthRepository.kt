@@ -119,12 +119,14 @@ class AuthRepository(
     }
 
     /**
-     * User Login: Accepts either an Account Number (OMX-XXXXXX) or an Email
+     * User Login: Accepts Email (+ password) or Phone Number (+ password).
+     * Also retains legacy internal account number lookup for backwards compatibility.
+     * Does NOT use SMS or OTP.
      */
     suspend fun login(accountOrEmail: String, password: String, rememberMe: Boolean = true): AuthResult {
         val trimmedInput = accountOrEmail.trim()
         if (trimmedInput.isBlank() || password.isBlank()) {
-            return AuthResult.Error("يرجى إدخال رقم الحساب / البريد الإلكتروني وكلمة المرور")
+            return AuthResult.Error("يرجى إدخال البريد الإلكتروني أو رقم الجوال وكلمة المرور")
         }
 
         if (!SupabaseConfig.isConfigured(context)) {
@@ -133,30 +135,43 @@ class AuthRepository(
             )
         }
 
+        val authRes: Result<JSONObject>
         val emailToUse: String
-        val isAccountNumber = !trimmedInput.contains("@")
+        val phoneToUse: String
 
-        if (isAccountNumber) {
-            // Look up email associated with account number
-            val emailRes = supabaseClient.getAccountEmailByNumber(trimmedInput)
-            if (emailRes.isFailure) {
-                val err = emailRes.exceptionOrNull()?.message.orEmpty()
-                val cleanMsg = when {
-                    err.contains("Failed to connect", ignoreCase = true) ||
-                    err.contains("Unable to resolve host", ignoreCase = true) ->
-                        "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت"
-                    err.isNotBlank() -> err
-                    else -> "رقم الحساب غير مسجل في النظام"
-                }
-                return AuthResult.Error(cleanMsg)
+        when {
+            trimmedInput.contains("@") -> {
+                // Email login with password
+                emailToUse = trimmedInput
+                phoneToUse = ""
+                authRes = supabaseClient.signInWithEmail(emailToUse, password)
             }
-            emailToUse = emailRes.getOrThrow()
-        } else {
-            emailToUse = trimmedInput
+            trimmedInput.startsWith("OMX-", ignoreCase = true) -> {
+                // Legacy internal account number lookup
+                val emailRes = supabaseClient.getAccountEmailByNumber(trimmedInput)
+                if (emailRes.isFailure) {
+                    val err = emailRes.exceptionOrNull()?.message.orEmpty()
+                    val cleanMsg = when {
+                        err.contains("Failed to connect", ignoreCase = true) ||
+                        err.contains("Unable to resolve host", ignoreCase = true) ->
+                            "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت"
+                        err.isNotBlank() -> err
+                        else -> "رقم الحساب غير مسجل في النظام"
+                    }
+                    return AuthResult.Error(cleanMsg)
+                }
+                emailToUse = emailRes.getOrThrow()
+                phoneToUse = ""
+                authRes = supabaseClient.signInWithEmail(emailToUse, password)
+            }
+            else -> {
+                // Phone Number login (+ password) - normalized E.164 without duplicate country code
+                phoneToUse = com.example.util.PhoneNumberHelper.normalize(trimmedInput, "+967")
+                emailToUse = ""
+                authRes = supabaseClient.signInWithPhone(phoneToUse, password)
+            }
         }
 
-        // Authenticate via Supabase Auth with safe logging and precise error parsing
-        val authRes = supabaseClient.signInWithEmail(emailToUse, password)
         if (authRes.isFailure) {
             val ex = authRes.exceptionOrNull()
             if (ex is SupabaseAuthException) {
@@ -173,7 +188,12 @@ class AuthRepository(
                     return AuthResult.Error("تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة.")
                 }
                 if (ex.isInvalidCredentials) {
-                    return AuthResult.Error("بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور.")
+                    val msg = if (phoneToUse.isNotBlank()) {
+                        "بيانات الدخول غير صحيحة، يرجى التأكد من رقم الجوال وكلمة المرور."
+                    } else {
+                        "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور."
+                    }
+                    return AuthResult.Error(msg)
                 }
                 if (ex.statusCode >= 500) {
                     return AuthResult.Error("خطأ في خادم المصادقة، يرجى المحاولة لاحقاً.")
@@ -197,7 +217,8 @@ class AuthRepository(
                     "تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت."
                 rawErr.contains("Invalid login", ignoreCase = true) ||
                 rawErr.contains("invalid_grant", ignoreCase = true) ->
-                    "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور."
+                    if (phoneToUse.isNotBlank()) "بيانات الدخول غير صحيحة، يرجى التأكد من رقم الجوال وكلمة المرور."
+                    else "بيانات الدخول غير صحيحة، يرجى التأكد من كلمة المرور."
                 rawErr.isNotBlank() -> rawErr
                 else -> "فشل تسجيل الدخول. يرجى التحقق من البيانات والمحاولة لاحقاً."
             }
@@ -210,12 +231,14 @@ class AuthRepository(
         val userObj = authObj.getJSONObject("user")
         val userId = userObj.getString("id")
         val userEmail = userObj.optString("email", emailToUse)
+        val userPhone = userObj.optString("phone", phoneToUse)
+        val displayEmail = userEmail.ifBlank { userPhone }
 
         currentAccessToken = token
 
         // Check user role from profile
         val profileRes = supabaseClient.getProfile(userId, token)
-        val profile = profileRes.getOrNull() ?: UserProfile(id = userId, email = userEmail)
+        val profile = profileRes.getOrNull() ?: UserProfile(id = userId, email = displayEmail, phone = userPhone)
 
         if (profile.role == UserRole.ADMIN) {
             try {
@@ -223,7 +246,7 @@ class AuthRepository(
                     accessToken = token,
                     refreshToken = refreshToken,
                     userId = userId,
-                    email = userEmail,
+                    email = displayEmail,
                     role = UserRole.ADMIN,
                     accountNumber = null,
                     account = null,
@@ -250,7 +273,7 @@ class AuthRepository(
                     accessToken = token,
                     refreshToken = refreshToken,
                     userId = userId,
-                    email = userEmail,
+                    email = displayEmail,
                     role = UserRole.USER,
                     accountNumber = null,
                     account = null,
@@ -276,7 +299,7 @@ class AuthRepository(
                 accessToken = token,
                 refreshToken = refreshToken,
                 userId = userId,
-                email = userEmail,
+                email = displayEmail,
                 role = UserRole.USER,
                 accountNumber = account.accountNumber,
                 account = account,
@@ -346,18 +369,28 @@ class AuthRepository(
         return state
     }
 
-    suspend fun registerCustomer(fullName: String, email: String, password: String): Result<Boolean> {
-        val trimmedEmail = email.trim()
+    suspend fun registerCustomer(fullName: String, emailOrPhone: String, password: String): Result<Boolean> {
+        val trimmedInput = emailOrPhone.trim()
         val trimmedName = fullName.trim()
-        if (trimmedEmail.isBlank() || password.isBlank() || trimmedName.isBlank()) {
+        if (trimmedInput.isBlank() || password.isBlank() || trimmedName.isBlank()) {
             return Result.failure(Exception("يرجى ملء جميع الحقول"))
         }
 
-        val res = supabaseClient.signUpUser(trimmedEmail, password, trimmedName)
-        return if (res.isSuccess) {
-            Result.success(true)
+        return if (trimmedInput.contains("@")) {
+            val res = supabaseClient.signUpUser(trimmedInput, password, trimmedName)
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(res.exceptionOrNull() ?: Exception("فشل إنشاء الحساب"))
+            }
         } else {
-            Result.failure(res.exceptionOrNull() ?: Exception("فشل إنشاء الحساب"))
+            val normalizedPhone = com.example.util.PhoneNumberHelper.normalize(trimmedInput, "+967")
+            val res = supabaseClient.signUpWithPhone(normalizedPhone, password, trimmedName)
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(res.exceptionOrNull() ?: Exception("فشل إنشاء الحساب برقم الجوال"))
+            }
         }
     }
 

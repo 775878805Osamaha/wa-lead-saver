@@ -33,7 +33,8 @@ data class UserProfile(
     val id: String,
     val email: String,
     val role: UserRole = UserRole.USER,
-    val fullName: String = ""
+    val fullName: String = "",
+    val phone: String = ""
 )
 
 data class UserProfileWithMeta(
