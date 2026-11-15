@@ -3,6 +3,12 @@ name: Build Debug APK
 # Cost-control: manually dispatch builds and tests only when requested.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run quick unit tests only, or build a debug APK'
+        type: choice
+        options: [test, apk]
+        default: test
 jobs:
   build:
     name: Build and Package Debug APK
@@ -25,6 +31,7 @@ jobs:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Ensure Debug Keystore Exists
+        if: ${{ inputs.mode == 'apk' }}
         run: |
           mkdir -p ~/.android
           if [ -f debug.keystore ]; then
@@ -64,12 +71,14 @@ jobs:
         run: ./gradlew testDebugUnitTest
 
       - name: Build Debug APK
+        if: ${{ inputs.mode == 'apk' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
         run: ./gradlew assembleDebug
 
       - name: Verify APK exists
+        if: ${{ inputs.mode == 'apk' }}
         run: |
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "Found debug APK: app/build/outputs/apk/debug/app-debug.apk"
@@ -80,6 +89,7 @@ jobs:
           fi
 
       - name: Upload APK Artifact
+        if: ${{ inputs.mode == 'apk' }}
         uses: actions/upload-artifact@v4
         with:
           name: WA-Lead-Saver-debug
