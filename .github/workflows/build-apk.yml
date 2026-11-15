@@ -1,12 +1,8 @@
 name: Build Debug APK
 
+# Cost-control: manually dispatch builds and tests only when requested.
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
-
 jobs:
   build:
     name: Build and Package Debug APK
