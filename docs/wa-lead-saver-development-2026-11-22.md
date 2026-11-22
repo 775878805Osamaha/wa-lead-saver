@@ -333,3 +333,63 @@ that live Contacts/WhatsApp functionality is present in Flutter.
   build workflow is intentionally `workflow_dispatch`-only to control
   GitHub Actions costs. The Flutter DEMO APK does **not** include this
   native change. Manual native tests are still required before merge.
+
+## 2026-11-22 continued implementation — Flutter Add-to-App and real actions
+
+### Verified milestones
+- Ran GitHub Actions native unit tests `testDebugUnitTest` on isolated branch:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45060723447
+  **SUCCESS**. This precedes the later integration/functionality commits.
+- Generated real Flutter module at build time and compiled it into the
+  existing Android host with `-PwaFlutterUi=true`:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45061150624
+  **SUCCESS**. The hybrid debug APK was intentionally NOT published.
+- Core Kotlin-only build remains the default if no opt-in Gradle property is
+  provided. `MainActivity` login/admin, database, Supabase, notification
+  listener and Contacts service remain authoritative.
+
+### New sources and functionality
+- Root settings.gradle.kts, app/build.gradle.kts and AndroidManifest now
+  feature-gate `WaFlutterHostActivity`, the Flutter module dependency and
+  optional sourceSet. The bridge Activity is not exported and is disabled in
+  ordinary Kotlin builds. Authenticated users can opt into Flutter from
+  existing native Settings when compiled with the flag.
+- `WaFlutterHostActivity` registers the actual
+  `wa_lead_saver/native_v1` MethodChannel, validates Supabase session plus
+  cached license status with 30-second authorization caching, and dispatches
+  only typed whitelisted operations in `NativeUiCommandRouter`.
+- `AndroidLeadUiDataSource` now supports creating a lead using the existing
+  license-aware `LeadRepository.createLead`, streaming real history CSV
+  via Android FileProvider, and clearing audit history only for active
+  accounts. The router requires an exact clear-history confirmation token.
+- `flutter_ui/lib/src/data/gateway.dart` implements the corresponding
+  typed Dart methods; the synthetic DEMO gateway explicitly refuses real
+  actions.
+- Customer list has an add-manual-lead dialog with phone validation.
+  History export button invokes native CSV sharing, and history deletion
+  requires a separate explicit confirmation dialog before invoking native
+  deletion. Dashboard CSV quick action invokes the same real bridge.
+- Added Flutter widget tests to check manual add, export and cancel-before-
+  delete actions, plus native tests rejecting malformed/unconfirmed requests.
+
+### Current validation in flight (do not claim completed)
+- Native regression run `45061665081` for the new Kotlin router changes.
+- Hybrid compile and RTL Flutter widget tests run `45061735834` for these
+  changes. These run IDs must be checked before any release.
+- Public DEMO APK workflow is now **manual-only** to prevent repeated
+  GitHub Actions minutes. Several older push-triggered jobs may finish
+  independently; do not confuse their artifacts with a current hybrid build.
+
+### Release protection and next steps
+- Keep PR #1 **draft and unmerged** until native tests, current Flutter
+  tests, Android install, Supabase auth, notification capture, Contacts
+  permissions and migration are all verified.
+- Do not publish a same-package APK to overwrite existing client data or
+  require uninstall. The current integrated workflow intentionally uploads
+  no APK. Existing production APK signing must be confirmed first.
+- Public GitHub builds do NOT contain the user's licensed Thmanyah font
+  binaries. Use the local installer and a private/license-compliant build
+  pipeline before claiming exact font parity.
+- Remaining work: re-use native camera/scan flows from Flutter, account
+  lifecycle UI, admin functions, settings parity, device profiling,
+  connection/error states and complete acceptance tests.
