@@ -159,6 +159,19 @@ class AndroidLeadUiDataSource(
         )
     }
 
+    suspend fun getCountryCode(): String = withContext(Dispatchers.IO) {
+        settingsStore.settingsFlow.first().countryCode
+    }
+
+    suspend fun setCountryCode(countryCode: String) {
+        // Require an explicit international dialing prefix to avoid
+        // rewriting existing customer numbers with malformed defaults.
+        require(Regex("^\\+[1-9][0-9]{0,3}$").matches(countryCode)) {
+            "رمز الدولة غير صالح، مثل +967"
+        }
+        repository.setCountryCode(countryCode)
+    }
+
     suspend fun getSettings(): Map<String, Boolean> = withContext(Dispatchers.IO) {
         val settings = settingsStore.settingsFlow.first()
         mapOf(

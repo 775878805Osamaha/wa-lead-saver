@@ -27,6 +27,8 @@ abstract class LeadGateway {
   Future<void> openNativeTool(String tool);
   Future<AccountInfo> loadAccountInfo();
   Future<void> returnToNative();
+  Future<String> loadCountryCode();
+  Future<void> changeCountryCode(String code);
 }
 
 /// Only account summary values authorized by the existing native session.
@@ -304,5 +306,20 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> returnToNative() async {
     await _invoke('closeFlutter');
+  }
+
+  @override
+  Future<String> loadCountryCode() async {
+    final data = await _invoke('getCountryCode');
+    final code = data['countryCode'];
+    if (code is! String || code.isEmpty) {
+      throw StateError('Invalid default country code from Android');
+    }
+    return code;
+  }
+
+  @override
+  Future<void> changeCountryCode(String code) async {
+    await _invoke('setCountryCode', {'countryCode': code});
   }
 }

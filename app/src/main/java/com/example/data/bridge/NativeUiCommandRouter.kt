@@ -30,6 +30,11 @@ class NativeUiCommandRouter(
         )
         "getSettings" -> dataSource.getSettings()
         "getAccountInfo" -> dataSource.getAccountInfo()
+        "getCountryCode" -> mapOf("countryCode" to dataSource.getCountryCode())
+        "setCountryCode" -> {
+            dataSource.setCountryCode(requiredString(args, "countryCode"))
+            mapOf("ok" to true)
+        }
         "setSetting" -> {
             dataSource.setSetting(
                 key = requiredString(args, "key"),
