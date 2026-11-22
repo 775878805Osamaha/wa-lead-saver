@@ -276,3 +276,45 @@ that live Contacts/WhatsApp functionality is present in Flutter.
   still uses Android/Flutter fallback font.
 - Production Flutter/native integration remains incomplete. Do not merge or
   replace the installed Kotlin application.
+
+## 2026-11-22 continuation — verified preview build and Room KPI optimization
+
+### Completed GitHub build
+- GitHub Actions preview run `45056974486` finished **SUCCESS** at commit
+  `c9cade248173ff4f6c6c0ef2e916ad3475c5930b`.
+- Artifact `WA-Lead-Saver-UI-Preview-DEMO`, ID `14768046663`,
+  was present and not expired when verified. GitHub lists expiry on
+  **2026-11-25**. This is an isolated synthetic-data demo APK,
+  **not** a production release, and it does not include licensed
+  Thmanyah OTF font binaries.
+- Main Kotlin app and user data have not been modified by this preview.
+
+### New native optimization
+- Found `LeadRepository.captureStats` still collecting and iterating
+  the complete `allLeads: Flow<List<LeadEntity>>` whenever the dashboard
+  KPIs invalidate; this was unnecessary after history SQL optimization.
+- Added `LeadCaptureCounts` in `LeadDao`, containing a single
+  `COUNT(*)`/conditional `SUM` query for total, saved and unsaved
+  `NEEDS_REVIEW` counts. Updated `captureStats` to combine this
+  bounded SQL projection with the existing history aggregate and
+  labeled benchmark results.
+- Kept exact previous review rule `!isSaved && tags.contains("NEEDS_REVIEW")`
+  by translating it to SQLite `INSTR(tags, 'NEEDS_REVIEW') > 0`.
+  No tables, records, migrations, or account logic were changed.
+- Added Robolectric test sources for five representative rows and an
+  empty database. Native Gradle/Robolectric suite has **not** run.
+- Executed a local Python SQLite equivalence check using 1,260 synthetic
+  records: `total=1260, saved=635, needsReview=379` matched original
+  in-memory logic. Empty query returned `0,0,0`. This is a
+  database-query check, **not** device benchmarking or Android build proof.
+
+### Remaining blockers
+1. Native `./gradlew testDebugUnitTest` is still **unverified** and
+   configured as manual workflow only for GitHub Actions cost control.
+2. Actual Kotlin-to-Flutter embedding/MethodChannel registration and
+   license/auth UX parity are still unimplemented.
+3. A release with user-provided Thmanyah fonts must use a privately
+   licensed build pipeline; public GitHub APK preview cannot include
+   font assets.
+4. Do not merge PR #1 or replace user's installed original app without
+   native tests, migration tests, and real-device validation.
