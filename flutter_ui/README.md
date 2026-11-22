@@ -41,6 +41,8 @@ Channel: `wa_lead_saver/native_v1`.
 | `getSettings` | none | map of existing setting keys to bool |
 | `setSetting` | `{key, enabled}` | completes only after native storage succeeds |
 | `saveLead` | `{id}` | completes only after native Contacts write succeeds |
+| `callLead` | `{number}` | open native dialer only after validating number |
+| `openWhatsAppLead` | `{number}` | open native WhatsApp Intent using public Android APIs |
 
 Lead item fields: `id, name, phone, source, status, isSaved`.
 History item fields: `id, status, details, source, timestamp`, where
@@ -114,3 +116,18 @@ and setting switches. The Flutter dashboard now matches the reference hierarchy.
 Some actions (CSV export and camera capture) currently show a clear "native
 Android integration required" message instead of performing a fake action.
 Do not claim these are production-ready until the Kotlin bridge is implemented.
+
+## Native settings status fields and visual controls
+
+The light reference settings use six permission/monitoring cards. The
+`getSettings` channel response may include `notificationPermission`,
+`contactsPermission`, and `batteryOptimizationIgnored` as read-only
+booleans read from Android itself. Missing values are displayed as unknown,
+not as granted. The four existing user preferences retain real
+`setSetting` writes and failure feedback. The native bridge is not yet
+implemented.
+
+History export/clear and dashboard camera/CSV affordances currently provide
+an explicit integration-required message rather than silently claiming
+success. This distinction must be retained until the original Kotlin
+operation paths are safely bridged.
