@@ -94,3 +94,35 @@ Development branch: feature/flutter-ui-and-history-performance-20261122
 - **Not run:** Flutter analyzer, widget tests, Android APK/device screenshot.
   Flutter module is still not wired to the original Kotlin host, remains
   unmerged, and does not alter the installed Android application.
+
+## 2026-11-22 — explicit reference screenshot and user-owned Thmanyah pack
+- The user supplied a single five-screen light reference PNG
+  (settings / history / review / customers / dashboard, right-to-left screens)
+  and the ZIP `خطوط تطبيق ثمانية السعودي.zip`.
+- Inspected the archive in-session: 15 OTFs, grouped as
+  Thmanyah Sans / Serif Text / Serif Display, with Light, Regular,
+  Medium, Bold and Black weights in each family.
+- **Chosen application UI family:** `ThmanyahSans` (weights 300/400/500/700/900).
+- **Repository is PUBLIC.** Do not commit or redistribute the licensed OTFs.
+  Added a local font installer `flutter_ui/tool/install_thmanyah.py` that
+  reads the supplied ZIP, validates all five Sans faces, writes git-ignored
+  local font assets and appends the font asset manifest to LOCAL pubspec.
+- `ThemeData(fontFamily: 'ThmanyahSans')` and app bar title font family
+  prepared in source; Flutter will fall back until the user runs the installer
+  on an actual build machine with the licensed ZIP.
+- Reference-oriented changes to Flutter dashboard (three stats across,
+  source-backed accuracy panel, four quick actions), settings (separate
+  status/setting cards), history (CSV/clear actions with explicit not-yet-wired
+  feedback), customer cards (native call/WhatsApp method-channel contracts).
+- Accuracy stays unknown unless returned by the native source; we did **not**
+  hardcode screenshot sample `100%` into production.
+- Rendered one **1536x768** composite preview in a temporary local renderer
+  with the real user-provided Thmanyah Sans faces. PDF font inspection
+  confirmed ThmanyahSans subsets present in the render. The user received
+  only the resulting raster image, not downloadable font binaries.
+- IMPORTANT: This image is a **design preview**, NOT an emulator/device
+  screenshot of Flutter. No claim of pixel-perfect runtime visual parity.
+- Flutter SDK and native add-to-app bridge remain unavailable here.
+  Flutter analyze/test and Android build/device checks were NOT run.
+- Kotlin/Compose production code, Supabase, licenses and installed app
+  remain unchanged by this typography/design-only follow-up.
