@@ -122,4 +122,8 @@ class PreviewLeadGateway implements LeadGateway {
   @override
   Future<void> clearHistory() async =>
       throw UnsupportedError('Preview cannot delete real audit records');
+
+  @override
+  Future<void> openNativeTool(String tool) async =>
+      throw UnsupportedError('Preview cannot access native capture tools');
 }

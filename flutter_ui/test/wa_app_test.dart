@@ -10,6 +10,7 @@ class FixtureGateway implements LeadGateway {
   int auditClearCalls = 0;
   int auditExportCalls = 0;
   final List<String> manuallyCreatedPhones = [];
+  final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
 
   @override
@@ -89,6 +90,11 @@ class FixtureGateway implements LeadGateway {
 
   @override
   Future<void> clearHistory() async { auditClearCalls++; }
+
+  @override
+  Future<void> openNativeTool(String tool) async {
+    openedNativeTools.add(tool);
+  }
 }
 
 class OfflineGateway extends FixtureGateway {

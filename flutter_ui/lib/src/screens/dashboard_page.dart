@@ -54,6 +54,17 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _openNativeTool(String tool) async {
+    try {
+      await widget.gateway.openNativeTool(tool);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الأداة غير متاحة في هذه النسخة')),
+      );
+    }
+  }
+
   void _nativeActionPending(String action) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(
@@ -141,14 +152,14 @@ class _DashboardPageState extends State<DashboardPage> {
                       icon: Icons.photo_camera_outlined,
                       text: 'التقاط من الكاميرا',
                       color: const Color(0xFF3879CF),
-                      onTap: () => _nativeActionPending('الكاميرا'),
+                      onTap: () => _openNativeTool('camera'),
                     )),
                     const SizedBox(width: 7),
                     Expanded(child: _Shortcut(
                       icon: Icons.document_scanner_outlined,
                       text: 'فحص ومزامنة',
                       color: const Color(0xFF804CCB),
-                      onTap: () => _nativeActionPending('فحص ومزامنة'),
+                      onTap: () => _openNativeTool('scan'),
                     )),
                   ],
                 ),

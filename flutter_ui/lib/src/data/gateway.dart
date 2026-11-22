@@ -24,6 +24,7 @@ abstract class LeadGateway {
   Future<int> createLead({required String phone, String name = ''});
   Future<void> exportHistory();
   Future<void> clearHistory();
+  Future<void> openNativeTool(String tool);
 }
 
 class DashboardSummary {
@@ -260,5 +261,10 @@ class NativeLeadGateway implements LeadGateway {
     await _invoke('clearHistory', {
       'confirmation': 'CLEAR_ALL_AUDIT_HISTORY',
     });
+  }
+
+  @override
+  Future<void> openNativeTool(String tool) async {
+    await _invoke('openNativeTool', {'tool': tool});
   }
 }

@@ -189,6 +189,7 @@ class FlutterNativeDataSourceTest {
             "deleteEveryContact" to emptyMap<String, Any?>(),
             "setSetting" to mapOf("key" to "contactsPermission", "enabled" to true),
             "clearHistory" to mapOf("confirmation" to "NOT_CONFIRMED"),
+            "openNativeTool" to mapOf("tool" to "delete_everything"),
             "createLead" to mapOf("phone" to "abc"),
             "getLeads" to mapOf("limit" to "unbounded"),
             "callLead" to mapOf("number" to 10),
