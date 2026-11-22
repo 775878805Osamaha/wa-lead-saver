@@ -241,36 +241,10 @@ class _LeadsPageState extends State<LeadsPage> {
   }
 
   Future<void> _editNotes(LeadEntry lead) async {
-    final controller = TextEditingController(text: lead.notes);
     final notes = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('ملاحظات العميل'),
-        content: TextField(
-          key: const Key('edit_customer_notes'),
-          controller: controller,
-          maxLength: 1500,
-          minLines: 2,
-          maxLines: 5,
-          textInputAction: TextInputAction.newline,
-          decoration: const InputDecoration(
-            hintText: 'اكتب ملاحظة للمتابعة أو اتركها فارغة للمسح',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            key: const Key('save_customer_notes'),
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('حفظ الملاحظات'),
-          ),
-        ],
-      ),
+      builder: (_) => _LeadNotesDialog(initialNotes: lead.notes),
     );
-    controller.dispose();
     if (!mounted || notes == null || notes.trim() == lead.notes.trim()) return;
     try {
       await widget.gateway.updateLeadNotes(lead.id, notes.trim());
@@ -601,6 +575,59 @@ class _LeadsPageState extends State<LeadsPage> {
                   },
                 ),
               ),
+      ),
+    ],
+  );
+}
+
+/// Owns its controller until the dialog route has completely disposed.
+/// Disposing immediately after showDialog() resolves breaks reverse animations.
+class _LeadNotesDialog extends StatefulWidget {
+  const _LeadNotesDialog({required this.initialNotes});
+  final String initialNotes;
+
+  @override
+  State<_LeadNotesDialog> createState() => _LeadNotesDialogState();
+}
+
+class _LeadNotesDialogState extends State<_LeadNotesDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialNotes);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('ملاحظات العميل'),
+    content: TextField(
+      key: const Key('edit_customer_notes'),
+      controller: _controller,
+      maxLength: 1500,
+      minLines: 2,
+      maxLines: 5,
+      textInputAction: TextInputAction.newline,
+      decoration: const InputDecoration(
+        hintText: 'اكتب ملاحظة للمتابعة أو اتركها فارغة للمسح',
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('إلغاء'),
+      ),
+      FilledButton(
+        key: const Key('save_customer_notes'),
+        onPressed: () => Navigator.pop(context, _controller.text),
+        child: const Text('حفظ الملاحظات'),
       ),
     ],
   );
