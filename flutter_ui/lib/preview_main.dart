@@ -147,10 +147,13 @@ class PreviewLeadGateway implements LeadGateway {
 
   @override
   Future<void> changeCountryCode(String code) async {
-    if (!RegExp(r'^\+[1-9][0-9]{0,3}
-).hasMatch(code)) {
-      throw ArgumentError('Invalid country code');
+    if (!code.startsWith('+') || code.length < 2 || code.length > 5) {
+      throw ArgumentError('Invalid preview country code');
     }
-    _countryCode = code; // DEMO memory only, no Android settings changes.
+    _countryCode = code; // Synthetic preview only.
   }
+
+  @override
+  Future<void> openPermissionSettings(String permission) async =>
+      throw UnsupportedError('Preview cannot edit Android permissions');
 }
