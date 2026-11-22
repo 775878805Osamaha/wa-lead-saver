@@ -261,7 +261,7 @@ class _LeadsPageState extends State<LeadsPage> {
                                     CircleAvatar(
                                       backgroundColor: WaPalette.raised,
                                       child: Text(
-                                        lead.name.isEmpty ? '؟' : lead.name.characters.first,
+                                        lead.name.isEmpty ? '؟' : lead.name.substring(0, 1),
                                         style: const TextStyle(color: WaPalette.green),
                                       ),
                                     ),
