@@ -14,7 +14,7 @@ class WaSectionHeader extends StatelessWidget {
           children: [
             Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: WaPalette.white,
+              color: WaPalette.ink,
             )),
             if (subtitle != null)
               Padding(
@@ -101,7 +101,7 @@ class WaCounterCard extends StatelessWidget {
                   )),
                 ),
                 Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: WaPalette.white, fontWeight: FontWeight.bold,
+                  color: WaPalette.ink, fontWeight: FontWeight.bold,
                 )),
               ],
             )
@@ -111,7 +111,7 @@ class WaCounterCard extends StatelessWidget {
             Icon(icon, color: WaPalette.green),
             const SizedBox(height: 16),
             Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: WaPalette.white, fontWeight: FontWeight.bold,
+              color: WaPalette.ink, fontWeight: FontWeight.bold,
             )),
             const SizedBox(height: 5),
             Text(label, style: const TextStyle(color: WaPalette.muted)),

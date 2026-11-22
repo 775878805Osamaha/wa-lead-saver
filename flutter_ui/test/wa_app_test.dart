@@ -75,6 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(Directionality.of(tester.element(find.byType(WaAppShell))),
         TextDirection.rtl);
+    expect(Theme.of(tester.element(find.byType(WaAppShell))).brightness, Brightness.light);
     expect(find.text('لوحة التحكم'), findsOneWidget);
     expect(find.text('6'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);

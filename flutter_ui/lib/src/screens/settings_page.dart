@@ -73,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ? (next) => _change(keyName, next)
           : null,
       activeTrackColor: WaPalette.green,
-      activeThumbColor: WaPalette.background,
+      activeThumbColor: Colors.white,
     );
   }
 

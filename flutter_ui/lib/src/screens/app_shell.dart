@@ -74,11 +74,11 @@ class _WaAppShellState extends State<WaAppShell> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: WaPalette.green,
+                    color: WaPalette.accent,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
-                    Icons.chat_bubble_outline, color: WaPalette.background,
+                    Icons.chat_bubble_outline, color: WaPalette.ink,
                   ),
                 ),
               ),
