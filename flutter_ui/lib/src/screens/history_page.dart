@@ -55,7 +55,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
         _records = [..._records, ...result.items];
         _total = result.total;
         _cursor = result.nextCursor;
-        _hasMore = result.hasMore && result.items.isNotEmpty() &&
+        _hasMore = result.hasMore && result.items.isNotEmpty &&
             result.nextCursor != null && result.nextCursor != cursor;
         _error = null;
       });

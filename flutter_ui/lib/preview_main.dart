@@ -7,10 +7,13 @@ import 'src/data/gateway.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(Banner(
-    message: 'DEMO',
-    location: BannerLocation.topStart,
-    child: WaLeadSaverApp(gateway: PreviewLeadGateway()),
+  runApp(Directionality(
+    textDirection: TextDirection.rtl,
+    child: Banner(
+      message: 'DEMO',
+      location: BannerLocation.topStart,
+      child: WaLeadSaverApp(gateway: PreviewLeadGateway()),
+    ),
   ));
 }
 

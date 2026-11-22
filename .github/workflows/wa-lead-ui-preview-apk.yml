@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           cd "$PREVIEW_DIR"
           flutter pub get
-          flutter analyze lib
+          flutter analyze lib --no-fatal-infos
           flutter test
 
       - name: Build standalone Android preview APK

@@ -81,7 +81,7 @@ class _LeadsPageState extends State<LeadsPage> {
         _total = response.total;
         _cursor = response.nextCursor;
         _hasMore = response.hasMore &&
-            response.items.isNotEmpty() &&
+            response.items.isNotEmpty &&
             response.nextCursor != null &&
             response.nextCursor != currentCursor;
         _error = null;
