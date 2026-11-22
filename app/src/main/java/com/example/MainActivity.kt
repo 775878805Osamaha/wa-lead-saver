@@ -96,6 +96,7 @@ import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseStatus
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
+import com.example.data.model.AuditFilter
 import com.example.data.model.DateFilter
 import com.example.data.model.LeadSource
 import com.example.data.model.LeadStatus
@@ -318,8 +319,20 @@ fun MainScreen(
 
     val exportHistory = {
         scope.launch {
-            val list = viewModel.repository.getFullHistoryForExport()
-            CsvExportHelper.exportHistoryToCsv(context, list)
+            try {
+                CsvExportHelper.exportHistoryToCsv(context) { beforeTime, beforeId ->
+                    viewModel.repository.getHistoryPage(
+                        filter = AuditFilter.ALL,
+                        beforeTimestamp = beforeTime,
+                        beforeId = beforeId,
+                        pageSize = 500
+                    )
+                }
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar(
+                    "تعذر تصدير السجل: ${e.localizedMessage ?: "خطأ غير متوقع"}"
+                )
+            }
         }
     }
 
