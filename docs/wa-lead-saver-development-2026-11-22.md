@@ -318,3 +318,18 @@ that live Contacts/WhatsApp functionality is present in Flutter.
    font assets.
 4. Do not merge PR #1 or replace user's installed original app without
    native tests, migration tests, and real-device validation.
+
+### Additional history counter consistency repair
+- `HistoryDao.observeCaptureCounts()` previously excluded status
+  `Phone number unavailable` / `unavailable` from
+  `invalidOrExcluded` while `getFilteredCount('EXCLUDED')`
+  counted it. This could produce inconsistent totals.
+- Added `LOWER(status) LIKE '%unavailable%'` to the same
+  aggregate classification. Updated the existing Robolectric regression
+  assertion from 2 to 3 for the provided set of statuses.
+- Local SQLite synthetic check: all 5 excluded/invalid/system/unavailable
+  rows counted identically by aggregate and EXCLUDED filter.
+- No Room/Gradle compilation was executed: the repository's native
+  build workflow is intentionally `workflow_dispatch`-only to control
+  GitHub Actions costs. The Flutter DEMO APK does **not** include this
+  native change. Manual native tests are still required before merge.
