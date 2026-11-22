@@ -48,6 +48,12 @@ class NativeUiCommandRouter(
             dataSource.saveLead(id)
             mapOf("ok" to true)
         }
+        "updateLeadStatus" -> {
+            val id = (args["id"] as? Number)?.toLong()
+                ?: throw IllegalArgumentException("Missing lead id")
+            dataSource.updateLeadStatus(id, requiredString(args, "status"))
+            mapOf("ok" to true)
+        }
         "createLead" -> {
             mapOf("id" to dataSource.createLead(
                 phone = requiredString(args, "phone"),

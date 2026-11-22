@@ -206,6 +206,40 @@ class _LeadsPageState extends State<LeadsPage> {
     }
   }
 
+  static const List<(String, String)> _statuses = [
+    ('NEW', 'جديد'),
+    ('CONTACTED', 'تم التواصل'),
+    ('INTERESTED', 'مهتم'),
+    ('FOLLOW_UP', 'متابعة'),
+    ('SOLD', 'تم البيع'),
+    ('NOT_INTERESTED', 'غير مهتم'),
+  ];
+
+  String _statusLabel(String status) {
+    for (final item in _statuses) {
+      if (item.$1 == status) return item.$2;
+    }
+    return status;
+  }
+
+  Future<void> _updateStatus(LeadEntry lead, String newStatus) async {
+    if (lead.status == newStatus) return;
+    try {
+      await widget.gateway.updateLeadStatus(lead.id, newStatus);
+      if (!mounted) return;
+      await _load(reset: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تم تحديث حالة العميل إلى ${_statusLabel(newStatus)}')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحديث حالة العميل، لم يُحفظ التغيير')),
+      );
+    }
+  }
+
   void _showDetails(LeadEntry lead) {
     showModalBottomSheet<void>(
       context: context,
@@ -222,8 +256,29 @@ class _LeadsPageState extends State<LeadsPage> {
               const SizedBox(height: 8),
               SelectableText(lead.phone, textDirection: TextDirection.ltr),
               const SizedBox(height: 10),
-              Text('الحالة: ${lead.status}'),
+              Text('الحالة: ${_statusLabel(lead.status)}'),
               Text('المصدر: ${lead.source}'),
+              const SizedBox(height: 12),
+              const Text('تغيير حالة العميل',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Wrap(
+                key: const Key('lead_status_options'),
+                spacing: 7,
+                runSpacing: 5,
+                children: [
+                  for (final option in _statuses)
+                    ChoiceChip(
+                      key: Key('status_${option.$1}'),
+                      label: Text(option.$2),
+                      selected: lead.status == option.$1,
+                      onSelected: (_) {
+                        Navigator.pop(context);
+                        _updateStatus(lead, option.$1);
+                      },
+                    ),
+                ],
+              ),
               if (widget.reviewOnly && !lead.isSaved) ...[
                 const SizedBox(height: 18),
                 FilledButton.icon(
@@ -304,6 +359,7 @@ class _LeadsPageState extends State<LeadsPage> {
                       ('FOLLOW_UP', 'متابعة'),
                       ('INTERESTED', 'مهتم'),
                       ('SOLD', 'تم البيع'),
+                      ('NOT_INTERESTED', 'غير مهتم'),
                     ])
                       Padding(
                         padding: const EdgeInsets.only(left: 6),

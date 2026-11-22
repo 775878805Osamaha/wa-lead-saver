@@ -95,6 +95,32 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun updatesAllowedStatusButRejectsUnknownStatusAndMissingCustomer() = runTest {
+        val id = database.leadDao().insertLead(
+            LeadEntity(
+                phoneNumber = "+967700000998",
+                normalizedNumber = "+967700000998",
+                displayName = "تجربة متابعة"
+            )
+        )
+        router.execute("updateLeadStatus", mapOf("id" to id, "status" to "FOLLOW_UP"))
+        assertEquals("FOLLOW_UP", database.leadDao().getLeadById(id)?.status)
+
+        for (bad in listOf("INVALID", "ADMIN", "FOLLOW_UP; DROP")) {
+            try {
+                router.execute("updateLeadStatus", mapOf("id" to id, "status" to bad))
+                fail("Unexpected accepted status: $bad")
+            } catch (_: IllegalArgumentException) {
+            }
+        }
+        try {
+            router.execute("updateLeadStatus", mapOf("id" to 999999L, "status" to "NEW"))
+            fail("Missing customer was accepted")
+        } catch (_: IllegalArgumentException) {
+        }
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

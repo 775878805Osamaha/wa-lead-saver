@@ -16,6 +16,7 @@ class FixtureGateway implements LeadGateway {
   final List<String> manuallyCreatedPhones = [];
   final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
+  final List<(int, String)> updatedLeadStatuses = [];
 
   @override
   Future<DashboardSummary> loadOverview() async =>
@@ -76,6 +77,11 @@ class FixtureGateway implements LeadGateway {
 
   @override
   Future<void> saveLead(int id) async { savedIds.add(id); }
+
+  @override
+  Future<void> updateLeadStatus(int id, String status) async {
+    updatedLeadStatuses.add((id, status));
+  }
 
   @override
   Future<void> callLead(String number) async {}
@@ -397,6 +403,21 @@ void main() {
     await tester.tap(find.text('إذن قراءة الإشعارات'));
     await tester.pumpAndSettle();
     expect(gateway.openedPermissionScreens, ['notificationPermission']);
+  });
+
+  testWidgets('editing customer status uses the native gateway', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('lead_status_options')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('status_CONTACTED')));
+    await tester.tap(find.byKey(const Key('status_CONTACTED')));
+    await tester.pumpAndSettle();
+    expect(gateway.updatedLeadStatuses, [(1, 'CONTACTED')]);
   });
 
 }

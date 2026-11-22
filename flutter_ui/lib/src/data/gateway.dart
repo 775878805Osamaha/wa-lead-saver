@@ -19,6 +19,7 @@ abstract class LeadGateway {
   Future<Map<String, bool>> loadSettings();
   Future<void> changeSetting(String key, bool enabled);
   Future<void> saveLead(int id);
+  Future<void> updateLeadStatus(int id, String status);
   Future<void> callLead(String number);
   Future<void> openWhatsAppLead(String number);
   Future<int> createLead({required String phone, String name = ''});
@@ -263,6 +264,11 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> saveLead(int id) async {
     await _invoke('saveLead', {'id': id});
+  }
+
+  @override
+  Future<void> updateLeadStatus(int id, String status) async {
+    await _invoke('updateLeadStatus', {'id': id, 'status': status});
   }
 
   @override

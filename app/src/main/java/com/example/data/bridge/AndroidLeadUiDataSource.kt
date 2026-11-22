@@ -218,6 +218,17 @@ class AndroidLeadUiDataSource(
         }
     }
 
+    /** Mirrors the original Kotlin classification without changing Contacts. */
+    suspend fun updateLeadStatus(id: Long, rawStatus: String) {
+        require(id > 0) { "Invalid lead identifier" }
+        val newStatus = LeadStatus.entries.firstOrNull {
+            it.name.equals(rawStatus.trim(), ignoreCase = true)
+        } ?: throw IllegalArgumentException("Invalid lead status")
+        val existing = withContext(Dispatchers.IO) { leads.getLeadById(id) }
+            ?: throw IllegalArgumentException("Customer not found")
+        repository.updateLeadStatus(existing.id, newStatus).getOrThrow()
+    }
+
     /** Adds a lead to Room only; no silent Android Contacts write. */
     suspend fun createLead(phone: String, name: String): Long {
         require(phone.trim().length in 7..24) { "رقم الهاتف غير صالح" }
