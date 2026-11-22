@@ -27,11 +27,19 @@ class DashboardSummary {
     required this.review,
     required this.total,
     this.monitoringActive = false,
+    this.accuracyPercentage,
+    this.evaluatedCases = 0,
+    this.passedCases = 0,
   });
   final int saved;
   final int review;
   final int total;
   final bool monitoringActive;
+
+  /// Null means no measured or user-verified accuracy; never invent 100%.
+  final int? accuracyPercentage;
+  final int evaluatedCases;
+  final int passedCases;
 
   factory DashboardSummary.fromMap(Map<String, dynamic> data) =>
       DashboardSummary(
@@ -39,6 +47,11 @@ class DashboardSummary {
         review: _asInt(data['review']),
         total: _asInt(data['total']),
         monitoringActive: data['monitoringActive'] == true,
+        accuracyPercentage: data['accuracyPercentage'] is num
+            ? (data['accuracyPercentage'] as num).toInt().clamp(0, 100)
+            : null,
+        evaluatedCases: _asInt(data['evaluatedCases']),
+        passedCases: _asInt(data['passedCases']),
       );
 }
 
