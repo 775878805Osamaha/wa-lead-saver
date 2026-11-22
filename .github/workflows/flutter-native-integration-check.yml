@@ -8,6 +8,8 @@ on:
       - feature/flutter-ui-and-history-performance-20261122
     paths:
       - '.github/workflows/flutter-native-integration-check.yml'
+      # Include the dispatch-test regression to verify the corrected hit target.
+      - 'flutter_ui/test/wa_app_test.dart'
   workflow_dispatch:
 
 permissions:
