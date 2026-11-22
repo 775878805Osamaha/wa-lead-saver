@@ -19,6 +19,12 @@ class WaLeadSaverApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: makeWaTheme(),
         locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         builder: (context, child) => Directionality(
           textDirection: TextDirection.rtl,
           child: child ?? const SizedBox.shrink(),
