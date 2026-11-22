@@ -75,6 +75,12 @@ class _HistoryPageViewState extends State<HistoryPageView> {
     return '${d.year}/${two(d.month)}/${two(d.day)}  ${two(d.hour)}:${two(d.minute)}';
   }
 
+  void _nativeActionPending(String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('أداة $action تحتاج إلى ربط Flutter بالخدمة الأصلية.')),
+    );
+  }
+
   @override
   void dispose() {
     _scroll.dispose();
@@ -92,6 +98,34 @@ class _HistoryPageViewState extends State<HistoryPageView> {
               title: 'سجل العمليات ($_total)',
               subtitle: 'تحميل تدريجي دون قراءة السجل بالكامل',
             ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _nativeActionPending('مسح السجل'),
+                    icon: const Icon(Icons.delete_outline, size: 17),
+                    label: const Text('مسح السجل'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: WaPalette.red,
+                      minimumSize: const Size(0, 42),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _nativeActionPending('تصدير CSV'),
+                    icon: const Icon(Icons.file_download_outlined, size: 17),
+                    label: const Text('تصدير CSV'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 42),
+                      backgroundColor: WaPalette.raised,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             SizedBox(
               height: 44,
               child: ListView(
