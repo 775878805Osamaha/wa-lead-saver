@@ -72,3 +72,25 @@ Development branch: feature/flutter-ui-and-history-performance-20261122
   sample or previously observed counts, not live backend records.
 - Browser rendering was visually inspected; native Flutter device capture is
   still blocked on Flutter SDK/host integration and remains unverified.
+
+## 2026-11-22 light-theme follow-up — user-requested color change
+- User explicitly rejected the dark appearance and requested continued development.
+- Updated `flutter_ui/lib/src/theme/wa_theme.dart` to a **light-only** Material 3 theme:
+  background `#F7FAF8`, cards `#FFFFFF`, borders `#E0EAE4`,
+  primary accessible green `#147D45`, WhatsApp accent `#25D366`,
+  main text `#17251E`, secondary text `#64736B`.
+- Updated shared counters, toolbar brand icon, and switch thumb colors to
+  avoid dark-theme remnants; applied to dashboard, customers, review, history,
+  and settings through shared ThemeData.
+- Updated widget test to assert `Brightness.light` on the application theme.
+- A source inspection found no `Brightness.dark`, old dark palette colors,
+  or `WaPalette.white` in the Flutter UI files.
+- Rendered five mobile-sized **HTML/CSS previews** in Chromium with the
+  new palette; inspected a combined contact sheet. The previews use sample
+  labels and previously observed screenshot counts and are **not** output
+  from Flutter running on Android, nor proof of visual parity.
+- Calculated contrast against white (WCAG formula):
+  primary green 5.19:1, muted text 4.99:1, primary text 15.91:1.
+- **Not run:** Flutter analyzer, widget tests, Android APK/device screenshot.
+  Flutter module is still not wired to the original Kotlin host, remains
+  unmerged, and does not alter the installed Android application.
