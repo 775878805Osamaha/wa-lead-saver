@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'src/data/gateway.dart';
 import 'src/screens/app_shell.dart';
 import 'src/theme/wa_theme.dart';
