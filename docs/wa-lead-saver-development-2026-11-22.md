@@ -484,3 +484,48 @@ that live Contacts/WhatsApp functionality is present in Flutter.
   country-code persistence, real Contacts save and notification capture.
 - Verify signed update compatibility, Room 2→3 migration, and optional
   Thmanyah font delivery privately before a releasable APK.
+
+## 2026-11-23 — Customer status editing and truthful monitoring (continuation)
+
+### Verified prior state
+- Most recent **successfully completed** hybrid Flutter/Kotlin build before this
+  batch: https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45067055808
+  — 17 Flutter widget tests passed, Flutter analyze passed with 11 informational
+  deprecation notices, and `-PwaFlutterUi=true :app:assembleDebug` succeeded.
+- Native branch unit tests from run 45066866638 completed SUCCESS.
+- PR #1 remains draft/unmerged, preserving the existing Kotlin app and data.
+
+### New code on this branch
+- Real customer status editing added to `flutter_ui/lib/src/screens/leads_page.dart`:
+  six existing statuses (NEW, CONTACTED, INTERESTED, FOLLOW_UP, SOLD,
+  NOT_INTERESTED), Arabic captions, status choice chips in the customer
+  details sheet, and list refresh after successful mutation.
+- Typed gateway `updateLeadStatus(id,status)` dispatches through
+  `NativeUiCommandRouter` to existing `LeadRepository.updateLeadStatus`.
+  Native source validates status against `LeadStatus.entries` and confirms
+  customer existence; no duplicate customer database or Contacts mutation.
+- Added Flutter test verifying status choice invokes gateway; added Kotlin
+  Room test verifying valid state writes and invalid/missing ID rejection.
+- Dashboard `monitoringActive` now requires BOTH notification-listener
+  permission and an enabled WhatsApp or WhatsApp Business monitoring preference.
+  Permission alone never claims monitoring is configured. The UI explicitly
+  distinguishes configuration readiness from proof of incoming notifications.
+- Added pure native test for all permission/source-switch combinations.
+
+### Verification in progress
+- Native regression workflow run 45080454440, for head 0e2b089..., was
+  in progress at the time of report creation.
+- Hybrid compilation and Flutter widget tests workflow 45080404475 started
+  at source commit fcd2e2e... (after customer status changes, before
+  monitoring dashboard labels changed), and was in its APK compilation step.
+- Do not claim these changes are tested or release-ready until BOTH runs
+  complete successfully. Final hybrid check for the current branch head
+  may be needed if later source commits were not covered by that run.
+
+### Release blockers remain
+- No physical Android device acceptance test, no verified installed same-
+  package upgrade signing path, no migration/data backup verification.
+- Public GitHub hybrid builds deliberately do NOT publish a production APK
+  or redistribute licensed Thmanyah OTF binaries.
+- Finish functional verification of notifications, license changes/logout,
+  Contacts writes, camera and native scan round-trips, and Android permissions.
