@@ -462,6 +462,7 @@ void main() {
     await tester.tap(find.byKey(const Key('save_customer_notes')));
     await tester.pumpAndSettle();
     expect(gateway.updatedLeadNotes, [(1, 'اتصل بعد يومين')]);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('canceling customer notes preserves existing data', (tester) async {
@@ -480,6 +481,7 @@ void main() {
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
     expect(gateway.updatedLeadNotes, isEmpty);
+    expect(tester.takeException(), isNull);
   });
 
 }
