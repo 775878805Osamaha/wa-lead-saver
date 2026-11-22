@@ -70,6 +70,21 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun rejectsMalformedCountryPrefixBeforeMutatingSettings() = runTest {
+        val original = dataSource.getCountryCode()
+        val rejected = listOf("", "967", "+000", "+1xx", "+12345")
+        rejected.forEach { code ->
+            try {
+                router.execute("setCountryCode", mapOf("countryCode" to code))
+                fail("Expected malformed prefix to be rejected: $code")
+            } catch (expected: IllegalArgumentException) {
+                // Validation happens before DataStore writes.
+            }
+        }
+        assertEquals(original, dataSource.getCountryCode())
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

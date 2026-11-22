@@ -18,6 +18,7 @@ void main() {
 }
 
 class PreviewLeadGateway implements LeadGateway {
+  String _countryCode = '+967';
   final Map<String, bool> _settings = {
     'autoSaveLeads': false,
     'monitorWhatsApp': false,
@@ -140,4 +141,16 @@ class PreviewLeadGateway implements LeadGateway {
   @override
   Future<void> returnToNative() async =>
       throw UnsupportedError('Standalone preview has no native account screen');
+
+  @override
+  Future<String> loadCountryCode() async => _countryCode;
+
+  @override
+  Future<void> changeCountryCode(String code) async {
+    if (!RegExp(r'^\+[1-9][0-9]{0,3}
+).hasMatch(code)) {
+      throw ArgumentError('Invalid country code');
+    }
+    _countryCode = code; // DEMO memory only, no Android settings changes.
+  }
 }

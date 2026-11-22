@@ -10,6 +10,8 @@ class FixtureGateway implements LeadGateway {
   int auditClearCalls = 0;
   int auditExportCalls = 0;
   int returnToNativeCalls = 0;
+  String countryCode = '+967';
+  final List<String> changedCountryCodes = [];
   final List<String> manuallyCreatedPhones = [];
   final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
@@ -109,6 +111,15 @@ class FixtureGateway implements LeadGateway {
 
   @override
   Future<void> returnToNative() async { returnToNativeCalls++; }
+
+  @override
+  Future<String> loadCountryCode() async => countryCode;
+
+  @override
+  Future<void> changeCountryCode(String code) async {
+    changedCountryCodes.add(code);
+    countryCode = code;
+  }
 }
 
 class OfflineGateway extends FixtureGateway {
@@ -339,6 +350,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('غير متاح في المعاينة'), findsOneWidget);
     expect(find.byKey(const Key('return_to_native')), findsNothing);
+  });
+
+  testWidgets('country prefix validates input before persisting in Android', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.text('+967'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('country_code_input')), '123');
+    await tester.ensureVisible(find.byKey(const Key('save_country_code')));
+    await tester.tap(find.byKey(const Key('save_country_code')));
+    await tester.pumpAndSettle();
+    expect(gateway.changedCountryCodes, isEmpty);
+    expect(find.textContaining('الرمز غير صالح'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('country_code_input')), '+966');
+    await tester.tap(find.byKey(const Key('save_country_code')));
+    await tester.pumpAndSettle();
+    expect(gateway.changedCountryCodes, ['+966']);
   });
 
 }
