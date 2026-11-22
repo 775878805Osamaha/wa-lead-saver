@@ -129,10 +129,12 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
     private var pendingIntentUri by mutableStateOf<android.net.Uri?>(null)
+    private var pendingFlutterTool by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingIntentUri = intent?.data
+        pendingFlutterTool = intent?.getStringExtra("wa_flutter_native_tool")
         enableEdgeToEdge()
         setContent {
             WALeadSaverTheme {
@@ -194,7 +196,12 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         viewModel = viewModel,
                         authViewModel = authViewModel,
-                        onOpenAdminDashboard = { showAdminDashboard = true }
+                        onOpenAdminDashboard = { showAdminDashboard = true },
+                        requestedNativeTool = pendingFlutterTool,
+                        onNativeToolHandled = {
+                            pendingFlutterTool = null
+                            intent?.removeExtra("wa_flutter_native_tool")
+                        }
                     )
                 }
             }
@@ -205,6 +212,9 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingIntentUri = intent.data
+        intent.getStringExtra("wa_flutter_native_tool")?.let {
+            pendingFlutterTool = it
+        }
     }
 }
 
@@ -212,7 +222,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     viewModel: MainViewModel,
     authViewModel: AuthViewModel? = null,
-    onOpenAdminDashboard: () -> Unit = {}
+    onOpenAdminDashboard: () -> Unit = {},
+    requestedNativeTool: String? = null,
+    onNativeToolHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -264,6 +276,18 @@ fun MainScreen(
     val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
 
     val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
+
+    // Flutter uses these existing native CameraX / contacts workflows.
+    // Defer opening until the original app's authentication is restored.
+    LaunchedEffect(requestedNativeTool, isAuthenticated) {
+        if (requestedNativeTool != null && isAuthenticated) {
+            when (requestedNativeTool) {
+                "camera" -> showPhotoScanDialog = true
+                "scan" -> showSaveExistingDialog = true
+            }
+            onNativeToolHandled()
+        }
+    }
 
     LaunchedEffect(currentTab) {
         if (currentTab == AppTab.HISTORY) viewModel.loadHistoryPage(reset = true)

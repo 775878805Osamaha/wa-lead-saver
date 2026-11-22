@@ -59,6 +59,10 @@ class NativeUiCommandRouter(
             dataSource.clearHistory()
             mapOf("ok" to true)
         }
+        "openNativeTool" -> {
+            dataSource.openNativeTool(requiredString(args, "tool"))
+            mapOf("ok" to true)
+        }
         "callLead" -> {
             dataSource.callLead(requiredString(args, "number"))
             mapOf("ok" to true)

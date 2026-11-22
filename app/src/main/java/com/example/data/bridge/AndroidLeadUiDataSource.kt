@@ -2,6 +2,7 @@ package com.example.data.bridge
 
 import android.content.Context
 import android.content.Intent
+import com.example.MainActivity
 import android.net.Uri
 import com.example.data.database.AppDatabase
 import com.example.data.datastore.SettingsDataStore
@@ -206,6 +207,23 @@ class AndroidLeadUiDataSource(
             "الحساب غير مصرح له بمسح السجل"
         }
         repository.clearHistory()
+    }
+
+    /**
+     * Switches from the Flutter UI to an existing authenticated Kotlin
+     * capture dialog. It never launches another notification listener.
+     */
+    fun openNativeTool(tool: String) {
+        require(tool == "camera" || tool == "scan") { "Unknown native tool" }
+        val intent = Intent(context, MainActivity::class.java).apply {
+            putExtra("wa_flutter_native_tool", tool)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
+        }
+        context.startActivity(intent)
     }
 
     fun callLead(number: String) {
