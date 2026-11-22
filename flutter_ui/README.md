@@ -35,7 +35,7 @@ Channel: `wa_lead_saver/native_v1`.
 
 | Method | Inputs | Result |
 |---|---|---|
-| `getOverview` | none | map: `{total, saved, review, monitoringActive}` |
+| `getOverview` | none | map: `{total, saved, review, monitoringActive, accuracyPercentage?, evaluatedCases?, passedCases?}`; `accuracyPercentage` must be null or absent when unverified |
 | `getLeads` | `{query, status, cursor, limit, reviewOnly}` | `{items, total, hasMore, nextCursor}` |
 | `getHistory` | `{filter, cursor, limit}` | `{items, total, hasMore, nextCursor}` |
 | `getSettings` | none | map of existing setting keys to bool |
@@ -105,3 +105,12 @@ using the supplied font without distributing its source files.
 
 Font weight mapping: 300 light, 400 regular, 500 medium, 700 bold,
 900 black.
+
+## Dashboard visual parity
+
+The five-screen light reference uses a three-card metrics row, accuracy panel,
+four quick actions, customer/contact cards, a review queue, audit filters,
+and setting switches. The Flutter dashboard now matches the reference hierarchy.
+Some actions (CSV export and camera capture) currently show a clear "native
+Android integration required" message instead of performing a fake action.
+Do not claim these are production-ready until the Kotlin bridge is implemented.
