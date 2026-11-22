@@ -236,6 +236,9 @@ fun MainScreen(
     val captureStats by viewModel.captureStats.collectAsStateWithLifecycle()
     val selectedAuditFilter by viewModel.selectedAuditFilter.collectAsStateWithLifecycle()
     val filteredHistory by viewModel.filteredHistory.collectAsStateWithLifecycle()
+    val historyTotalCount by viewModel.historyTotalCount.collectAsStateWithLifecycle()
+    val historyIsLoading by viewModel.historyIsLoading.collectAsStateWithLifecycle()
+    val historyHasMore by viewModel.historyHasMore.collectAsStateWithLifecycle()
     val allLeads by viewModel.allLeads.collectAsStateWithLifecycle(emptyList())
     val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle(emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle("")
@@ -258,6 +261,10 @@ fun MainScreen(
     val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
 
     val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
+
+    LaunchedEffect(currentTab) {
+        if (currentTab == AppTab.HISTORY) viewModel.loadHistoryPage(reset = true)
+    }
 
     // Automatic seamless transition to Main Screen upon successful authentication without pressing Back
     LaunchedEffect(isAuthenticated) {
@@ -630,6 +637,10 @@ fun MainScreen(
 
                     AppTab.HISTORY -> HistoryScreen(
                         historyList = filteredHistory,
+                        totalCount = historyTotalCount,
+                        isPageLoading = historyIsLoading,
+                        hasMore = historyHasMore,
+                        onLoadMore = { viewModel.loadHistoryPage() },
                         selectedFilter = selectedAuditFilter,
                         onFilterSelected = { viewModel.setAuditFilter(it) },
                         onExportHistory = { exportHistory() },
