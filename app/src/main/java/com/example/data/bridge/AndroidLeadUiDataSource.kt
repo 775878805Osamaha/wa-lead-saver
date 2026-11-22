@@ -1,0 +1,229 @@
+package com.example.data.bridge
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import com.example.data.database.AppDatabase
+import com.example.data.datastore.SettingsDataStore
+import com.example.data.model.AuditFilter
+import com.example.data.model.LeadStatus
+import com.example.data.repository.LeadRepository
+import com.example.data.repository.SaveLeadResult
+import com.example.util.ContactsHelper
+import com.example.util.PermissionHelper
+import com.example.util.PhoneNumberHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+
+/**
+ * Native data/actions backing the *future* Flutter MethodChannel.
+ *
+ * This has deliberately NO dependency on Flutter embedding so the existing
+ * Kotlin application remains buildable and usable before add-to-app is ready.
+ * The production Room database and LeadRepository remain authoritative.
+ * A Flutter MethodChannel adapter must invoke these functions off the UI
+ * thread and translate failures into PlatformException error codes.
+ */
+class AndroidLeadUiDataSource(
+    private val context: Context,
+    private val database: AppDatabase,
+    private val repository: LeadRepository,
+    private val settingsStore: SettingsDataStore
+) {
+    private val leads = database.leadDao()
+    private val history = database.historyDao()
+
+    suspend fun getOverview(): Map<String, Any?> = withContext(Dispatchers.IO) {
+        val total = leads.getTotalLeadsCount().first()
+        val saved = leads.getTotalSavedCount().first()
+        val review = leads.getQueueCount().first()
+        // Only source-backed, evaluated metrics are presented as accuracy.
+        val stats = repository.captureStats.first()
+        mapOf(
+            "total" to total,
+            "saved" to saved,
+            "review" to review,
+            "monitoringActive" to PermissionHelper.isNotificationListenerEnabled(context),
+            "accuracyPercentage" to stats.accuracyPercentage,
+            "evaluatedCases" to stats.evaluatedCasesCount,
+            "passedCases" to stats.passedCasesCount
+        )
+    }
+
+    suspend fun getLeads(
+        query: String = "",
+        status: String = "",
+        cursor: String? = null,
+        limit: Int = 40,
+        reviewOnly: Boolean = false
+    ): Map<String, Any?> = withContext(Dispatchers.IO) {
+        val pageSize = limit.coerceIn(1, 100)
+        val safeStatus = status.trim().uppercase()
+        require(safeStatus.isEmpty() || LeadStatus.entries.any { it.name == safeStatus }) {
+            "Invalid customer status filter"
+        }
+        val pattern = literalLike(query)
+        val before = parseCursor(cursor)
+        val total = leads.getFilteredLeadsCount(pattern, safeStatus, reviewOnly)
+        val records = leads.getLeadsPage(
+            query = pattern,
+            status = safeStatus,
+            reviewOnly = reviewOnly,
+            beforeCreatedAt = before?.first,
+            beforeId = before?.second,
+            pageSize = pageSize + 1
+        )
+        val visible = records.take(pageSize)
+        val hasMore = records.size > pageSize
+        mapOf(
+            "total" to total,
+            "hasMore" to hasMore,
+            "nextCursor" to if (hasMore && visible.isNotEmpty()) {
+                cursorOf(visible.last().createdAt, visible.last().id)
+            } else null,
+            "items" to visible.map { lead ->
+                mapOf(
+                    "id" to lead.id,
+                    "name" to lead.effectiveName,
+                    "phone" to lead.phoneNumber,
+                    "status" to lead.status,
+                    "source" to lead.source,
+                    "isSaved" to lead.isSaved
+                )
+            }
+        )
+    }
+
+    suspend fun getHistory(
+        filter: String = "ALL",
+        cursor: String? = null,
+        limit: Int = 60
+    ): Map<String, Any?> = withContext(Dispatchers.IO) {
+        val pageSize = limit.coerceIn(1, 100)
+        val safeFilter = AuditFilter.entries.firstOrNull { it.name == filter }
+            ?: throw IllegalArgumentException("Invalid audit filter")
+        val before = parseCursor(cursor)
+        val total = history.getFilteredCount(safeFilter.name)
+        val records = history.getHistoryPage(
+            filter = safeFilter.name,
+            beforeTimestamp = before?.first,
+            beforeId = before?.second,
+            pageSize = pageSize + 1
+        )
+        val visible = records.take(pageSize)
+        val hasMore = records.size > pageSize
+        mapOf(
+            "total" to total,
+            "hasMore" to hasMore,
+            "nextCursor" to if (hasMore && visible.isNotEmpty()) {
+                cursorOf(visible.last().timestamp, visible.last().id)
+            } else null,
+            "items" to visible.map { record ->
+                mapOf(
+                    "id" to record.id,
+                    "status" to record.status,
+                    "source" to record.source,
+                    "details" to record.details,
+                    "timestamp" to record.timestamp
+                )
+            }
+        )
+    }
+
+    suspend fun getSettings(): Map<String, Boolean> = withContext(Dispatchers.IO) {
+        val settings = settingsStore.settingsFlow.first()
+        mapOf(
+            "autoSaveLeads" to settings.autoSaveLeads,
+            "monitorWhatsApp" to settings.monitorWhatsApp,
+            "monitorWhatsAppBusiness" to settings.monitorWhatsAppBusiness,
+            "ignoreGroupMessages" to settings.ignoreGroupMessages,
+            "notificationPermission" to PermissionHelper.isNotificationListenerEnabled(context),
+            "contactsPermission" to ContactsHelper.hasContactsPermissions(context),
+            "batteryOptimizationIgnored" to PermissionHelper.isBatteryOptimizationIgnored(context)
+        )
+    }
+
+    suspend fun setSetting(key: String, enabled: Boolean) {
+        when (key) {
+            "autoSaveLeads" -> repository.setAutoSave(enabled)
+            "monitorWhatsApp" -> repository.setMonitorWhatsApp(enabled)
+            "monitorWhatsAppBusiness" -> repository.setMonitorWhatsAppBusiness(enabled)
+            "ignoreGroupMessages" -> repository.setIgnoreGroupMessages(enabled)
+            else -> throw IllegalArgumentException("Read-only or unknown setting")
+        }
+    }
+
+    suspend fun saveLead(id: Long) {
+        require(id > 0) { "Invalid lead id" }
+        val lead = withContext(Dispatchers.IO) { leads.getLeadById(id) }
+            ?: throw IllegalArgumentException("Customer not found")
+        // This existing repository operation verifies authenticated license,
+        // Android WRITE_CONTACTS permission, duplicate state, and write result.
+        when (val result = repository.saveLead(lead)) {
+            SaveLeadResult.Success -> Unit
+            SaveLeadResult.Duplicate ->
+                throw IllegalStateException("جهة الاتصال محفوظة مسبقاً")
+            SaveLeadResult.MissingPermission ->
+                throw SecurityException("صلاحية جهات الاتصال غير متاحة")
+            is SaveLeadResult.AccountStopped ->
+                throw SecurityException(result.message)
+            is SaveLeadResult.LicenseBlocked ->
+                throw SecurityException(result.message)
+            SaveLeadResult.Failed ->
+                throw IllegalStateException("تعذر حفظ جهة الاتصال")
+        }
+    }
+
+    fun callLead(number: String) {
+        val normalized = validPhone(number)
+        val intent = Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", normalized, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    fun openWhatsAppLead(number: String) {
+        val normalized = validPhone(number)
+        val digits = PhoneNumberHelper.toWaMeDigits(normalized)
+        require(digits.isNotEmpty()) { "Invalid WhatsApp number" }
+        val uri = Uri.parse("https://wa.me/$digits")
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    private fun validPhone(number: String): String {
+        val normalized = PhoneNumberHelper.normalize(number)
+        val digits = normalized.filter(Char::isDigit)
+        require(normalized.startsWith("+") && digits.length in 7..15) {
+            "Invalid phone number"
+        }
+        return normalized
+    }
+
+    companion object {
+        internal fun literalLike(input: String): String = input.trim()
+            .take(120)
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+
+        internal fun parseCursor(raw: String?): Pair<Long, Long>? {
+            if (raw == null) return null
+            require(raw.length in 3..44) { "Malformed pagination cursor" }
+            val parts = raw.split(':')
+            require(parts.size == 2) { "Malformed pagination cursor" }
+            val timestamp = parts[0].toLongOrNull()
+            val id = parts[1].toLongOrNull()
+            require(timestamp != null && timestamp >= 0 && id != null && id > 0) {
+                "Malformed pagination cursor"
+            }
+            return timestamp to id
+        }
+
+        internal fun cursorOf(timestamp: Long, id: Long): String {
+            require(timestamp >= 0 && id > 0)
+            return "$timestamp:$id"
+        }
+    }
+}
