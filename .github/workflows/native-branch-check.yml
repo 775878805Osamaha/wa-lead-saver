@@ -37,6 +37,20 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
       - name: Run native Room and Kotlin unit tests
+        shell: bash
         run: |
+          set -euo pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon testDebugUnitTest --stacktrace
+          # Retry once only when Maven Central throttles dependency downloads.
+          # A compilation error or failed assertion MUST remain a failure.
+          if ./gradlew --no-daemon testDebugUnitTest --stacktrace 2>&1 | tee native-test.log; then
+            exit 0
+          fi
+          if grep -Eq 'Received status code 429|Too Many Requests' native-test.log; then
+            echo "Maven returned 429; performing one bounded retry."
+            sleep 15
+            ./gradlew --no-daemon testDebugUnitTest --stacktrace
+          else
+            echo "Native tests failed for a non-throttling reason."
+            exit 1
+          fi
