@@ -131,6 +131,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }.flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
+    val totalLeadsCount: StateFlow<Int> = repository.totalLeadsCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
+
     val totalSavedCount: StateFlow<Int> = repository.totalSavedCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
 
