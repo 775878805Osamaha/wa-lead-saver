@@ -39,6 +39,21 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _exportHistory() async {
+    try {
+      await widget.gateway.exportHistory();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تجهيز CSV — اختر التطبيق للمشاركة')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تصدير السجل من هذه النسخة')),
+      );
+    }
+  }
+
   void _nativeActionPending(String action) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(
@@ -113,7 +128,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     Expanded(child: _Shortcut(
                       icon: Icons.file_download_outlined,
                       text: 'تصدير CSV',
-                      onTap: () => _nativeActionPending('تصدير CSV'),
+                      onTap: _exportHistory,
                     )),
                     const SizedBox(width: 7),
                     Expanded(child: _Shortcut(
@@ -133,7 +148,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       icon: Icons.document_scanner_outlined,
                       text: 'فحص ومزامنة',
                       color: const Color(0xFF804CCB),
-                      onTap: widget.onOpenHistory,
+                      onTap: () => _nativeActionPending('فحص ومزامنة'),
                     )),
                   ],
                 ),
