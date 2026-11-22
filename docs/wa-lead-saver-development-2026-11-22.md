@@ -222,3 +222,23 @@ builds a standalone DEBUG APK.
 - Initial preview builds failed due to two Dart `.isNotEmpty()` invocations
   and a test reading a nonexistent ThemeData.fontFamily getter. These were
   fixed before the successful run.
+
+## 2026-11-22 — Phone feedback: compact UI & demo transparency
+- User installed the visual preview and sent five actual Samsung screen
+  captures. Observed large vertical spacing, oversized header/metrics, audit
+  status text in English, and demo controls claiming permission status.
+- Reduced AppBar 72→64 logical pixels; navigation bar to 68, metric cards
+  130→114, shortcuts 92→80, section heading padding 12→6.
+- Reduced list/card spacing in customers and settings, with compact
+  setting tiles. Converted audit status labels to Arabic for presentation
+  while leaving the stored native enum/data unchanged.
+- The preview entrypoint now passes `isPreview: true` and displays a
+  persistent disclosure that values are synthetic. Demo metrics now reflect
+  the four synthetic entries (total 4, saved 0, review 4) rather than copying
+  real user screenshot totals. Android permission keys are omitted so the
+  UI renders unknown rather than an unverified green approval.
+- These changes affect **only** the Flutter UI preview; original Kotlin app,
+  Supabase, local contacts and licensing are untouched.
+- Added widget-test cases covering preview notice/permissions, localized
+  status and compact phone screen navigation. Verification is pending the
+  automatically triggered GitHub preview workflow for this commit.

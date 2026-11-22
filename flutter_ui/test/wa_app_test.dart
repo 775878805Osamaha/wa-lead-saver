@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wa_lead_saver_ui/main.dart';
+import 'package:wa_lead_saver_ui/preview_main.dart' show PreviewLeadGateway;
 import 'package:wa_lead_saver_ui/src/data/gateway.dart';
 import 'package:wa_lead_saver_ui/src/screens/app_shell.dart';
 
@@ -155,6 +156,50 @@ void main() {
     await tester.tap(find.text('حفظ جهة الاتصال').first);
     await tester.pumpAndSettle();
     expect(gateway.savedIds, contains(1));
+  });
+
+  testWidgets('demo labels synthetic data and does not claim Android permissions', (tester) async {
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: PreviewLeadGateway(),
+      isPreview: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('preview_notice')), findsOneWidget);
+    expect(find.textContaining('بيانات تجريبية'), findsOneWidget);
+    expect(find.text('1260'), findsNothing);
+    expect(find.text('4'), findsWidgets);
+
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.help_outline), findsNWidgets(3));
+    expect(find.text('صلاحية جهات الاتصال'), findsOneWidget);
+  });
+
+  testWidgets('audit status uses Arabic labels', (tester) async {
+    await tester.pumpWidget(WaLeadSaverApp(gateway: FixtureGateway()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Saved'), findsNothing);
+    expect(find.text('تم الحفظ'), findsWidgets);
+  });
+
+  testWidgets('compact 360dp settings and history do not overflow', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(WaLeadSaverApp(gateway: FixtureGateway()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.text('إذن قراءة الإشعارات'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    expect(find.text('سجل العمليات (1)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
 }
