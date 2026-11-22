@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.AppDatabase
 import com.example.data.database.entity.HistoryEntity
+import com.example.data.database.entity.LeadEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -63,6 +64,30 @@ class HistoryPagingAndStatsTest {
         assertEquals(105, seen.distinct().size)
         assertEquals(105, dao.getFilteredCount("ALL"))
         assertTrue(dao.getHistoryPage("ALL", beforeTimestamp, beforeId, 40).isEmpty())
+    }
+
+    @Test
+    fun captureLeadCountsMatchLegacyInMemorySemantics() = runTest {
+        val rows = listOf(
+            LeadEntity(phoneNumber = "+967700000001", tags = "NEEDS_REVIEW"),
+            LeadEntity(phoneNumber = "+967700000002", tags = "VIP,NEEDS_REVIEW"),
+            LeadEntity(phoneNumber = "+967700000003", tags = "CONFIRMED"),
+            LeadEntity(phoneNumber = "+967700000004", isSaved = true, tags = "NEEDS_REVIEW"),
+            LeadEntity(phoneNumber = "+967700000005", isSaved = true, tags = "CONFIRMED")
+        )
+        database.leadDao().insertLeads(rows)
+        val counts = database.leadDao().observeCaptureCounts().first()
+        assertEquals(rows.size, counts.total)
+        assertEquals(rows.count { it.isSaved }, counts.saved)
+        assertEquals(rows.count { !it.isSaved && it.tags.contains("NEEDS_REVIEW") }, counts.needsReview)
+    }
+
+    @Test
+    fun captureLeadCountsReturnZeroForAnEmptyDatabase() = runTest {
+        val counts = database.leadDao().observeCaptureCounts().first()
+        assertEquals(0, counts.total)
+        assertEquals(0, counts.saved)
+        assertEquals(0, counts.needsReview)
     }
 
     @Test
