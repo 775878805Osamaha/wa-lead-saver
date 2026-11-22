@@ -411,3 +411,24 @@ that live Contacts/WhatsApp functionality is present in Flutter.
 - Added `/flutter_module/` to root gitignore: generated Flutter SDK
   wrappers and temporary assets must not enter the public repository.
 - No production APK release, merge or client-data modification occurred.
+
+## Final continuation of 22 Nov — CI camera/scan regression repair
+
+- Native Kotlin regression run `45061986847`: **SUCCESS** for camera/scan
+  hand-off and previously integrated features.
+- Integrated Flutter/Kotlin workflow `45062082504`: **FAILED** during the
+  Flutter widget-test step with 12 passing and 1 failing tests. The single
+  failure was a camera quick-action test tapping text partly obscured by the
+  bottom navigation bar at Flutter's default 800×600 test viewport. This was
+  a **widget hit-test failure** before invoking the fake gateway, not evidence
+  of a native CameraX crash. The hybrid APK build step did not run.
+- Updated this focused test to use a 420×1000 device logical viewport
+  (with tear-down restoration), keeping existing 360×800 overflow regression
+  tests intact. Source commit `9da09c04fa036f3a48f1f5fcaa1405a46d16315f`.
+- Triggered a fresh integrated test/build using workflow change commit
+  `fcd49086e7d7dc9debdaef633445d60cf7050a09`.
+  GitHub Actions run: `45062338344`. **Do not call this run a success**
+  before checking its final status, widget-test summary and APK compile step.
+- All hybrid APKs remain **unpublished**, same-package signing and local
+  migration/device tests remain unverified. The working Kotlin app is intact.
+- The complete hand-off and source are in draft PR #1. No merge to main.
