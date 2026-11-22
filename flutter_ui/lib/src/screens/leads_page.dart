@@ -127,6 +127,85 @@ class _LeadsPageState extends State<LeadsPage> {
     }
   }
 
+  Future<void> _addManualLead() async {
+    String name = '';
+    String phone = '';
+    final newLead = await showDialog<({String name, String phone})>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, updateDialog) => AlertDialog(
+          title: const Text('إضافة عميل يدويًا'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                key: const Key('manual_lead_name'),
+                decoration: const InputDecoration(
+                  labelText: 'اسم العميل (اختياري)',
+                ),
+                textInputAction: TextInputAction.next,
+                maxLength: 120,
+                onChanged: (value) => name = value,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('manual_lead_phone'),
+                keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
+                maxLength: 24,
+                decoration: const InputDecoration(
+                  labelText: 'رقم الهاتف',
+                  hintText: '+967...',
+                ),
+                onChanged: (value) =>
+                    updateDialog(() => phone = value),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'الإضافة هنا إلى قائمة العملاء أولاً، ولا تحفظ رقمًا في جهات الاتصال تلقائيًا.',
+                style: TextStyle(color: WaPalette.muted, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              key: const Key('submit_manual_lead'),
+              onPressed: phone.trim().length < 7
+                  ? null
+                  : () => Navigator.pop(dialogContext, (
+                      name: name.trim(),
+                      phone: phone.trim(),
+                    )),
+              child: const Text('إضافة إلى العملاء'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || newLead == null) return;
+    try {
+      await widget.gateway.createLead(
+        phone: newLead.phone,
+        name: newLead.name,
+      );
+      if (!mounted) return;
+      await _load(reset: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تمت إضافة العميل إلى القائمة')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذرت إضافة العميل؛ تحقق من الرقم والترخيص')),
+      );
+    }
+  }
+
   void _showDetails(LeadEntry lead) {
     showModalBottomSheet<void>(
       context: context,
@@ -186,15 +265,30 @@ class _LeadsPageState extends State<LeadsPage> {
                   ? 'التحقق من الرقم قبل إضافته إلى جهات الاتصال'
                   : 'ابحث وتابع العملاء من شاشة واحدة',
             ),
-            TextField(
-              key: const Key('lead_search'),
-              controller: _search,
-              onChanged: _onSearch,
-              textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                hintText: 'البحث بالاسم أو رقم الهاتف',
-                prefixIcon: Icon(Icons.search),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('lead_search'),
+                    controller: _search,
+                    onChanged: _onSearch,
+                    textInputAction: TextInputAction.search,
+                    decoration: const InputDecoration(
+                      hintText: 'البحث بالاسم أو رقم الهاتف',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                ),
+                if (!widget.reviewOnly) ...[
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    key: const Key('add_manual_lead'),
+                    tooltip: 'إضافة عميل يدويًا',
+                    onPressed: _addManualLead,
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                  ),
+                ],
+              ],
             ),
             if (!widget.reviewOnly) ...[
               const SizedBox(height: 10),
