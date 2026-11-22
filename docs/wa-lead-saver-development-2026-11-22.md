@@ -18,7 +18,9 @@ contacts). The screenshots do not prove a performance gain or permission sync.
 - Keyset history query ordered by timestamp + ID, 80 rows at a time.
 - Count query by status filter.
 - History timestamp/ID index and non-destructive Room v2 → v3 migration.
-- History UI loads more near viewport end; full export remains separate.
+- History UI loads more near viewport end; main dashboard uses only six recent rows.
+- CSV history export streams bounded 500-record pages to a UTF-8 file via FileProvider.
+- CSV cell quoting defends against spreadsheet formula injection, with regressions.
 - Regression test for tied timestamps, filtered counts and count aggregates.
 
 ## Implemented — Flutter migration source
@@ -33,6 +35,7 @@ contacts). The screenshots do not prove a performance gain or permission sync.
 - Native licensing and Contacts permission validation for Flutter actions.
 - Flutter analyzer and tests: Flutter SDK was unavailable in this environment.
 - Android Gradle/Robolectric tests: Android SDK/toolchain was unavailable here.
+- Native CSV regression tests were added but have not been executed.
 - Device benchmark and side-by-side screenshot comparison: not performed.
 - New installable APK: not built. Branch must not be merged or shipped blindly.
 
@@ -40,8 +43,8 @@ contacts). The screenshots do not prove a performance gain or permission sync.
 1. Run native tests first; fix compile or DAO query errors, if any.
 2. Execute the manual Flutter UI workflow and address analyzer/test failures.
 3. Add the native bridge and restore one-to-one functionality.
-4. Verify that historical audit filters, CSV and clear-history operations work
-   without all-rows allocation in UI; CSV export remains full by design.
+4. Verify that historical audit filters, streamed CSV and clear-history
+   operations work without all-rows allocation; full CSV still includes all rows.
 5. Profile on actual Android hardware before making speed claims.
 6. Update this report after every merge, build, or significant change.
 
