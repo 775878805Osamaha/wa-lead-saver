@@ -66,6 +66,12 @@ class FixtureGateway implements LeadGateway {
 
   @override
   Future<void> saveLead(int id) async {}
+
+  @override
+  Future<void> callLead(String number) async {}
+
+  @override
+  Future<void> openWhatsAppLead(String number) async {}
 }
 
 void main() {
