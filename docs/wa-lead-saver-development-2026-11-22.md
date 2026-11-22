@@ -529,3 +529,41 @@ that live Contacts/WhatsApp functionality is present in Flutter.
   or redistribute licensed Thmanyah OTF binaries.
 - Finish functional verification of notifications, license changes/logout,
   Contacts writes, camera and native scan round-trips, and Android permissions.
+
+## 2026-11-23 — Login recovery, status editing and current verification
+
+**Implemented on draft PR #1** (existing Kotlin app remains default):
+- Flutter customer details now offer all six original Room lead statuses.
+  Writes go through `NativeLeadGateway.updateLeadStatus` →
+  `NativeUiCommandRouter` → `LeadRepository.updateLeadStatus`, with valid
+  enum checks and customer existence validation.
+- Customer list refreshes on successful status update. A user-visible error
+  replaces false success feedback when the bridge rejects the edit.
+- Dashboard monitoring card now treats listener permission AND an enabled
+  WhatsApp/WhatsApp Business monitoring source as necessary before displaying
+  a configured state. It does **not** claim notification events are currently
+  arriving.
+- Settings error state now exposes a clear **return to native login/account**
+  action even if the native bridge refuses to load settings. The
+  `closeFlutter` channel action remains usable on an expired session.
+- New Flutter widget tests cover status action and login-return fallback;
+  native Room tests cover allowed statuses and invalid/missing customer IDs,
+  plus monitoring permission/switch combinations.
+
+**Verified:** Native Android `testDebugUnitTest` for source commit
+`0e2b089dab9c8a2baeede9ca6eb5b8a4d6caacd8` completed **SUCCESS**:
+https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45080454440 .
+Earlier hybrid run `45067055808` had 17 passing Flutter tests and a
+successful debug APK compile, before this status-editing change.
+
+**In progress / not yet verified:** A new hybrid validation run
+`45080680935` was triggered for commit
+`be70877a816bf4a6c9e07c960ddf48109f2f741f`. Treat all changes
+after `45067055808` as awaiting current Flutter/widget/Gradle checks until
+this run completes. Do not report a final APK as ready for real customer use.
+
+**Still pending:** physical Android lifecycle/logout, listener message
+capture, Contacts permission/save, session activation, native camera/scan
+round-trip, large-list profiling, same-key APK upgrade and backup/migration,
+private embedding of licensed Thmanyah fonts. Do not merge or publish an
+APK into the original app installation until these pass.
