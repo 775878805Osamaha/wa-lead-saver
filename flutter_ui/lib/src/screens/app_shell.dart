@@ -35,7 +35,7 @@ class _WaAppShellState extends State<WaAppShell> {
       ),
       LeadsPage(gateway: widget.gateway),
       HistoryPageView(gateway: widget.gateway),
-      SettingsPage(gateway: widget.gateway),
+      SettingsPage(gateway: widget.gateway, isPreview: widget.isPreview),
     ];
 
     return PopScope(

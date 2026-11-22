@@ -4,8 +4,11 @@ import '../theme/wa_theme.dart';
 import '../widgets/shared.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, required this.gateway});
+  const SettingsPage({
+    super.key, required this.gateway, this.isPreview = false,
+  });
   final LeadGateway gateway;
+  final bool isPreview;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -13,6 +16,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   Map<String, bool> _settings = {};
+  late Future<AccountInfo> _accountInfo;
   bool _loading = true;
   String? _saving;
   String? _error;
@@ -20,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _accountInfo = widget.gateway.loadAccountInfo();
     _load();
   }
 
@@ -55,6 +60,86 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() => _saving = null);
     }
   }
+
+  Future<void> _returnToNative() async {
+    try {
+      await widget.gateway.returnToNative();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(
+          'تعذر العودة إلى التطبيق الأصلي من هذه النسخة',
+        )),
+      );
+    }
+  }
+
+  Widget _accountCard() => FutureBuilder<AccountInfo>(
+    future: _accountInfo,
+    builder: (context, snapshot) {
+      final info = snapshot.data;
+      return Card(
+        key: const Key('account_license_card'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(children: [
+                Icon(Icons.verified_user_outlined, color: WaPalette.green),
+                SizedBox(width: 8),
+                Text('الحساب والترخيص', style: TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 16,
+                )),
+              ]),
+              const SizedBox(height: 8),
+              if (snapshot.hasError)
+                const Text('تعذر قراءة حالة الحساب من Android',
+                  style: TextStyle(color: WaPalette.red))
+              else if (info == null)
+                const LinearProgressIndicator()
+              else ...[
+                Text(info.licenseStatus.isEmpty ? 'حالة غير معروفة' : info.licenseStatus,
+                  key: const Key('license_status'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: info.canSaveContacts
+                        ? WaPalette.green : WaPalette.amber,
+                  )),
+                if (info.email.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(info.email, maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textDirection: TextDirection.ltr,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+                if (info.accountNumber.isNotEmpty)
+                  Text(info.accountNumber, maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text(info.role, style: const TextStyle(
+                  fontSize: 12, color: WaPalette.muted,
+                )),
+                if (info.licenseMessage.isNotEmpty)
+                  Text(info.licenseMessage, style: const TextStyle(
+                    fontSize: 12, color: WaPalette.muted,
+                  )),
+              ],
+              if (!widget.isPreview) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('return_to_native'),
+                  onPressed: _returnToNative,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('العودة لإدارة الحساب'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    },
+  );
 
   Widget _permissionCard({
     required String keyName,
@@ -132,6 +217,8 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle: 'تخصيص والتحكم في التطبيق',
         ),
         const SizedBox(height: 6),
+        _accountCard(),
+        const SizedBox(height: 8),
         _permissionCard(
           keyName: 'notificationPermission',
           title: 'إذن قراءة الإشعارات',
@@ -183,7 +270,10 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
-          onPressed: _load,
+          onPressed: () {
+            setState(() => _accountInfo = widget.gateway.loadAccountInfo());
+            _load();
+          },
           icon: const Icon(Icons.refresh),
           label: const Text('تحديث حالة الإعدادات'),
         ),
