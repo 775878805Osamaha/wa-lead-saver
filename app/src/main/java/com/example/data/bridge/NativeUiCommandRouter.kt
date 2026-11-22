@@ -42,6 +42,23 @@ class NativeUiCommandRouter(
             dataSource.saveLead(id)
             mapOf("ok" to true)
         }
+        "createLead" -> {
+            mapOf("id" to dataSource.createLead(
+                phone = requiredString(args, "phone"),
+                name = optionalString(args, "name")
+            ))
+        }
+        "exportHistory" -> {
+            dataSource.exportHistory()
+            mapOf("ok" to true)
+        }
+        "clearHistory" -> {
+            require(requiredString(args, "confirmation") == "CLEAR_ALL_AUDIT_HISTORY") {
+                "Explicit history deletion confirmation is required"
+            }
+            dataSource.clearHistory()
+            mapOf("ok" to true)
+        }
         "callLead" -> {
             dataSource.callLead(requiredString(args, "number"))
             mapOf("ok" to true)

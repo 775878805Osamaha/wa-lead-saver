@@ -7,6 +7,8 @@ import com.example.data.database.AppDatabase
 import com.example.data.datastore.SettingsDataStore
 import com.example.data.model.AuditFilter
 import com.example.data.model.LeadStatus
+import com.example.data.auth.LicenseStatus
+import com.example.util.CsvExportHelper
 import com.example.data.repository.LeadRepository
 import com.example.data.repository.SaveLeadResult
 import com.example.util.ContactsHelper
@@ -173,6 +175,37 @@ class AndroidLeadUiDataSource(
             SaveLeadResult.Failed ->
                 throw IllegalStateException("تعذر حفظ جهة الاتصال")
         }
+    }
+
+    /** Adds a lead to Room only; no silent Android Contacts write. */
+    suspend fun createLead(phone: String, name: String): Long {
+        require(phone.trim().length in 7..24) { "رقم الهاتف غير صالح" }
+        require(name.length <= 120) { "اسم العميل طويل جداً" }
+        val created = repository.createLead(
+            phoneNumber = phone.trim(),
+            displayName = name.trim()
+        ).getOrThrow()
+        return created.id
+    }
+
+    /** Exports bounded pages to a real CSV file shared via FileProvider. */
+    suspend fun exportHistory() {
+        CsvExportHelper.exportHistoryToCsv(context) { beforeTimestamp, beforeId ->
+            history.getHistoryPage(
+                filter = "ALL",
+                beforeTimestamp = beforeTimestamp,
+                beforeId = beforeId,
+                pageSize = 500
+            )
+        }
+    }
+
+    /** Destructive operation: router requires explicit confirmation token. */
+    suspend fun clearHistory() {
+        require(repository.checkLicense() is LicenseStatus.Active) {
+            "الحساب غير مصرح له بمسح السجل"
+        }
+        repository.clearHistory()
     }
 
     fun callLead(number: String) {
