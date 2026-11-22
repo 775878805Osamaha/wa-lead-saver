@@ -3,13 +3,8 @@ name: WA Lead Saver UI Preview APK (demo only)
 # Preview uses a separate applicationId and synthetic, in-memory data.
 # Licensed Thmanyah font binaries are intentionally NOT distributed via
 # this public repository or GitHub Actions artifacts.
+# Build explicitly when a reviewable batch is ready, not after every commit.
 on:
-  push:
-    branches:
-      - feature/flutter-ui-and-history-performance-20261122
-    paths:
-      - "flutter_ui/**"
-      - ".github/workflows/wa-lead-ui-preview-apk.yml"
   workflow_dispatch:
 
 permissions:
