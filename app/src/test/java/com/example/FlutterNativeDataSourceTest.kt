@@ -131,6 +131,39 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun updatesNotesThroughRoomAndAllowsDeliberateClear() = runTest {
+        val id = database.leadDao().insertLead(
+            LeadEntity(phoneNumber = "+967700000799", displayName = "متابعة")
+        )
+        router.execute("updateLeadNotes", mapOf(
+            "id" to id, "notes" to "الطلب يحتاج متابعة"
+        ))
+        assertEquals("الطلب يحتاج متابعة", database.leadDao().getLeadById(id)?.notes)
+        router.execute("updateLeadNotes", mapOf("id" to id, "notes" to ""))
+        assertEquals("", database.leadDao().getLeadById(id)?.notes)
+    }
+
+    @Test
+    fun notesRejectUnknownCustomerOverlongOrMissingValues() = runTest {
+        val id = database.leadDao().insertLead(
+            LeadEntity(phoneNumber = "+967700000800", displayName = "تجربة")
+        )
+        for (args in listOf(
+            mapOf<String, Any?>("id" to id, "notes" to "x".repeat(1501)),
+            mapOf<String, Any?>("id" to id),
+            mapOf<String, Any?>("id" to id, "notes" to 6),
+            mapOf<String, Any?>("id" to 999999L, "notes" to "نص"),
+        )) {
+            try {
+                router.execute("updateLeadNotes", args)
+                fail("Invalid note update was accepted: $args")
+            } catch (_: IllegalArgumentException) {
+            }
+        }
+        assertEquals("", database.leadDao().getLeadById(id)?.notes)
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

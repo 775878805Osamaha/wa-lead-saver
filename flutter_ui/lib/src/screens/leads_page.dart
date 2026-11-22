@@ -240,6 +240,54 @@ class _LeadsPageState extends State<LeadsPage> {
     }
   }
 
+  Future<void> _editNotes(LeadEntry lead) async {
+    final controller = TextEditingController(text: lead.notes);
+    final notes = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ملاحظات العميل'),
+        content: TextField(
+          key: const Key('edit_customer_notes'),
+          controller: controller,
+          maxLength: 1500,
+          minLines: 2,
+          maxLines: 5,
+          textInputAction: TextInputAction.newline,
+          decoration: const InputDecoration(
+            hintText: 'اكتب ملاحظة للمتابعة أو اتركها فارغة للمسح',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            key: const Key('save_customer_notes'),
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('حفظ الملاحظات'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted || notes == null || notes.trim() == lead.notes.trim()) return;
+    try {
+      await widget.gateway.updateLeadNotes(lead.id, notes.trim());
+      if (!mounted) return;
+      await _load(reset: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ ملاحظات العميل')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر حفظ الملاحظات؛ لم تُحدّث البيانات')),
+      );
+    }
+  }
+
   void _showDetails(LeadEntry lead) {
     showModalBottomSheet<void>(
       context: context,
@@ -247,8 +295,13 @@ class _LeadsPageState extends State<LeadsPage> {
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
+          padding: const EdgeInsets.all(18),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -258,6 +311,29 @@ class _LeadsPageState extends State<LeadsPage> {
               const SizedBox(height: 10),
               Text('الحالة: ${_statusLabel(lead.status)}'),
               Text('المصدر: ${lead.source}'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      lead.notes.isEmpty ? 'لا توجد ملاحظات' : lead.notes,
+                      key: const Key('customer_notes_preview'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: WaPalette.muted, fontSize: 12),
+                    ),
+                  ),
+                  TextButton.icon(
+                    key: const Key('edit_customer_notes_button'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _editNotes(lead);
+                    },
+                    icon: const Icon(Icons.edit_note_outlined, size: 19),
+                    label: const Text('تعديل'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               const Text('تغيير حالة العميل',
                 style: TextStyle(fontWeight: FontWeight.w700)),
@@ -292,6 +368,8 @@ class _LeadsPageState extends State<LeadsPage> {
               ],
               const SizedBox(height: 18),
             ],
+              ),
+            ),
           ),
         ),
       ),

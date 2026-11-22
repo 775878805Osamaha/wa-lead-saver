@@ -17,6 +17,7 @@ class FixtureGateway implements LeadGateway {
   final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
   final List<(int, String)> updatedLeadStatuses = [];
+  final List<(int, String)> updatedLeadNotes = [];
 
   @override
   Future<DashboardSummary> loadOverview() async =>
@@ -81,6 +82,11 @@ class FixtureGateway implements LeadGateway {
   @override
   Future<void> updateLeadStatus(int id, String status) async {
     updatedLeadStatuses.add((id, status));
+  }
+
+  @override
+  Future<void> updateLeadNotes(int id, String notes) async {
+    updatedLeadNotes.add((id, notes));
   }
 
   @override
@@ -437,6 +443,43 @@ void main() {
     await tester.tap(find.byKey(const Key('return_native_on_settings_error')));
     await tester.pumpAndSettle();
     expect(gateway.returnToNativeCalls, 1);
+  });
+
+  testWidgets('customer notes can be edited and cleared via native gateway', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit_customer_notes_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('edit_customer_notes')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('edit_customer_notes')), 'اتصل بعد يومين',
+    );
+    await tester.tap(find.byKey(const Key('save_customer_notes')));
+    await tester.pumpAndSettle();
+    expect(gateway.updatedLeadNotes, [(1, 'اتصل بعد يومين')]);
+  });
+
+  testWidgets('canceling customer notes preserves existing data', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit_customer_notes_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('edit_customer_notes')), 'تعديل غير مرغوب',
+    );
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
+    expect(gateway.updatedLeadNotes, isEmpty);
   });
 
 }

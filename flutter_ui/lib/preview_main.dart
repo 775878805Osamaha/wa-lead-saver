@@ -105,6 +105,10 @@ class PreviewLeadGateway implements LeadGateway {
       throw UnsupportedError('Demo cannot update real customer statuses');
 
   @override
+  Future<void> updateLeadNotes(int id, String notes) async =>
+      throw UnsupportedError('Demo cannot update real customer notes');
+
+  @override
   Future<void> saveLead(int id) async =>
       throw UnsupportedError('Preview cannot write to contacts');
 

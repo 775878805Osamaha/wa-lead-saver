@@ -54,6 +54,12 @@ class NativeUiCommandRouter(
             dataSource.updateLeadStatus(id, requiredString(args, "status"))
             mapOf("ok" to true)
         }
+        "updateLeadNotes" -> {
+            val id = (args["id"] as? Number)?.toLong()
+                ?: throw IllegalArgumentException("Missing lead id")
+            dataSource.updateLeadNotes(id, requiredStringAllowEmpty(args, "notes"))
+            mapOf("ok" to true)
+        }
         "createLead" -> {
             mapOf("id" to dataSource.createLead(
                 phone = requiredString(args, "phone"),
@@ -96,6 +102,12 @@ class NativeUiCommandRouter(
             is String -> value
             else -> throw IllegalArgumentException("Invalid $name")
         }
+
+    // Notes may intentionally be cleared; missing/non-string is still invalid.
+    private fun requiredStringAllowEmpty(
+        args: Map<String, Any?>, name: String
+    ): String = args[name] as? String
+        ?: throw IllegalArgumentException("Missing or invalid $name")
 
     private fun requiredString(args: Map<String, Any?>, name: String): String {
         val value = args[name] as? String

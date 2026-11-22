@@ -20,6 +20,7 @@ abstract class LeadGateway {
   Future<void> changeSetting(String key, bool enabled);
   Future<void> saveLead(int id);
   Future<void> updateLeadStatus(int id, String status);
+  Future<void> updateLeadNotes(int id, String notes);
   Future<void> callLead(String number);
   Future<void> openWhatsAppLead(String number);
   Future<int> createLead({required String phone, String name = ''});
@@ -102,6 +103,7 @@ class LeadEntry {
     required this.status,
     required this.source,
     this.isSaved = false,
+    this.notes = '',
   });
   final int id;
   final String name;
@@ -109,6 +111,7 @@ class LeadEntry {
   final String status;
   final String source;
   final bool isSaved;
+  final String notes;
 
   factory LeadEntry.fromMap(Map<String, dynamic> data) => LeadEntry(
         id: _asInt(data['id']),
@@ -117,6 +120,7 @@ class LeadEntry {
         status: (data['status'] ?? '').toString(),
         source: (data['source'] ?? '').toString(),
         isSaved: data['isSaved'] == true,
+        notes: (data['notes'] ?? '').toString(),
       );
 }
 
@@ -269,6 +273,11 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> updateLeadStatus(int id, String status) async {
     await _invoke('updateLeadStatus', {'id': id, 'status': status});
+  }
+
+  @override
+  Future<void> updateLeadNotes(int id, String notes) async {
+    await _invoke('updateLeadNotes', {'id': id, 'notes': notes});
   }
 
   @override

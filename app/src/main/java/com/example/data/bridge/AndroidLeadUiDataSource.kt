@@ -103,6 +103,7 @@ class AndroidLeadUiDataSource(
                     "phone" to lead.phoneNumber,
                     "status" to lead.status,
                     "source" to lead.source,
+                    "notes" to lead.notes,
                     "isSaved" to lead.isSaved
                 )
             }
@@ -233,6 +234,19 @@ class AndroidLeadUiDataSource(
         val existing = withContext(Dispatchers.IO) { leads.getLeadById(id) }
             ?: throw IllegalArgumentException("Customer not found")
         repository.updateLeadStatus(existing.id, newStatus).getOrThrow()
+    }
+
+    /**
+     * Save private notes using the existing Room repository. Never sends
+     * notes through Contacts or WhatsApp, and never modifies the phone.
+     */
+    suspend fun updateLeadNotes(id: Long, notes: String) {
+        require(id > 0) { "Invalid lead id" }
+        require(notes.length <= 1500) { "Notes must not exceed 1500 characters" }
+        require(withContext(Dispatchers.IO) { leads.getLeadById(id) } != null) {
+            "Customer not found"
+        }
+        repository.updateLeadNotes(id, notes.trim()).getOrThrow()
     }
 
     /** Adds a lead to Room only; no silent Android Contacts write. */
