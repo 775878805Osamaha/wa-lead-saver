@@ -1,0 +1,42 @@
+name: WA Lead Saver native regression tests (branch only)
+
+# Runs only on this isolated development branch. No APK, no release, no merge.
+on:
+  push:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - '.github/workflows/native-branch-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-native-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - name: Run native Room and Kotlin unit tests
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest --stacktrace
