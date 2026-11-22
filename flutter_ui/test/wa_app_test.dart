@@ -237,7 +237,7 @@ void main() {
       find.byKey(const Key('manual_lead_phone')), '+967777123456',
     );
     await tester.pumpAndSettle();
-    await tester.testTextInput.hide();
+    tester.testTextInput.hide();
     await tester.tap(find.byKey(const Key('submit_manual_lead')));
     await tester.pumpAndSettle();
     expect(gateway.manuallyCreatedPhones, contains('+967777123456'));
