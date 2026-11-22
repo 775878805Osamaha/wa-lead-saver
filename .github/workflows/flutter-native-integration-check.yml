@@ -42,6 +42,8 @@ jobs:
           flutter create --template module --org com.walspreview --project-name wa_lead_saver_ui flutter_module
           cp flutter_ui/pubspec.yaml flutter_module/pubspec.yaml
           cp -R flutter_ui/lib/. flutter_module/lib/
+          rm -rf flutter_module/test
+          cp -R flutter_ui/test flutter_module/test
           cd flutter_module
           flutter pub get
           test -f .android/include_flutter.groovy
@@ -50,6 +52,10 @@ jobs:
         working-directory: flutter_module
         run: |
           flutter analyze lib --no-fatal-infos
+      - name: Run RTL, manual-add and audit confirmation widget tests
+        shell: bash
+        working-directory: flutter_module
+        run: flutter test
       - name: Build opt-in native + Flutter APK (never publish)
         shell: bash
         env:
