@@ -180,32 +180,38 @@ class _Metric extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: SizedBox(
-        height: 114,
+        height: 120,
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: 23),
-              const SizedBox(height: 7),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(count, style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: WaPalette.ink,
-                )),
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(height: 4),
+              Flexible(
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(count, style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: WaPalette.ink,
+                  )),
+                ),
               ),
-              const SizedBox(height: 5),
-              Text(label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: WaPalette.muted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                )),
+              const SizedBox(height: 4),
+              Flexible(
+                fit: FlexFit.loose,
+                child: Text(label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: WaPalette.muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                  )),
+              ),
             ],
           ),
         ),
