@@ -65,14 +65,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _nativeActionPending(String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(
-        'أداة $action تحتاج إلى اكتمال الربط مع خدمات Android الأصلية.',
-      )),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => RefreshIndicator(
         onRefresh: _refresh,
