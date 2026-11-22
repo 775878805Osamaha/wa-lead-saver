@@ -126,3 +126,53 @@ Development branch: feature/flutter-ui-and-history-performance-20261122
   Flutter analyze/test and Android build/device checks were NOT run.
 - Kotlin/Compose production code, Supabase, licenses and installed app
   remain unchanged by this typography/design-only follow-up.
+
+## Continuation — Flutter native data bridge and performance correctness
+
+### Source changes saved in this branch
+- Added `LeadDao.getFilteredLeadsCount` and `LeadDao.getLeadsPage`:
+  bound-parameter SQL search with wildcard escaping, review/status filters,
+  chronological keyset cursor `(createdAt,id)` and a caller-bounded page size.
+  No new table or destructive database migration.
+- Added `AndroidLeadUiDataSource` (Kotlin; no Flutter imports) to provide
+  data maps for the existing Dart `LeadGateway`: `getOverview`,
+  `getLeads`, `getHistory`, `getSettings`, `setSetting`,
+  `saveLead`, `callLead`, and `openWhatsAppLead`.
+  Save delegates to existing `LeadRepository.saveLead` for license checks,
+  permission checks, duplicate protection, and Android Contacts writes.
+- Added `NativeUiCommandRouter` with explicit method whitelist and typed
+  argument validation. This router is **not yet registered with Flutter's
+  MethodChannel**; add-to-app and generated Flutter module integration remain
+  required before runtime usability.
+- `MainActivity` now observes a dedicated SQL COUNT flow for the customer
+  bottom-navigation badge/title rather than subscribing to the complete
+  customer list only for its size. The existing Compose screen remains intact.
+- Capture statistics now return an accuracy percentage only after a labeled
+  benchmark has been run; saved leads and auto-generated CONFIRMED tags are
+  **not** treated as independent evidence that accuracy is 100%.
+- Added `FlutterNativeDataSourceTest.kt` for page boundaries/tied
+  timestamps, query filters, literal wildcard search, read-only permissions,
+  malformed cursors, and non-fabricated capture accuracy.
+- Added Flutter widget-test scenarios for narrow 360px Android screens,
+  disconnected native backend, and review-save callback invocation.
+
+### Executed verification — SQL only
+Executed the native keyset-query shape using the Python SQLite engine with
+1,260 synthetic customer records. Every page was unique; tested 1,260 all,
+840 unsaved, 630 NEW, and 420 unsaved FOLLOW_UP records, plus escaped wildcard
+and Arabic search. The query shapes passed these local checks. This **does not
+validate Android Room compilation** or actual on-device performance.
+
+### Still pending / release blockers
+1. `flutter_ui` is currently Dart UI source without a generated Android
+   Flutter module and without a registered native MethodChannel.
+2. The user-provided licensed Thmanyah Sans faces are excluded from the
+   **public** GitHub repository. The existing local installer must run on a
+   properly licensed build machine before any font-parity screenshot/build.
+3. Android/Room unit tests and `flutter analyze`/`flutter test` were
+   **not executed**, because Flutter SDK and Android toolchain are not
+   installed in the current environment. GitHub CI was not triggered to avoid
+   unexpected Actions charges.
+4. Keep PR #1 draft/unmerged; verify retained local DB, notification listener,
+   authentication, licenses and contacts; then run Android real-device tests
+   before any production release APK.
