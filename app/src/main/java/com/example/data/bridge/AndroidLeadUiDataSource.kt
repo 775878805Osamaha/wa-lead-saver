@@ -2,6 +2,8 @@ package com.example.data.bridge
 
 import android.content.Context
 import android.content.Intent
+import android.content.ActivityNotFoundException
+import android.provider.Settings
 import com.example.MainActivity
 import android.net.Uri
 import com.example.data.database.AppDatabase
@@ -262,6 +264,26 @@ class AndroidLeadUiDataSource(
             )
         }
         context.startActivity(intent)
+    }
+
+    /** Opens Android's own permission controls without granting anything. */
+    fun openPermissionSettings(permission: String) {
+        val appSettings = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null)
+        )
+        val target = when (permission) {
+            "notificationPermission" -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            "contactsPermission" -> appSettings
+            "batteryOptimizationIgnored" ->
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            else -> throw IllegalArgumentException("Unknown permission type")
+        }
+        try {
+            context.startActivity(target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (unavailable: ActivityNotFoundException) {
+            context.startActivity(appSettings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 
     fun callLead(number: String) {

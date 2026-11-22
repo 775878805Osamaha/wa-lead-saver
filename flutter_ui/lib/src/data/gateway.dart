@@ -29,6 +29,7 @@ abstract class LeadGateway {
   Future<void> returnToNative();
   Future<String> loadCountryCode();
   Future<void> changeCountryCode(String code);
+  Future<void> openPermissionSettings(String permission);
 }
 
 /// Only account summary values authorized by the existing native session.
@@ -321,5 +322,10 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> changeCountryCode(String code) async {
     await _invoke('setCountryCode', {'countryCode': code});
+  }
+
+  @override
+  Future<void> openPermissionSettings(String permission) async {
+    await _invoke('openPermissionSettings', {'permission': permission});
   }
 }

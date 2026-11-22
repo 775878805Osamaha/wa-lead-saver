@@ -65,6 +65,10 @@ class NativeUiCommandRouter(
             dataSource.clearHistory()
             mapOf("ok" to true)
         }
+        "openPermissionSettings" -> {
+            dataSource.openPermissionSettings(requiredString(args, "permission"))
+            mapOf("ok" to true)
+        }
         "openNativeTool" -> {
             dataSource.openNativeTool(requiredString(args, "tool"))
             mapOf("ok" to true)

@@ -12,6 +12,7 @@ class FixtureGateway implements LeadGateway {
   int returnToNativeCalls = 0;
   String countryCode = '+967';
   final List<String> changedCountryCodes = [];
+  final List<String> openedPermissionScreens = [];
   final List<String> manuallyCreatedPhones = [];
   final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
@@ -119,6 +120,11 @@ class FixtureGateway implements LeadGateway {
   Future<void> changeCountryCode(String code) async {
     changedCountryCodes.add(code);
     countryCode = code;
+  }
+
+  @override
+  Future<void> openPermissionSettings(String permission) async {
+    openedPermissionScreens.add(permission);
   }
 }
 
@@ -382,6 +388,18 @@ void main() {
     await tester.tap(find.byKey(const Key('save_country_code')));
     await tester.pumpAndSettle();
     expect(gateway.changedCountryCodes, ['+966']);
+  });
+
+  testWidgets('permission row opens the Android permission control', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('إذن قراءة الإشعارات'));
+    await tester.tap(find.text('إذن قراءة الإشعارات'));
+    await tester.pumpAndSettle();
+    expect(gateway.openedPermissionScreens, ['notificationPermission']);
   });
 
 }

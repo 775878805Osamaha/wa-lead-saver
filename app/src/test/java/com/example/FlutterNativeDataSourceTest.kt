@@ -85,6 +85,16 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun rejectsUnknownPermissionRequestBeforeLaunchingSettings() = runTest {
+        try {
+            router.execute("openPermissionSettings", mapOf("permission" to "arbitrary"))
+            fail("Unknown permission key must not open any Intent")
+        } catch (expected: IllegalArgumentException) {
+            // Only the three known Android permission settings are allowed.
+        }
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(
