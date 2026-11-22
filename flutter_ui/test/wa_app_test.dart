@@ -170,8 +170,13 @@ void main() {
     expect(find.text('مسح السجل'), findsOneWidget);
     await tester.tap(find.text('الإعدادات'));
     await tester.pumpAndSettle();
-    expect(find.text('مراقبة واتساب للأعمال'), findsOneWidget);
     expect(find.text('إذن قراءة الإشعارات'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('مراقبة واتساب للأعمال'), 170,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('مراقبة واتساب للأعمال'), findsOneWidget);
   });
   testWidgets('small Android viewport keeps dashboard readable', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -362,7 +367,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('الإعدادات').last);
     await tester.pumpAndSettle();
-    expect(find.text('+967'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byKey(const Key('country_code_input')))
+          .controller!.text,
+      '+967',
+    );
     await tester.enterText(find.byKey(const Key('country_code_input')), '123');
     await tester.ensureVisible(find.byKey(const Key('save_country_code')));
     await tester.tap(find.byKey(const Key('save_country_code')));
