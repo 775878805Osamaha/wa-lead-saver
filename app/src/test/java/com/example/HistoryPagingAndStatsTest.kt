@@ -108,7 +108,7 @@ class HistoryPagingAndStatsTest {
         assertEquals(7, counts.total)
         assertEquals(1, counts.duplicates)
         assertEquals(1, counts.groupExcluded)
-        assertEquals(2, counts.invalidOrExcluded)
+        assertEquals(3, counts.invalidOrExcluded)
         assertEquals(1, dao.getFilteredCount("DUPLICATE"))
         assertEquals(1, dao.getFilteredCount("GROUP_EXCLUDED"))
         assertEquals(3, dao.getFilteredCount("EXCLUDED"))

@@ -30,7 +30,8 @@ interface HistoryDao {
                COALESCE(SUM(CASE WHEN LOWER(status) = 'duplicate' THEN 1 ELSE 0 END), 0) AS duplicates,
                COALESCE(SUM(CASE WHEN LOWER(status) LIKE '%group%' THEN 1 ELSE 0 END), 0) AS groupExcluded,
                COALESCE(SUM(CASE WHEN LOWER(status) IN ('excluded', 'invalid number')
-                        OR LOWER(status) LIKE '%system%' THEN 1 ELSE 0 END), 0) AS invalidOrExcluded
+                        OR LOWER(status) LIKE '%system%'
+                        OR LOWER(status) LIKE '%unavailable%' THEN 1 ELSE 0 END), 0) AS invalidOrExcluded
         FROM history
     """)
     fun observeCaptureCounts(): Flow<HistoryCounts>
