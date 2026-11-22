@@ -165,9 +165,12 @@ class _DashboardPageState extends State<DashboardPage> {
                         ? WaPalette.green : WaPalette.amber,
                     ),
                     title: Text(data.monitoringActive
-                        ? 'مراقبة واتساب مفعّلة'
-                        : 'مراقبة واتساب غير مفعّلة'),
-                    subtitle: const Text('حالة خدمة الإشعارات الأصلية على Android'),
+                        ? 'مراقبة واتساب مهيأة'
+                        : 'مراقبة واتساب تحتاج إلى إعداد'),
+                    subtitle: const Text(
+                      'يلزم إذن قراءة الإشعارات وتفعيل مراقبة أحد تطبيقي واتساب. '
+                      'لا يؤكد ذلك وصول إشعارات حاليًا.',
+                    ),
                   ),
                 ),
               ],

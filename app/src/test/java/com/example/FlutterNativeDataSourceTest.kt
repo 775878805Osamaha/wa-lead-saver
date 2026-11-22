@@ -121,6 +121,16 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun requiresNotificationPermissionAndAtLeastOneSourceToShowMonitoringReady() {
+        val ready = AndroidLeadUiDataSource::isMonitoringConfigured
+        assertFalse(ready(false, true, true))
+        assertFalse(ready(true, false, false))
+        assertTrue(ready(true, true, false))
+        assertTrue(ready(true, false, true))
+        assertTrue(ready(true, true, true))
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

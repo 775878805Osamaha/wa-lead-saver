@@ -46,13 +46,19 @@ class AndroidLeadUiDataSource(
         val total = leads.getTotalLeadsCount().first()
         val saved = leads.getTotalSavedCount().first()
         val review = leads.getQueueCount().first()
-        // Only source-backed, evaluated metrics are presented as accuracy.
+        // Listener permission alone does not mean WhatsApp monitoring
+        // is configured: the user may have disabled BOTH app sources.
+        val monitoring = settingsStore.settingsFlow.first()
         val stats = repository.captureStats.first()
         mapOf(
             "total" to total,
             "saved" to saved,
             "review" to review,
-            "monitoringActive" to PermissionHelper.isNotificationListenerEnabled(context),
+            "monitoringActive" to isMonitoringConfigured(
+                PermissionHelper.isNotificationListenerEnabled(context),
+                monitoring.monitorWhatsApp,
+                monitoring.monitorWhatsAppBusiness
+            ),
             "accuracyPercentage" to stats.accuracyPercentage,
             "evaluatedCases" to stats.evaluatedCasesCount,
             "passedCases" to stats.passedCasesCount
@@ -324,6 +330,12 @@ class AndroidLeadUiDataSource(
     }
 
     companion object {
+        internal fun isMonitoringConfigured(
+            listenerPermission: Boolean,
+            whatsappEnabled: Boolean,
+            businessEnabled: Boolean
+        ): Boolean = listenerPermission && (whatsappEnabled || businessEnabled)
+
         internal fun literalLike(input: String): String = input.trim()
             .take(120)
             .replace("\\", "\\\\")
