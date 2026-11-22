@@ -280,6 +280,12 @@ void main() {
   });
 
   testWidgets('camera and scan actions dispatch to native Kotlin tools', (tester) async {
+    // This tests action dispatch, not scrolling: give the quick-action
+    // row adequate vertical room so taps cannot hit the bottom navbar.
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final gateway = FixtureGateway();
     await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
     await tester.pumpAndSettle();
