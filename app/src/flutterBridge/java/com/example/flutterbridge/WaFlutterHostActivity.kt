@@ -5,6 +5,7 @@ import com.example.data.auth.AuthRepository
 import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseManager
 import com.example.data.auth.LicenseStatus
+import com.example.data.auth.SessionManager
 import com.example.data.bridge.AndroidLeadUiDataSource
 import com.example.data.bridge.NativeUiCommandRouter
 import com.example.data.database.AppDatabase
@@ -35,6 +36,8 @@ class WaFlutterHostActivity : FlutterActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val authMutex = Mutex()
     private var authorizedUntilElapsed: Long = 0L
+    private var authorizedUserId: String? = null
+    private val sessionManager by lazy { SessionManager(applicationContext) }
 
     private val authRepository by lazy { AuthRepository(applicationContext) }
     private val licenseManager by lazy { LicenseManager(applicationContext) }
@@ -52,6 +55,13 @@ class WaFlutterHostActivity : FlutterActivity() {
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, "wa_lead_saver/native_v1"
         ).setMethodCallHandler { call, reply ->
+            // Returning to the native login screen must work even if the
+            // session has expired or the account has been stopped.
+            if (call.method == "closeFlutter") {
+                reply.success(mapOf("ok" to true))
+                finish()
+                return@setMethodCallHandler
+            }
             val raw = call.arguments
             if (raw != null && raw !is Map<*, *>) {
                 reply.error("BAD_REQUEST", "Invalid method arguments", null)
@@ -84,9 +94,25 @@ class WaFlutterHostActivity : FlutterActivity() {
      */
     private suspend fun requireAuthenticatedSession() {
         authMutex.withLock {
-            if (SystemClock.elapsedRealtime() < authorizedUntilElapsed) {
-                return@withLock
+            // Check the encrypted local session on EVERY call: logout in the
+            // original Kotlin UI must revoke cached bridge access promptly.
+            val session = withContext(Dispatchers.IO) {
+                sessionManager.getCachedSession()
+            } ?: run {
+                authorizedUntilElapsed = 0L
+                authorizedUserId = null
+                throw SecurityException("انتهت الجلسة، يرجى تسجيل الدخول")
             }
+
+            if (authorizedUserId == session.userId &&
+                SystemClock.elapsedRealtime() < authorizedUntilElapsed) {
+                val cachedLicense = licenseManager.checkLicense()
+                if (cachedLicense is LicenseStatus.Active ||
+                    cachedLicense is LicenseStatus.PendingActivation) {
+                    return@withLock
+                }
+            }
+
             val state = withContext(Dispatchers.IO) {
                 authRepository.checkInitialSession()
             }
@@ -100,10 +126,20 @@ class WaFlutterHostActivity : FlutterActivity() {
 
             if (!validLogin || !allowedLicense) {
                 authorizedUntilElapsed = 0L
+                authorizedUserId = null
                 throw SecurityException("يرجى تسجيل الدخول بحساب مصرح")
             }
+            authorizedUserId = session.userId
             authorizedUntilElapsed = SystemClock.elapsedRealtime() + 30_000L
         }
+    }
+
+    override fun onPause() {
+        // Lock authorization when the original app comes to the foreground,
+        // including login/logout flows, to avoid a stale 30-second grant.
+        authorizedUntilElapsed = 0L
+        authorizedUserId = null
+        super.onPause()
     }
 
     override fun onDestroy() {

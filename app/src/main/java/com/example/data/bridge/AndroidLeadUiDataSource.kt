@@ -9,6 +9,9 @@ import com.example.data.datastore.SettingsDataStore
 import com.example.data.model.AuditFilter
 import com.example.data.model.LeadStatus
 import com.example.data.auth.LicenseStatus
+import com.example.data.auth.LicenseManager
+import com.example.data.auth.SessionManager
+import com.example.data.auth.UserRole
 import com.example.util.CsvExportHelper
 import com.example.data.repository.LeadRepository
 import com.example.data.repository.SaveLeadResult
@@ -131,6 +134,28 @@ class AndroidLeadUiDataSource(
                     "timestamp" to record.timestamp
                 )
             }
+        )
+    }
+
+    /**
+     * Authenticated account summary for Flutter settings. Never exposes
+     * Supabase tokens, device fingerprints or administrative credentials.
+     * The containing FlutterActivity authorizes the MethodChannel request.
+     */
+    suspend fun getAccountInfo(): Map<String, Any?> = withContext(Dispatchers.IO) {
+        val session = SessionManager(context).getCachedSession()
+        val license = LicenseManager(context).checkLicense()
+        mapOf(
+            "email" to (session?.email ?: ""),
+            "accountNumber" to (session?.accountNumber ?: ""),
+            "role" to when (session?.role) {
+                UserRole.ADMIN -> "مدير النظام"
+                UserRole.USER -> "مستخدم"
+                else -> "غير مسجل"
+            },
+            "licenseStatus" to license.displayStatusText,
+            "licenseMessage" to license.message,
+            "canSaveContacts" to license.isSaveAllowed
         )
     }
 

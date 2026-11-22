@@ -29,6 +29,7 @@ class NativeUiCommandRouter(
             limit = optionalLimit(args, 60)
         )
         "getSettings" -> dataSource.getSettings()
+        "getAccountInfo" -> dataSource.getAccountInfo()
         "setSetting" -> {
             dataSource.setSetting(
                 key = requiredString(args, "key"),
