@@ -11,10 +11,12 @@ import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.SettingsDataStore
 import com.example.data.repository.LeadRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -29,6 +31,7 @@ import org.robolectric.annotation.Config
 class FlutterNativeDataSourceTest {
     private lateinit var database: AppDatabase
     private lateinit var dataSource: AndroidLeadUiDataSource
+    private lateinit var repository: LeadRepository
 
     @Before
     fun setup() {
@@ -37,10 +40,11 @@ class FlutterNativeDataSourceTest {
             .allowMainThreadQueries()
             .build()
         val settings = SettingsDataStore(context)
+        repository = LeadRepository(context, database, settings)
         dataSource = AndroidLeadUiDataSource(
             context,
             database,
-            LeadRepository(context, database, settings),
+            repository,
             settings
         )
     }
@@ -140,6 +144,26 @@ class FlutterNativeDataSourceTest {
         assertEquals(91, ids.size)
         assertEquals(91, ids.distinct().size)
         assertEquals(45, dataSource.getHistory(filter = "SAVED", limit = 60)["total"])
+    }
+
+    @Test
+    fun savingOrAutoConfirmingAContactDoesNotFabricateAccuracy() = runTest {
+        database.leadDao().insertLead(
+            LeadEntity(
+                phoneNumber = "+967700000000",
+                displayName = "تجريبي",
+                isSaved = true,
+                tags = "CONFIRMED"
+            )
+        )
+        val stats = repository.captureStats.first()
+        assertEquals(1, stats.savedCount)
+        assertNull("No labeled test, so no accuracy percentage", stats.accuracyPercentage)
+        assertEquals(0, stats.evaluatedCasesCount)
+
+        val overview = dataSource.getOverview()
+        assertEquals(1, overview["saved"])
+        assertNull(overview["accuracyPercentage"])
     }
 
     @Test
