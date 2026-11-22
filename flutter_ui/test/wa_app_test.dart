@@ -91,7 +91,7 @@ void main() {
         TextDirection.rtl);
     final appTheme = Theme.of(tester.element(find.byType(WaAppShell)));
     expect(appTheme.brightness, Brightness.light);
-    expect(appTheme.fontFamily, 'ThmanyahSans');
+    expect(appTheme.textTheme.bodyMedium?.fontFamily, 'ThmanyahSans');
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('6'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
