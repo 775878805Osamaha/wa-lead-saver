@@ -15,6 +15,52 @@ interface LeadDao {
     @Query("SELECT * FROM leads ORDER BY createdAt DESC, detectedAt DESC")
     fun getAllLeads(): Flow<List<LeadEntity>>
 
+    // Flutter bridge queries: bounded keyset pages (createdAt + id), not
+    // an unbounded observation of every customer on each UI refresh.
+    @Query("""
+        SELECT COUNT(*) FROM leads
+        WHERE (:reviewOnly = 0 OR isSaved = 0)
+          AND (:status = '' OR UPPER(status) = UPPER(:status))
+          AND (
+            :query = ''
+            OR displayName LIKE '%' || :query || '%' ESCAPE '\'
+            OR contactName LIKE '%' || :query || '%' ESCAPE '\'
+            OR phoneNumber LIKE '%' || :query || '%' ESCAPE '\'
+            OR normalizedNumber LIKE '%' || :query || '%' ESCAPE '\'
+          )
+    """)
+    suspend fun getFilteredLeadsCount(
+        query: String,
+        status: String,
+        reviewOnly: Boolean
+    ): Int
+
+    @Query("""
+        SELECT * FROM leads
+        WHERE (:reviewOnly = 0 OR isSaved = 0)
+          AND (:status = '' OR UPPER(status) = UPPER(:status))
+          AND (
+            :query = ''
+            OR displayName LIKE '%' || :query || '%' ESCAPE '\'
+            OR contactName LIKE '%' || :query || '%' ESCAPE '\'
+            OR phoneNumber LIKE '%' || :query || '%' ESCAPE '\'
+            OR normalizedNumber LIKE '%' || :query || '%' ESCAPE '\'
+          )
+          AND (:beforeCreatedAt IS NULL
+               OR createdAt < :beforeCreatedAt
+               OR (createdAt = :beforeCreatedAt AND id < :beforeId))
+        ORDER BY createdAt DESC, id DESC
+        LIMIT :pageSize
+    """)
+    suspend fun getLeadsPage(
+        query: String,
+        status: String,
+        reviewOnly: Boolean,
+        beforeCreatedAt: Long?,
+        beforeId: Long?,
+        pageSize: Int
+    ): List<LeadEntity>
+
     @Query("SELECT * FROM leads WHERE id = :id LIMIT 1")
     suspend fun getLeadById(id: Long): LeadEntity?
 
