@@ -101,7 +101,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     )),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _AccuracyCard(
                   data: data,
                   onRefresh: _refresh,
@@ -180,18 +180,18 @@ class _Metric extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: SizedBox(
-        height: 130,
+        height: 114,
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: 25),
+              Icon(icon, color: iconColor, size: 23),
               const SizedBox(height: 7),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(count, style: const TextStyle(
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: WaPalette.ink,
                 )),
@@ -304,7 +304,7 @@ class _Shortcut extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: SizedBox(
-        height: 92,
+        height: 80,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3),
           child: Column(

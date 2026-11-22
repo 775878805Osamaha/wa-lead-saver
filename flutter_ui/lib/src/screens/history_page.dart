@@ -68,6 +68,19 @@ class _HistoryPageViewState extends State<HistoryPageView> {
     }
   }
 
+  String _arabicStatus(String status) {
+    switch (status.trim().toLowerCase()) {
+      case 'saved': return 'تم الحفظ';
+      case 'needs review': return 'بانتظار المراجعة';
+      case 'duplicate': return 'مكرر';
+      case 'group excluded': return 'مجموعة مستبعدة';
+      case 'excluded': return 'مستبعد';
+      case 'failed': return 'فشل الحفظ';
+      case 'invalid number': return 'رقم غير صالح';
+      default: return status;
+    }
+  }
+
   String _date(int ms) {
     if (ms <= 0) return 'تاريخ غير متاح';
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
@@ -91,7 +104,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
   Widget build(BuildContext context) => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
         child: Column(
           children: [
             WaSectionHeader(
@@ -170,7 +183,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
                 child: ListView.builder(
                   key: const Key('history_list'),
                   controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 18),
                   itemCount: _records.length + ((_loading || _hasMore || _error != null) ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == _records.length) {
@@ -202,7 +215,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      entry.status,
+                                      _arabicStatus(entry.status),
                                       style: const TextStyle(
                                         fontSize: 16, fontWeight: FontWeight.bold,
                                         color: WaPalette.green,

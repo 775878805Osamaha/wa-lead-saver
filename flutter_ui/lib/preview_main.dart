@@ -12,7 +12,7 @@ void main() {
     child: Banner(
       message: 'DEMO',
       location: BannerLocation.topStart,
-      child: WaLeadSaverApp(gateway: PreviewLeadGateway()),
+      child: WaLeadSaverApp(gateway: PreviewLeadGateway(), isPreview: true),
     ),
   ));
 }
@@ -20,12 +20,10 @@ void main() {
 class PreviewLeadGateway implements LeadGateway {
   final Map<String, bool> _settings = {
     'autoSaveLeads': false,
-    'monitorWhatsApp': true,
-    'monitorWhatsAppBusiness': true,
+    'monitorWhatsApp': false,
+    'monitorWhatsAppBusiness': false,
     'ignoreGroupMessages': true,
-    'notificationPermission': true,
-    'contactsPermission': true,
-    'batteryOptimizationIgnored': true,
+    // Android permissions cannot be verified in this synthetic demo.
   };
 
   static const List<LeadEntry> sampleLeads = [
@@ -41,7 +39,7 @@ class PreviewLeadGateway implements LeadGateway {
 
   @override
   Future<DashboardSummary> loadOverview() async => const DashboardSummary(
-        total: 1260, saved: 1149, review: 111, monitoringActive: true,
+        total: 4, saved: 0, review: 4, monitoringActive: false,
       );
 
   @override

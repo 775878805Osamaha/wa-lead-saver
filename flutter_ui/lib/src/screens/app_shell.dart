@@ -7,8 +7,9 @@ import 'leads_page.dart';
 import 'settings_page.dart';
 
 class WaAppShell extends StatefulWidget {
-  const WaAppShell({super.key, required this.gateway});
+  const WaAppShell({super.key, required this.gateway, this.isPreview = false});
   final LeadGateway gateway;
+  final bool isPreview;
 
   @override
   State<WaAppShell> createState() => _WaAppShellState();
@@ -46,15 +47,15 @@ class _WaAppShellState extends State<WaAppShell> {
       },
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 72,
+          toolbarHeight: 64,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('WA Lead Saver',
-                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
               Text(
-                _reviewOpen ? 'مراجعة العملاء' : 'إدارة عملاء واتساب',
+                widget.isPreview ? 'معاينة التصميم' : (_reviewOpen ? 'مراجعة العملاء' : 'إدارة عملاء واتساب'),
                 style: const TextStyle(fontSize: 12, color: WaPalette.green),
               ),
             ],
@@ -69,10 +70,10 @@ class _WaAppShellState extends State<WaAppShell> {
               )
             else
               Padding(
-                padding: const EdgeInsets.only(left: 16),
+                padding: const EdgeInsets.only(left: 12),
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: WaPalette.accent,
                     borderRadius: BorderRadius.circular(16),
@@ -84,14 +85,35 @@ class _WaAppShellState extends State<WaAppShell> {
               ),
           ],
         ),
-        body: _reviewOpen
-            ? LeadsPage(
-                key: const Key('review_page'),
-                gateway: widget.gateway,
-                reviewOnly: true,
-              )
-            : pages[_selected],
+        body: Column(
+          children: [
+            if (widget.isPreview)
+              Container(
+                key: const Key('preview_notice'),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                color: WaPalette.raised,
+                child: const Row(children: [
+                  Icon(Icons.info_outline, size: 17, color: WaPalette.green),
+                  SizedBox(width: 6),
+                  Expanded(child: Text(
+                    'معاينة فقط — بيانات تجريبية وليست جهات اتصال هاتفك',
+                    style: TextStyle(fontSize: 11, color: WaPalette.green,
+                      fontWeight: FontWeight.w700),
+                  )),
+                ]),
+              ),
+            Expanded(child: _reviewOpen
+              ? LeadsPage(
+                  key: const Key('review_page'),
+                  gateway: widget.gateway,
+                  reviewOnly: true,
+                )
+              : pages[_selected]),
+          ],
+        ),
         bottomNavigationBar: NavigationBar(
+          height: 68,
           selectedIndex: _selected,
           onDestinationSelected: _navigate,
           destinations: const [

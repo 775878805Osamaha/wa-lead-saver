@@ -65,13 +65,15 @@ class _SettingsPageState extends State<SettingsPage> {
     final granted = _settings[keyName];
     return Card(
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        dense: true,
+        minVerticalPadding: 2,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
         leading: Icon(icon, color: WaPalette.green),
         title: Text(title, style: const TextStyle(
-          fontSize: 15, fontWeight: FontWeight.w800,
+          fontSize: 14, fontWeight: FontWeight.w800,
         )),
         subtitle: Text(subtitle, style: const TextStyle(
-          color: WaPalette.muted, fontSize: 12,
+          color: WaPalette.muted, fontSize: 11.5,
         )),
         trailing: Icon(
           granted == null
@@ -95,13 +97,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return Card(
       child: SwitchListTile.adaptive(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        visualDensity: const VisualDensity(vertical: -1),
         secondary: Icon(icon, color: WaPalette.green),
         title: Text(title, style: const TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 15,
+          fontWeight: FontWeight.w800, fontSize: 14,
         )),
         subtitle: Text(hint, style: const TextStyle(
-          color: WaPalette.muted, fontSize: 12,
+          color: WaPalette.muted, fontSize: 11.5,
         )),
         value: _settings[keyName] ?? false,
         onChanged: _saving == null && _settings.containsKey(keyName)
@@ -135,35 +138,35 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle: 'حالة الوصول إلى الإشعارات في Android',
           icon: Icons.notifications_outlined,
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 6),
         _permissionCard(
           keyName: 'contactsPermission',
           title: 'صلاحية جهات الاتصال',
           subtitle: 'السماح بحفظ الأرقام',
           icon: Icons.contact_page_outlined,
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 6),
         _permissionCard(
           keyName: 'batteryOptimizationIgnored',
           title: 'استثناء تحسين البطارية',
           subtitle: 'حالة استثناء التطبيق من تحسين البطارية',
           icon: Icons.battery_charging_full_outlined,
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 6),
         _switchCard(
           keyName: 'monitorWhatsApp',
           title: 'مراقبة واتساب الرسمي',
           hint: 'اكتشاف الأرقام من إشعارات WhatsApp',
           icon: Icons.chat_bubble_outline,
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 6),
         _switchCard(
           keyName: 'monitorWhatsAppBusiness',
           title: 'مراقبة واتساب للأعمال',
           hint: 'اكتشاف الأرقام من WhatsApp Business',
           icon: Icons.business_outlined,
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 6),
         _switchCard(
           keyName: 'ignoreGroupMessages',
           title: 'تجاهل رسائل المجموعات',

@@ -8,12 +8,13 @@ class WaSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
+              fontSize: 20,
               color: WaPalette.ink,
             )),
             if (subtitle != null)
@@ -21,6 +22,7 @@ class WaSectionHeader extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(subtitle!, style: const TextStyle(
                   color: WaPalette.muted,
+                  fontSize: 12,
                 )),
               ),
           ],

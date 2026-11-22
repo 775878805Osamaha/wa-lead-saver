@@ -10,8 +10,9 @@ void main() {
 }
 
 class WaLeadSaverApp extends StatelessWidget {
-  const WaLeadSaverApp({super.key, required this.gateway});
+  const WaLeadSaverApp({super.key, required this.gateway, this.isPreview = false});
   final LeadGateway gateway;
+  final bool isPreview;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -29,6 +30,6 @@ class WaLeadSaverApp extends StatelessWidget {
           textDirection: TextDirection.rtl,
           child: child ?? const SizedBox.shrink(),
         ),
-        home: WaAppShell(gateway: gateway),
+        home: WaAppShell(gateway: gateway, isPreview: isPreview),
       );
 }

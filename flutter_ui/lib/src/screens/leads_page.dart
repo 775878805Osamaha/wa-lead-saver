@@ -58,6 +58,7 @@ class _LeadsPageState extends State<LeadsPage> {
     if (reset) {
       ++_generation;
       _items = [];
+      _total = 0;
       _cursor = null;
       _hasMore = true;
       _error = null;
@@ -175,7 +176,7 @@ class _LeadsPageState extends State<LeadsPage> {
   Widget build(BuildContext context) => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -238,7 +239,7 @@ class _LeadsPageState extends State<LeadsPage> {
                 child: ListView.builder(
                   key: const Key('leads_list'),
                   controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 18),
                   itemCount: _items.length + ((_loading || _error != null || _hasMore) ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == _items.length) {
@@ -261,7 +262,7 @@ class _LeadsPageState extends State<LeadsPage> {
                     }
                     final lead = _items[index];
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 7),
                       child: Card(
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),
@@ -287,7 +288,7 @@ class _LeadsPageState extends State<LeadsPage> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
-                                          fontSize: 17, fontWeight: FontWeight.bold,
+                                          fontSize: 15, fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
