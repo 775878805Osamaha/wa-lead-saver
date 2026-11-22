@@ -56,24 +56,60 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Widget _switch({
+  Widget _permissionCard({
+    required String keyName,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final granted = _settings[keyName];
+    return Card(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: Icon(icon, color: WaPalette.green),
+        title: Text(title, style: const TextStyle(
+          fontSize: 15, fontWeight: FontWeight.w800,
+        )),
+        subtitle: Text(subtitle, style: const TextStyle(
+          color: WaPalette.muted, fontSize: 12,
+        )),
+        trailing: Icon(
+          granted == null
+              ? Icons.help_outline
+              : granted
+                  ? Icons.check_circle
+                  : Icons.error_outline,
+          color: granted == null
+              ? WaPalette.muted
+              : granted ? WaPalette.accent : WaPalette.red,
+        ),
+      ),
+    );
+  }
+
+  Widget _switchCard({
     required String keyName,
     required String title,
     required String hint,
     required IconData icon,
   }) {
-    return SwitchListTile.adaptive(
-      secondary: Icon(icon, color: WaPalette.green),
-      title: Text(title, style: const TextStyle(
-        fontWeight: FontWeight.w600, fontSize: 16,
-      )),
-      subtitle: Text(hint, style: const TextStyle(color: WaPalette.muted)),
-      value: _settings[keyName] ?? false,
-      onChanged: _saving == null && _settings.containsKey(keyName)
-          ? (next) => _change(keyName, next)
-          : null,
-      activeTrackColor: WaPalette.green,
-      activeThumbColor: Colors.white,
+    return Card(
+      child: SwitchListTile.adaptive(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+        secondary: Icon(icon, color: WaPalette.green),
+        title: Text(title, style: const TextStyle(
+          fontWeight: FontWeight.w800, fontSize: 15,
+        )),
+        subtitle: Text(hint, style: const TextStyle(
+          color: WaPalette.muted, fontSize: 12,
+        )),
+        value: _settings[keyName] ?? false,
+        onChanged: _saving == null && _settings.containsKey(keyName)
+            ? (next) => _change(keyName, next)
+            : null,
+        activeTrackColor: WaPalette.accent,
+        activeThumbColor: Colors.white,
+      ),
     );
   }
 
@@ -86,60 +122,67 @@ class _SettingsPageState extends State<SettingsPage> {
       return WaFeedback(message: _error!, onRetry: _load);
     }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
       children: [
         const WaSectionHeader(
           title: 'الإعدادات',
-          subtitle: 'خيارات الالتقاط والأذونات',
+          subtitle: 'تخصيص والتحكم في التطبيق',
         ),
-        Card(
-          child: Column(children: [
-            _switch(
-              keyName: 'autoSaveLeads',
-              title: 'الحفظ التلقائي للعملاء',
-              hint: 'حفظ الأرقام بعد التحقق من صلاحيات النظام',
-              icon: Icons.person_add_alt_1_outlined,
-            ),
-            const Divider(height: 1),
-            _switch(
-              keyName: 'monitorWhatsApp',
-              title: 'مراقبة واتساب الرسمي',
-              hint: 'متابعة الإشعارات الجديدة',
-              icon: Icons.chat_outlined,
-            ),
-            const Divider(height: 1),
-            _switch(
-              keyName: 'monitorWhatsAppBusiness',
-              title: 'مراقبة واتساب للأعمال',
-              hint: 'متابعة إشعارات WhatsApp Business',
-              icon: Icons.business_outlined,
-            ),
-            const Divider(height: 1),
-            _switch(
-              keyName: 'ignoreGroupMessages',
-              title: 'تجاهل رسائل المجموعات',
-              hint: 'تقليل الأرقام غير المرتبطة بمحادثات فردية',
-              icon: Icons.groups_outlined,
-            ),
-          ]),
+        const SizedBox(height: 6),
+        _permissionCard(
+          keyName: 'notificationPermission',
+          title: 'إذن قراءة الإشعارات',
+          subtitle: 'حالة الوصول إلى الإشعارات في Android',
+          icon: Icons.notifications_outlined,
         ),
-        const SizedBox(height: 18),
-        const WaSectionHeader(title: 'المراقبة والترخيص'),
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.verified_user_outlined,
-              color: WaPalette.green),
-            title: Text('خدمات Android الأصلية'),
-            subtitle: Text(
-              'خدمة الإشعارات، جهات الاتصال، الجلسات والتراخيص باقية في تطبيق Kotlin أثناء الترحيل',
-            ),
-          ),
+        const SizedBox(height: 9),
+        _permissionCard(
+          keyName: 'contactsPermission',
+          title: 'صلاحية جهات الاتصال',
+          subtitle: 'السماح بحفظ الأرقام',
+          icon: Icons.contact_page_outlined,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 9),
+        _permissionCard(
+          keyName: 'batteryOptimizationIgnored',
+          title: 'استثناء تحسين البطارية',
+          subtitle: 'حالة استثناء التطبيق من تحسين البطارية',
+          icon: Icons.battery_charging_full_outlined,
+        ),
+        const SizedBox(height: 9),
+        _switchCard(
+          keyName: 'monitorWhatsApp',
+          title: 'مراقبة واتساب الرسمي',
+          hint: 'اكتشاف الأرقام من إشعارات WhatsApp',
+          icon: Icons.chat_bubble_outline,
+        ),
+        const SizedBox(height: 9),
+        _switchCard(
+          keyName: 'monitorWhatsAppBusiness',
+          title: 'مراقبة واتساب للأعمال',
+          hint: 'اكتشاف الأرقام من WhatsApp Business',
+          icon: Icons.business_outlined,
+        ),
+        const SizedBox(height: 9),
+        _switchCard(
+          keyName: 'ignoreGroupMessages',
+          title: 'تجاهل رسائل المجموعات',
+          hint: 'عدم إضافة أرقام من المجموعات',
+          icon: Icons.groups_outlined,
+        ),
+        const SizedBox(height: 16),
+        const WaSectionHeader(title: 'الحفظ والترخيص'),
+        _switchCard(
+          keyName: 'autoSaveLeads',
+          title: 'الحفظ التلقائي للعملاء',
+          hint: 'الحفظ عند توفر الصلاحيات وتأكيد الرقم',
+          icon: Icons.person_add_alt_1_outlined,
+        ),
+        const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: _load,
           icon: const Icon(Icons.refresh),
-          label: const Text('تحديث الإعدادات'),
+          label: const Text('تحديث حالة الإعدادات'),
         ),
       ],
     );
