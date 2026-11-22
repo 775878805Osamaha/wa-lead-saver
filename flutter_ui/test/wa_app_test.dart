@@ -217,4 +217,60 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('manual add requires phone and calls native gateway', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add_manual_lead')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('submit_manual_lead')), findsOneWidget);
+    final submit = tester.widget<FilledButton>(
+      find.byKey(const Key('submit_manual_lead')),
+    );
+    expect(submit.onPressed, isNull);
+    await tester.enterText(
+      find.byKey(const Key('manual_lead_name')), 'عميل جديد',
+    );
+    await tester.enterText(
+      find.byKey(const Key('manual_lead_phone')), '+967777123456',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.hide();
+    await tester.tap(find.byKey(const Key('submit_manual_lead')));
+    await tester.pumpAndSettle();
+    expect(gateway.manuallyCreatedPhones, contains('+967777123456'));
+  });
+
+  testWidgets('audit deletion requires a second explicit confirmation', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مسح السجل'));
+    await tester.pumpAndSettle();
+    expect(gateway.auditClearCalls, 0);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(gateway.auditClearCalls, 0);
+    await tester.tap(find.text('مسح السجل'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm_clear_history')));
+    await tester.pumpAndSettle();
+    expect(gateway.auditClearCalls, 1);
+  });
+
+  testWidgets('history CSV calls the real export gateway', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تصدير CSV'));
+    await tester.pumpAndSettle();
+    expect(gateway.auditExportCalls, 1);
+  });
+
 }
