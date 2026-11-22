@@ -55,6 +55,7 @@ class LeadRepository(
 
     val queuedLeads: Flow<List<LeadEntity>> = leadDao.getQueuedLeads()
     val allLeads: Flow<List<LeadEntity>> = leadDao.getAllLeads()
+    val totalLeadsCount: Flow<Int> = leadDao.getTotalLeadsCount()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
     val recentHistory: Flow<List<HistoryEntity>> = historyDao.observeRecentHistory()
