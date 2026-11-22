@@ -176,3 +176,49 @@ validate Android Room compilation** or actual on-device performance.
 4. Keep PR #1 draft/unmerged; verify retained local DB, notification listener,
    authentication, licenses and contacts; then run Android real-device tests
    before any production release APK.
+
+## 2026-11-22 — Installable Flutter UI preview (DEMO only)
+
+**User requested an installable build to inspect the reference-matched UI.**
+Created `flutter_ui/lib/preview_main.dart` with in-memory synthetic contacts,
+history and settings, and a clearly labeled DEMO banner. No real numbers,
+Supabase credentials, notification service, or device Contacts data are
+accessed. Save/contact actions are unsupported in this preview.
+
+Created workflow `.github/workflows/wa-lead-ui-preview-apk.yml`.
+It generates an isolated Flutter Android app with application ID
+`com.walspreview.wa_lead_saver_ui` (NOT the production
+`com.example.waleadsaver`), verifies Dart code, executes widget tests, and
+builds a standalone DEBUG APK.
+
+### Confirmed result
+- GitHub Actions run: https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45053412361
+- Workflow result: SUCCESS, based on commit `e6a67e127780d573dd9b10089cad36799ac3bd1d`.
+- Flutter version: 3.50.1 stable.
+- `flutter analyze lib --no-fatal-infos`: exit 0, **11 deprecation infos**
+  (modern Flutter package transitions) remain. No analyzer errors.
+- `flutter test`: **6 tests passed**.
+- `flutter build apk --debug --target lib/preview_main.dart`: SUCCESS.
+- Verified APK file exists, is a ZIP-compatible Android package, contains an
+  AndroidManifest.xml and DEX bytecode, and was uploaded by Actions.
+- Artifact ID: `14765564536`, name `WA-Lead-Saver-UI-Preview-DEMO`,
+  expires on 2026-11-25.
+- APK SHA256:
+  `3c0af621822c21b604ecc8ef0d5871187559fb047154543de5d015f006a43aa3`.
+- Size: 150,196,021 bytes (debug, multi-architecture).
+- The user was provided a direct conversation download link to the actual
+  verified APK file.
+
+### Non-negotiable distinctions
+- This is **only a visual UI preview**, not a usable production update.
+  The production app, user contacts, Supabase and licenses are untouched.
+- The private user-supplied Thmanyah font is **NOT embedded** in this public
+  Actions build. Flutter falls back to the default Arabic font. Do not
+  claim that the installed preview demonstrates exact Thmanyah typography.
+- Native Kotlin MethodChannel and full functional Android migration remain
+  unimplemented; PR #1 remains a draft, not merged.
+- Tests on a physical Samsung/Android device have NOT been run; install and
+  layout may still require on-device fixes.
+- Initial preview builds failed due to two Dart `.isNotEmpty()` invocations
+  and a test reading a nonexistent ThemeData.fontFamily getter. These were
+  fixed before the successful run.
