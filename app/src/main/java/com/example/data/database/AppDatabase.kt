@@ -11,7 +11,7 @@ import com.example.data.database.dao.LeadDao
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
 
-@Database(entities = [LeadEntity::class, HistoryEntity::class], version = 2, exportSchema = false)
+@Database(entities = [LeadEntity::class, HistoryEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun leadDao(): LeadDao
     abstract fun historyDao(): HistoryDao
@@ -58,6 +58,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Non-destructive migration for chronological keyset paging.
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_history_timestamp_id ON history(timestamp, id)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -65,7 +72,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "waleadsaver_db"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance
