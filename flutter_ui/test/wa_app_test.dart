@@ -111,8 +111,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('history_list')), findsOneWidget);
     expect(find.text('سجل العمليات (1)'), findsOneWidget);
+    expect(find.text('تصدير CSV'), findsOneWidget);
+    expect(find.text('مسح السجل'), findsOneWidget);
     await tester.tap(find.text('الإعدادات'));
     await tester.pumpAndSettle();
     expect(find.text('مراقبة واتساب للأعمال'), findsOneWidget);
+    expect(find.text('إذن قراءة الإشعارات'), findsOneWidget);
   });
 }
