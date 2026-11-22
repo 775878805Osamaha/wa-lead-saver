@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.bridge.AndroidLeadUiDataSource
+import com.example.data.bridge.NativeUiCommandRouter
 import com.example.data.database.AppDatabase
 import com.example.data.database.entity.HistoryEntity
 import com.example.data.database.entity.LeadEntity
@@ -32,6 +33,7 @@ class FlutterNativeDataSourceTest {
     private lateinit var database: AppDatabase
     private lateinit var dataSource: AndroidLeadUiDataSource
     private lateinit var repository: LeadRepository
+    private lateinit var router: NativeUiCommandRouter
 
     @Before
     fun setup() {
@@ -47,6 +49,7 @@ class FlutterNativeDataSourceTest {
             repository,
             settings
         )
+        router = NativeUiCommandRouter(dataSource)
     }
 
     @After
@@ -164,6 +167,37 @@ class FlutterNativeDataSourceTest {
         val overview = dataSource.getOverview()
         assertEquals(1, overview["saved"])
         assertNull(overview["accuracyPercentage"])
+    }
+
+    @Test
+    fun nativeCommandRouterDispatchesOnlyWhitelistedMethods() = runTest {
+        database.leadDao().insertLead(
+            LeadEntity(
+                phoneNumber = "+967770000000",
+                normalizedNumber = "+967770000000",
+                displayName = "زبون تجريبي"
+            )
+        )
+        val result = router.execute(
+            "getLeads",
+            mapOf("limit" to 1, "query" to "زبون")
+        ) as Map<*, *>
+        assertEquals(1, result["total"])
+        assertEquals(1, (result["items"] as List<*>).size)
+
+        for ((method, params) in listOf(
+            "deleteEveryContact" to emptyMap<String, Any?>(),
+            "setSetting" to mapOf("key" to "contactsPermission", "enabled" to true),
+            "getLeads" to mapOf("limit" to "unbounded"),
+            "callLead" to mapOf("number" to 10),
+        )) {
+            try {
+                router.execute(method, params)
+                fail("command should be rejected: $method")
+            } catch (_: IllegalArgumentException) {
+                // Unknown methods, read-only fields and invalid values fail closed.
+            }
+        }
     }
 
     @Test
