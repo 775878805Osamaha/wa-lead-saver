@@ -242,3 +242,37 @@ builds a standalone DEBUG APK.
 - Added widget-test cases covering preview notice/permissions, localized
   status and compact phone screen navigation. Verification is pending the
   automatically triggered GitHub preview workflow for this commit.
+
+## Follow-up: installed preview screenshots and layout regression repair
+The user installed the DEMO APK and supplied five real screenshots from the
+Android device. These screenshots are visual feedback only; they do not prove
+that live Contacts/WhatsApp functionality is present in Flutter.
+
+### Implemented in Flutter source
+- AppBar reduced 72→64dp, navigation bar 68dp, section header gaps reduced.
+- Dashboard metric cards reorganized using Flexible count/label children
+  after Flutter tests caught a 3px RenderFlex overflow at 360dp width.
+- Smaller settings rows, customer list gaps, and shortcut tiles.
+- Audit status text localized for presentation (Saved, Needs Review,
+  Duplicate, Failed), retaining raw status values for database queries.
+- Synthetic preview now shows consistent 4/0/4 demo counts and disables
+  fabricated permission approvals (unknown states displayed instead).
+- Persistent preview notice differentiates UI sample values from the actual
+  device's customers/permissions.
+- Black full-width snackbars replaced with light floating notices to match
+  the user's light-only request.
+
+### Verification / release gates
+- Older preview workflows failed on 360dp dashboard overflow; subsequent
+  `flutter_ui` layout code now uses Flexible to constrain text.
+- For commit `782d7e58c55d56a8271de3785cff7eb1a0317625`,
+  GitHub workflow `45056833474` passed Dart analysis and widget tests,
+  while the Android APK build was still running at last inspection.
+- Updated light-snackbar commit `c9cade248173ff4f6c6c0ef2e916ad3475c5930b`
+  is checked by workflow `45056974486`, which may still be running.
+- Do not claim a new APK is installable without a completed success run and
+  non-expired Artifact.
+- Thmanyah font binaries remain outside public GitHub builds; visual DEMO
+  still uses Android/Flutter fallback font.
+- Production Flutter/native integration remains incomplete. Do not merge or
+  replace the installed Kotlin application.
