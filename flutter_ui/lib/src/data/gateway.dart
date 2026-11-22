@@ -21,6 +21,9 @@ abstract class LeadGateway {
   Future<void> saveLead(int id);
   Future<void> callLead(String number);
   Future<void> openWhatsAppLead(String number);
+  Future<int> createLead({required String phone, String name = ''});
+  Future<void> exportHistory();
+  Future<void> clearHistory();
 }
 
 class DashboardSummary {
@@ -237,5 +240,25 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> openWhatsAppLead(String number) async {
     await _invoke('openWhatsAppLead', {'number': number});
+  }
+
+  @override
+  Future<int> createLead({required String phone, String name = ''}) async {
+    final result = await _invoke('createLead', {'phone': phone, 'name': name});
+    final id = result['id'];
+    if (id is int && id > 0) return id;
+    throw StateError('Native host did not return a valid lead ID');
+  }
+
+  @override
+  Future<void> exportHistory() async {
+    await _invoke('exportHistory');
+  }
+
+  @override
+  Future<void> clearHistory() async {
+    await _invoke('clearHistory', {
+      'confirmation': 'CLEAR_ALL_AUDIT_HISTORY',
+    });
   }
 }

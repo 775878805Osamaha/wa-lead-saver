@@ -7,6 +7,9 @@ import 'package:wa_lead_saver_ui/src/screens/app_shell.dart';
 
 class FixtureGateway implements LeadGateway {
   int leadCalls = 0;
+  int auditClearCalls = 0;
+  int auditExportCalls = 0;
+  final List<String> manuallyCreatedPhones = [];
   final List<int> savedIds = [];
 
   @override
@@ -74,6 +77,18 @@ class FixtureGateway implements LeadGateway {
 
   @override
   Future<void> openWhatsAppLead(String number) async {}
+
+  @override
+  Future<int> createLead({required String phone, String name = ''}) async {
+    manuallyCreatedPhones.add(phone);
+    return manuallyCreatedPhones.length + 10;
+  }
+
+  @override
+  Future<void> exportHistory() async { auditExportCalls++; }
+
+  @override
+  Future<void> clearHistory() async { auditClearCalls++; }
 }
 
 class OfflineGateway extends FixtureGateway {

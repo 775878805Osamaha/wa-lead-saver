@@ -110,4 +110,16 @@ class PreviewLeadGateway implements LeadGateway {
   @override
   Future<void> openWhatsAppLead(String number) async =>
       throw UnsupportedError('Preview cannot send WhatsApp messages');
+
+  @override
+  Future<int> createLead({required String phone, String name = ''}) async =>
+      throw UnsupportedError('Preview cannot add real customers');
+
+  @override
+  Future<void> exportHistory() async =>
+      throw UnsupportedError('Preview cannot export real audit records');
+
+  @override
+  Future<void> clearHistory() async =>
+      throw UnsupportedError('Preview cannot delete real audit records');
 }
