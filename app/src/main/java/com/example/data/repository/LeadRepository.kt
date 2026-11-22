@@ -57,7 +57,7 @@ class LeadRepository(
     val allLeads: Flow<List<LeadEntity>> = leadDao.getAllLeads()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
-    val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
+    val recentHistory: Flow<List<HistoryEntity>> = historyDao.observeRecentHistory()
     val settings: Flow<AppSettings> = settingsDataStore.settingsFlow
 
     private val benchmarkResultFlow = kotlinx.coroutines.flow.MutableStateFlow<com.example.util.BenchmarkEvaluationResult?>(null)
@@ -68,20 +68,16 @@ class LeadRepository(
         return result
     }
 
-    val captureStats: Flow<CaptureStats> = combine(allHistory, allLeads, benchmarkResultFlow) { history, leads, benchmark ->
+    val captureStats: Flow<CaptureStats> = combine(historyDao.observeCaptureCounts(), allLeads, benchmarkResultFlow) { historyCounts, leads, benchmark ->
         val saved = leads.count { it.isSaved }
         val queued = leads.filter { !it.isSaved }
         val needsReview = queued.count { it.tags.contains("NEEDS_REVIEW") }
-        val duplicates = history.count { it.status.equals("Duplicate", ignoreCase = true) }
-        val groupExcluded = history.count { it.status.contains("Group", ignoreCase = true) }
-        val invalidOrExcluded = history.count {
-            it.status.equals("Excluded", ignoreCase = true) ||
-            it.status.equals("Invalid Number", ignoreCase = true) ||
-            it.status.contains("System", ignoreCase = true)
-        }
+        val duplicates = historyCounts.duplicates
+        val groupExcluded = historyCounts.groupExcluded
+        val invalidOrExcluded = historyCounts.invalidOrExcluded
         val candidates = saved + queued.size + duplicates
         val totalAnalyzed = candidates + groupExcluded + invalidOrExcluded
-        val totalReceived = history.size.coerceAtLeast(totalAnalyzed)
+        val totalReceived = historyCounts.total.coerceAtLeast(totalAnalyzed)
 
         // Verified live ground-truth cases
         val userVerifiedLeads = leads.count { it.tags.contains("CONFIRMED") || it.isSaved }
@@ -646,6 +642,17 @@ class LeadRepository(
             leadDao.updateLead(current.copy(contactName = newName.trim()))
         }
     }
+
+    suspend fun getFilteredHistoryCount(filter: com.example.data.model.AuditFilter): Int =
+        historyDao.getFilteredCount(filter.name)
+
+    suspend fun getHistoryPage(
+        filter: com.example.data.model.AuditFilter,
+        beforeTimestamp: Long?,
+        beforeId: Long?,
+        pageSize: Int = 80
+    ): List<HistoryEntity> =
+        historyDao.getHistoryPage(filter.name, beforeTimestamp, beforeId, pageSize)
 
     suspend fun getFullHistoryForExport(): List<HistoryEntity> {
         return historyDao.getAllHistoryList()
