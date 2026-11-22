@@ -69,14 +69,17 @@ class LeadRepository(
         return result
     }
 
-    val captureStats: Flow<CaptureStats> = combine(historyDao.observeCaptureCounts(), allLeads, benchmarkResultFlow) { historyCounts, leads, benchmark ->
-        val saved = leads.count { it.isSaved }
-        val queued = leads.filter { !it.isSaved }
-        val needsReview = queued.count { it.tags.contains("NEEDS_REVIEW") }
+    val captureStats: Flow<CaptureStats> = combine(
+        historyDao.observeCaptureCounts(),
+        leadDao.observeCaptureCounts(),
+        benchmarkResultFlow
+    ) { historyCounts, leadCounts, benchmark ->
+        val saved = leadCounts.saved
+        val needsReview = leadCounts.needsReview
         val duplicates = historyCounts.duplicates
         val groupExcluded = historyCounts.groupExcluded
         val invalidOrExcluded = historyCounts.invalidOrExcluded
-        val candidates = saved + queued.size + duplicates
+        val candidates = leadCounts.total + duplicates
         val totalAnalyzed = candidates + groupExcluded + invalidOrExcluded
         val totalReceived = historyCounts.total.coerceAtLeast(totalAnalyzed)
 

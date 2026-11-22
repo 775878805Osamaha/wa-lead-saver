@@ -9,8 +9,27 @@ import androidx.room.Update
 import com.example.data.database.entity.LeadEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Constant-size projection for capture KPIs. Room invalidates the query
+ * when leads change, without emitting the complete customer dataset.
+ */
+data class LeadCaptureCounts(
+    val total: Int,
+    val saved: Int,
+    val needsReview: Int
+)
+
 @Dao
 interface LeadDao {
+    @Query("""
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(CASE WHEN isSaved = 1 THEN 1 ELSE 0 END), 0) AS saved,
+               COALESCE(SUM(CASE WHEN isSaved = 0 AND INSTR(tags, 'NEEDS_REVIEW') > 0
+                                 THEN 1 ELSE 0 END), 0) AS needsReview
+        FROM leads
+    """)
+    fun observeCaptureCounts(): Flow<LeadCaptureCounts>
+
     @Transaction
     @Query("SELECT * FROM leads ORDER BY createdAt DESC, detectedAt DESC")
     fun getAllLeads(): Flow<List<LeadEntity>>
