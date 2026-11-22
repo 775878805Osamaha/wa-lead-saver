@@ -30,6 +30,15 @@ contacts). The screenshots do not prove a performance gain or permission sync.
 - No fake production data; synthetic data exists only inside widget tests.
 - The Kotlin capture service, local DB and Supabase login are untouched.
 
+## Additional SQL-only verification (not an Android test)
+- Executed the exact aggregate/filter/keyset SQL logic against an in-memory
+  SQLite database with **55,971 synthetic audit rows**.
+- All 55,971 IDs were retrieved **once**, across 700 keyset pages with
+  80-row page size; no missing or duplicate rows with repeated timestamps.
+- SQL aggregation/filter queries completed and returned consistent counts.
+- These are host SQLite checks only: they are **not** Robolectric tests,
+  Flutter tests, APK/device tests or proof of Android performance improvement.
+
 ## NOT implemented / verification needed
 - Android Flutter add-to-app integration + Kotlin MethodChannel host.
 - Native licensing and Contacts permission validation for Flutter actions.
