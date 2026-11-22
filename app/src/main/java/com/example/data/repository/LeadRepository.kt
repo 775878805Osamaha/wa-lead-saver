@@ -79,33 +79,23 @@ class LeadRepository(
         val totalAnalyzed = candidates + groupExcluded + invalidOrExcluded
         val totalReceived = historyCounts.total.coerceAtLeast(totalAnalyzed)
 
-        // Verified live ground-truth cases
-        val userVerifiedLeads = leads.count { it.tags.contains("CONFIRMED") || it.isSaved }
-
+        // Saving a phone number or automatic "CONFIRMED" tags is not
+        // independent ground-truth. Accuracy needs a labeled benchmark.
         val accuracy: Int?
         val evaluatedCount: Int
         val passedCount: Int
         val methodNote: String
 
-        if (benchmark != null) {
-            val total = benchmark.totalCases + (if (userVerifiedLeads > 0) userVerifiedLeads else 0)
-            val passed = benchmark.passedCases + (if (userVerifiedLeads > 0) userVerifiedLeads else 0)
-            accuracy = if (total > 0) ((passed * 100) / total).coerceIn(0, 100) else null
-            evaluatedCount = total
-            passedCount = passed
-            methodNote = "محسوبة استناداً إلى ${benchmark.totalCases} حالة اختبار مصنفة مسبقاً" +
-                    (if (userVerifiedLeads > 0) " و $userVerifiedLeads عملاء تم التحقق منهم" else "")
-        } else if (userVerifiedLeads > 0) {
-            accuracy = 100
-            evaluatedCount = userVerifiedLeads
-            passedCount = userVerifiedLeads
-            methodNote = "محسوبة استناداً إلى $userVerifiedLeads حالة تم التحقق منها بشرياً"
+        if (benchmark != null && benchmark.totalCases > 0) {
+            accuracy = benchmark.accuracyPercentage.coerceIn(0, 100)
+            evaluatedCount = benchmark.totalCases
+            passedCount = benchmark.passedCases
+            methodNote = "نتيجة اختبار على ${benchmark.totalCases} حالة مصنفة مسبقاً؛ لا تمثل نسبة نجاح جميع الإشعارات الحقيقية"
         } else {
-            // Strictly NO fake 100%: null accuracy when no ground-truth test data exists
             accuracy = null
             evaluatedCount = 0
             passedCount = 0
-            methodNote = "لم يتم تقييم الدقة بعد (بانتظار بيانات الاختبار المصنفة)"
+            methodNote = "لا تتوفر نتيجة اختبار مصنف؛ لا يمكن حساب الدقة من عدد العملاء المحفوظين"
         }
 
         CaptureStats(
