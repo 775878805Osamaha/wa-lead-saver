@@ -567,3 +567,51 @@ capture, Contacts permission/save, session activation, native camera/scan
 round-trip, large-list profiling, same-key APK upgrade and backup/migration,
 private embedding of licensed Thmanyah fonts. Do not merge or publish an
 APK into the original app installation until these pass.
+
+## 2026-11-23 — Flutter customer notes, widget lifecycle and bounded native CI retry
+
+### Verified starting point
+- Existing hybrid run `45080680935` was SUCCESS at commit
+  `be70877a816bf4a6c9e07c960ddf48109f2f741f`: 19 Flutter widget
+  tests, analysis and experimental Flutter/Kotlin assembly.
+- Existing native regression run `45080454440` was SUCCESS.
+- PR #1 remained draft and unmerged.
+
+### New implementation
+- Added `notes` to the existing typed `LeadEntry` and the paginated
+  Kotlin Room-to-Flutter customer map. No database schema change.
+- Added `updateLeadNotes(id, notes)` to the whitelisted native router and
+  Dart gateway, delegating to existing `LeadRepository.updateLeadNotes`.
+  Native validation rejects IDs <= 0, missing customers, non-string/missing
+  notes and notes longer than 1500 characters. An **empty** string is allowed
+  to clear a note deliberately. No Contacts, WhatsApp or Supabase write.
+- Added Arabic view/edit dialog on the customer details bottom sheet,
+  capped at 1500 characters. Customer details are scrollable on narrow
+  phones; save refreshes from Room. Cancel makes no write.
+- `flutter_ui/test/wa_app_test.dart` adds notes save/cancel regression
+  cases; Robolectric test source adds actual Room persistence, clear and
+  invalid-input rejection cases.
+- A Flutter test exposed a genuine lifecycle bug: disposing the
+  `TextEditingController` immediately after `showDialog` returned
+  caused use-after-dispose during route reverse animation.
+  Fixed by moving controller ownership to the private StatefulWidget
+  `_LeadNotesDialog`, whose `dispose` runs when the route is removed.
+  Regressions additionally check `tester.takeException() == null`.
+
+### CI evidence and remaining gates
+- Initial hybrid run `45083701208` FAILED two new widget tests with
+  `A TextEditingController was used after being disposed`. The code was
+  fixed, never marked as a successful build.
+- Initial native run `45083701187` FAILED at dependency resolution
+  because Maven Central returned HTTP 429 for
+  `org.robolectric:nativeruntime-dist-compat:1.0.18`; this is a download
+  error, not a Kotlin assertion failure.
+- Native workflow now retries **once only** for the 429 error; ordinary
+  compilation/test failures never get hidden by retries.
+- Recheck final results before claiming success:
+  Flutter hybrid run `45083907444` (analysis + widget tests completed
+  SUCCESS; hybrid APK build in progress at report-writing time), and
+  native regression run `45083960402` (in progress).
+- No production release APK was published; the old Kotlin app, active
+  customers and licensed Thmanyah font assets were not modified or leaked.
+  Same-package upgrade and on-device testing remain mandatory.
