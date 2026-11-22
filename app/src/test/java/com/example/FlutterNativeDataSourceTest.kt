@@ -58,6 +58,18 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun accountSummaryContainsOnlyDisplayFieldsNeverTokens() = runTest {
+        val account = router.execute("getAccountInfo") as Map<*, *>
+        assertTrue(account.containsKey("email"))
+        assertTrue(account.containsKey("role"))
+        assertTrue(account.containsKey("licenseStatus"))
+        assertTrue(account.containsKey("canSaveContacts"))
+        assertFalse(account.containsKey("accessToken"))
+        assertFalse(account.containsKey("refreshToken"))
+        assertFalse(account.containsKey("deviceFingerprint"))
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

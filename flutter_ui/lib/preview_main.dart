@@ -126,4 +126,18 @@ class PreviewLeadGateway implements LeadGateway {
   @override
   Future<void> openNativeTool(String tool) async =>
       throw UnsupportedError('Preview cannot access native capture tools');
+
+  @override
+  Future<AccountInfo> loadAccountInfo() async => const AccountInfo(
+        email: '',
+        accountNumber: '',
+        role: 'معاينة فقط',
+        licenseStatus: 'غير متاح في المعاينة',
+        licenseMessage: 'لا تحتوي هذه النسخة على حساب أو ترخيص حقيقي',
+        canSaveContacts: false,
+      );
+
+  @override
+  Future<void> returnToNative() async =>
+      throw UnsupportedError('Standalone preview has no native account screen');
 }

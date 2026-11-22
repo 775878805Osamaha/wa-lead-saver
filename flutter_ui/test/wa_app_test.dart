@@ -9,6 +9,7 @@ class FixtureGateway implements LeadGateway {
   int leadCalls = 0;
   int auditClearCalls = 0;
   int auditExportCalls = 0;
+  int returnToNativeCalls = 0;
   final List<String> manuallyCreatedPhones = [];
   final List<String> openedNativeTools = [];
   final List<int> savedIds = [];
@@ -95,6 +96,19 @@ class FixtureGateway implements LeadGateway {
   Future<void> openNativeTool(String tool) async {
     openedNativeTools.add(tool);
   }
+
+  @override
+  Future<AccountInfo> loadAccountInfo() async => const AccountInfo(
+        email: 'test@example.com',
+        accountNumber: 'OMX-TEST',
+        role: 'مستخدم',
+        licenseStatus: 'نشط',
+        licenseMessage: 'الحساب نشط ومفعل',
+        canSaveContacts: true,
+      );
+
+  @override
+  Future<void> returnToNative() async { returnToNativeCalls++; }
 }
 
 class OfflineGateway extends FixtureGateway {
@@ -298,6 +312,33 @@ void main() {
     await tester.tap(find.text('فحص ومزامنة'));
     await tester.pumpAndSettle();
     expect(gateway.openedNativeTools, contains('scan'));
+  });
+
+  testWidgets('account card exposes license but no credentials, and returns to native', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('account_license_card')), findsOneWidget);
+    expect(find.text('test@example.com'), findsOneWidget);
+    expect(find.text('نشط'), findsOneWidget);
+    expect(find.text('OMX-TEST'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('return_to_native')));
+    await tester.tap(find.byKey(const Key('return_to_native')));
+    await tester.pumpAndSettle();
+    expect(gateway.returnToNativeCalls, 1);
+  });
+
+  testWidgets('preview account status is explicitly synthetic', (tester) async {
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: PreviewLeadGateway(), isPreview: true,
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.text('غير متاح في المعاينة'), findsOneWidget);
+    expect(find.byKey(const Key('return_to_native')), findsNothing);
   });
 
 }
