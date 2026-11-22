@@ -78,10 +78,12 @@ void main() {
     final appTheme = Theme.of(tester.element(find.byType(WaAppShell)));
     expect(appTheme.brightness, Brightness.light);
     expect(appTheme.fontFamily, 'ThmanyahSans');
-    expect(find.text('لوحة التحكم'), findsOneWidget);
+    expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('6'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
+    expect(find.text('دقة الالتقاط'), findsOneWidget);
+    expect(find.text('لم تُقيّم الدقة بعد ببيانات موثوقة'), findsOneWidget);
   });
 
   testWidgets('loads only selected tab and displays customer list', (tester) async {
