@@ -1,0 +1,204 @@
+import 'package:flutter/material.dart';
+import '../data/gateway.dart';
+import '../theme/wa_theme.dart';
+import '../widgets/shared.dart';
+
+class HistoryPageView extends StatefulWidget {
+  const HistoryPageView({super.key, required this.gateway});
+  final LeadGateway gateway;
+
+  @override
+  State<HistoryPageView> createState() => _HistoryPageViewState();
+}
+
+class _HistoryPageViewState extends State<HistoryPageView> {
+  final ScrollController _scroll = ScrollController();
+  List<HistoryEntry> _records = [];
+  String _filter = 'ALL';
+  String? _cursor;
+  bool _loading = false;
+  bool _hasMore = true;
+  String? _error;
+  int _total = 0;
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(() {
+      if (_scroll.hasClients && _scroll.position.extentAfter < 420) _load();
+    });
+    _load(reset: true);
+  }
+
+  Future<void> _load({bool reset = false}) async {
+    if (reset) {
+      ++_generation;
+      _records = [];
+      _cursor = null;
+      _error = null;
+      _loading = false;
+      _hasMore = true;
+    }
+    if (_loading || !_hasMore) return;
+    final generation = _generation;
+    final cursor = _cursor;
+    setState(() => _loading = true);
+    try {
+      final result = await widget.gateway.loadHistory(
+        filter: _filter,
+        cursor: cursor,
+        limit: 60,
+      );
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _records = [..._records, ...result.items];
+        _total = result.total;
+        _cursor = result.nextCursor;
+        _hasMore = result.hasMore && result.items.isNotEmpty() &&
+            result.nextCursor != null && result.nextCursor != cursor;
+        _error = null;
+      });
+    } catch (_) {
+      if (mounted && generation == _generation) {
+        setState(() => _error = 'تعذر قراءة السجل. أعد المحاولة بعد التحقق من الاتصال.');
+      }
+    } finally {
+      if (mounted && generation == _generation) setState(() => _loading = false);
+    }
+  }
+
+  String _date(int ms) {
+    if (ms <= 0) return 'تاريخ غير متاح';
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${d.year}/${two(d.month)}/${two(d.day)}  ${two(d.hour)}:${two(d.minute)}';
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          children: [
+            WaSectionHeader(
+              title: 'سجل العمليات ($_total)',
+              subtitle: 'تحميل تدريجي دون قراءة السجل بالكامل',
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (final option in const <(String, String)>[
+                    ('ALL', 'الكل'),
+                    ('SAVED', 'حُفظ'),
+                    ('DUPLICATE', 'مكرر'),
+                    ('NEEDS_REVIEW', 'مراجعة'),
+                    ('GROUP_EXCLUDED', 'المجموعات'),
+                    ('EXCLUDED', 'مستبعد'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: ChoiceChip(
+                        label: Text(option.$2),
+                        selected: _filter == option.$1,
+                        onSelected: (_) {
+                          if (_filter == option.$1) return;
+                          setState(() => _filter = option.$1);
+                          _load(reset: true);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      Expanded(
+        child: _records.isEmpty
+            ? WaFeedback(
+                message: _error ??
+                    (_loading ? 'جاري تحميل سجل العمليات' : 'لا توجد عمليات مطابقة'),
+                loading: _loading,
+                onRetry: _error == null ? null : () => _load(reset: true),
+              )
+            : RefreshIndicator(
+                onRefresh: () => _load(reset: true),
+                child: ListView.builder(
+                  key: const Key('history_list'),
+                  controller: _scroll,
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                  itemCount: _records.length + ((_loading || _hasMore || _error != null) ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _records.length) {
+                      if (_error != null) {
+                        return WaFeedback(message: _error!, onRetry: () => _load());
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Center(
+                          child: _loading
+                              ? const CircularProgressIndicator()
+                              : TextButton(
+                                  onPressed: () => _load(),
+                                  child: const Text('تحميل المزيد'),
+                                ),
+                        ),
+                      );
+                    }
+                    final entry = _records[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      entry.status,
+                                      style: const TextStyle(
+                                        fontSize: 16, fontWeight: FontWeight.bold,
+                                        color: WaPalette.green,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(entry.source, style: const TextStyle(
+                                    color: WaPalette.muted, fontSize: 12,
+                                  )),
+                                ],
+                              ),
+                              if (entry.details.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(entry.details, maxLines: 3,
+                                  overflow: TextOverflow.ellipsis),
+                              ],
+                              const SizedBox(height: 12),
+                              Text(_date(entry.timestamp),
+                                style: const TextStyle(
+                                  color: WaPalette.muted, fontSize: 12,
+                                )),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+      ),
+    ],
+  );
+}
