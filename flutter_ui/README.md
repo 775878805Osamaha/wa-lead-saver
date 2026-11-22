@@ -170,3 +170,20 @@ copy its local font assets into the generated module, and do not publish
 OTF files or public build artifacts containing them.
 
 Hybrid GitHub build checks intentionally do not upload APKs.
+
+## Account, dialing prefix and Android permission screen parity
+
+The opt-in Flutter host uses the original encrypted cached session and
+license manager to show a read-only account summary. It does **not** expose
+session tokens. A return button closes Flutter to reveal the native Kotlin
+authentication/admin screen, even when the user needs to log in again.
+
+The Flutter default country prefix editor validates the international
+prefix before updating `SettingsDataStore` through the native router.
+Tap the permission rows to open Android's actual Notification Listener,
+Contacts or battery settings. On return, the Flutter view requests fresh
+permission statuses rather than assuming they were granted.
+
+These changes still require real-device acceptance. The standalone DEMO
+version only simulates the country prefix and does not access or change
+Android permissions or authenticated accounts.

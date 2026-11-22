@@ -432,3 +432,55 @@ that live Contacts/WhatsApp functionality is present in Flutter.
 - All hybrid APKs remain **unpublished**, same-package signing and local
   migration/device tests remain unverified. The working Kotlin app is intact.
 - The complete hand-off and source are in draft PR #1. No merge to main.
+
+## Continued development — account/security/country/permission parity
+
+### Source changes
+- Flutter Settings now displays an authenticated native account summary:
+  email, customer account number, role, and license status. No access token,
+  refresh token or device fingerprint is serialized to Flutter.
+- Added `closeFlutter` to the bridge: the user can return to native Kotlin
+  login/account management even if the Flutter session is no longer valid.
+- Hardened 30-second auth optimization in `WaFlutterHostActivity`:
+  check the encrypted local session on every request; invalidate the cached
+  authorization and cached user ID in `onPause()`. Network revalidation
+  retains the existing Supabase/offline-grace logic for allowed requests.
+- Implemented default country-prefix read/write in the original DataStore,
+  validating an explicit + followed by 1-4 digits (first digit non-zero)
+  before changes. Added compact Flutter editor and confirmation feedback.
+- Permission-status cards now link to Android's system settings for
+  Notification Listener, app Contacts permissions and battery optimization.
+  The Flutter settings screen re-reads actual permissions on resume; it
+  never marks Android permissions as granted simply from button taps.
+- The separate demo preview retains only synthetic account data and an
+  in-memory country prefix. Real Android permission actions remain disabled.
+- Added Flutter widget tests and Kotlin Robolectric tests for account
+  disclosure, denied arbitrary system settings, country-prefix validation
+  and return-to-native action.
+
+### Repair / verification log
+- Found and repaired a malformed Dart source edit in the temporary country
+  code validation. Reconstructed the settings page and DEMO gateway from
+  the last known good Git revisions before introducing syntax-independent
+  digit validation. No customer data was touched.
+- Native Kotlin/Room regression run `45066866638`: **SUCCESS** for all
+  current account/country/permission source changes.
+- Flutter integrated run `45066866468`: **FAILED** with 15 tests passing
+  and 2 tests failing because old tests assumed all lazy settings cards
+  were mounted simultaneously. The new country, permission and account tests
+  passed in that run.
+- Updated those brittle UI tests without changing the Android behavior.
+  Fresh integrated test / hybrid assemble run `45067055808` was triggered
+  by commit `e41ee0e626c974896a188bcbd4078b9dbb52daee`.
+  **Final status has not yet been verified** as of this report.
+- Normal Kotlin build and users' installed APK remain unchanged; the PR
+  is draft and hybrid binaries are intentionally not published.
+
+### Next acceptance requirements
+- Confirm latest CI has 0 failing tests and successful hybrid APK compile;
+  examine logs rather than assuming success.
+- Independently test logout while Flutter is foreground/background,
+  auth expiry, pending/stopped licenses, system permission grant/resume,
+  country-code persistence, real Contacts save and notification capture.
+- Verify signed update compatibility, Room 2→3 migration, and optional
+  Thmanyah font delivery privately before a releasable APK.
