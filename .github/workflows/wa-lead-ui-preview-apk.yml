@@ -1,0 +1,70 @@
+name: WA Lead Saver UI Preview APK (demo only)
+
+# Preview uses a separate applicationId and synthetic, in-memory data.
+# Licensed Thmanyah font binaries are intentionally NOT distributed via
+# this public repository or GitHub Actions artifacts.
+on:
+  push:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    paths:
+      - "flutter_ui/**"
+      - ".github/workflows/wa-lead-ui-preview-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate separate Flutter demo host (never replaces main app)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW_DIR="$RUNNER_TEMP/wa-lead-preview"
+          flutter create --platforms android --org com.walspreview --project-name wa_lead_saver_ui "$PREVIEW_DIR"
+          cp flutter_ui/pubspec.yaml "$PREVIEW_DIR/pubspec.yaml"
+          cp -R flutter_ui/lib/. "$PREVIEW_DIR/lib/"
+          rm -rf "$PREVIEW_DIR/test"
+          cp -R flutter_ui/test "$PREVIEW_DIR/test"
+          echo "PREVIEW_DIR=$PREVIEW_DIR" >> "$GITHUB_ENV"
+
+      - name: Resolve dependencies and validate Dart UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PREVIEW_DIR"
+          flutter pub get
+          flutter analyze lib
+          flutter test
+
+      - name: Build standalone Android preview APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PREVIEW_DIR"
+          flutter build apk --debug --target lib/preview_main.dart --no-pub
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/WA-Lead-Saver-UI-Preview-DEMO.apk"
+          sha256sum "$GITHUB_WORKSPACE/WA-Lead-Saver-UI-Preview-DEMO.apk"
+
+      - name: Upload demo APK for device visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: WA-Lead-Saver-UI-Preview-DEMO
+          path: WA-Lead-Saver-UI-Preview-DEMO.apk
+          if-no-files-found: error
+          retention-days: 3
