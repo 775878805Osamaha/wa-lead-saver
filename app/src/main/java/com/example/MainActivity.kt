@@ -240,7 +240,9 @@ fun MainScreen(
     val historyTotalCount by viewModel.historyTotalCount.collectAsStateWithLifecycle()
     val historyIsLoading by viewModel.historyIsLoading.collectAsStateWithLifecycle()
     val historyHasMore by viewModel.historyHasMore.collectAsStateWithLifecycle()
-    val allLeads by viewModel.allLeads.collectAsStateWithLifecycle(emptyList())
+    // A cheap Room COUNT flow is enough for the navigation badge and title.
+    // Avoid observing the full customer list in the app-level scaffold.
+    val totalLeadsCount by viewModel.totalLeadsCount.collectAsStateWithLifecycle(0)
     val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle(emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle("")
     val selectedStatus by viewModel.selectedStatusFilter.collectAsStateWithLifecycle(null)
@@ -416,7 +418,7 @@ fun MainScreen(
                         ) {
                             AppTab.entries.forEach { tab ->
                                 val isSelected = !showQueueScreen && currentTab == tab
-                                val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
+                                val badgeCount = if (tab == AppTab.LEADS) totalLeadsCount else 0
 
                                 Box(
                                     modifier = Modifier
@@ -626,7 +628,7 @@ fun MainScreen(
                         } else {
                             LeadsScreen(
                                 leads = filteredLeads,
-                                totalCount = allLeads.size,
+                                totalCount = totalLeadsCount,
                                 searchQuery = searchQuery,
                                 selectedStatus = selectedStatus,
                                 selectedSource = selectedSource,
