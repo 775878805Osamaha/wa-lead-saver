@@ -66,4 +66,6 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon -PwaFlutterUi=true :app:assembleDebug --stacktrace
           test -s app/build/outputs/apk/debug/app-debug.apk
+          echo "Compiled Android host with Flutter engine:"
+          unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
           echo "Hybrid APK compiled; file intentionally not published."
