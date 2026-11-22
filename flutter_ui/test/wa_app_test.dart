@@ -279,4 +279,19 @@ void main() {
     expect(gateway.auditExportCalls, 1);
   });
 
+  testWidgets('camera and scan actions dispatch to native Kotlin tools', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('التقاط من الكاميرا'));
+    await tester.tap(find.text('التقاط من الكاميرا'));
+    await tester.pumpAndSettle();
+    expect(gateway.openedNativeTools, contains('camera'));
+
+    await tester.ensureVisible(find.text('فحص ومزامنة'));
+    await tester.tap(find.text('فحص ومزامنة'));
+    await tester.pumpAndSettle();
+    expect(gateway.openedNativeTools, contains('scan'));
+  });
+
 }
