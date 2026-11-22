@@ -25,11 +25,14 @@ Supabase authentication, licenses, and account activation. Those must **not**
 be removed or reimplemented by guessing. In particular, Flutter cannot replace
 Android notification-listener behavior without a native Android host.
 
-The platform MethodChannel is **not wired to the Kotlin host yet**.
-On a standalone Flutter run, missing bridge calls display an error state.
-Do not install this prototype on top of the existing app or use it for customer data.
+The MethodChannel **is now implemented** in an opt-in native FlutterActivity:
+`app/src/flutterBridge/java/com/example/flutterbridge/WaFlutterHostActivity.kt`.
+The ordinary Android build still uses Kotlin/Compose. The hybrid source builds
+only with `-PwaFlutterUi=true` and has not passed real-device acceptance tests.
+Do not install any same-package debug APK over a production installation
+unless its signing identity and backup/migration are verified.
 
-## Native bridge contract to implement in the host
+## Native bridge contract implemented in the opt-in host
 
 Channel: `wa_lead_saver/native_v1`.
 
@@ -43,6 +46,10 @@ Channel: `wa_lead_saver/native_v1`.
 | `saveLead` | `{id}` | completes only after native Contacts write succeeds |
 | `callLead` | `{number}` | open native dialer only after validating number |
 | `openWhatsAppLead` | `{number}` | open native WhatsApp Intent using public Android APIs |
+| `createLead` | `{phone, name}` | add to existing Room only, enforcing license and uniqueness |
+| `exportHistory` | none | stream a CSV and share via FileProvider |
+| `clearHistory` | `{confirmation: "CLEAR_ALL_AUDIT_HISTORY"}` | delete local audit log only for an active license, after explicit UI confirmation |
+| `openNativeTool` | `{tool: "camera" | "scan"}` | return to original Kotlin camera/scan dialog |
 
 Lead item fields: `id, name, phone, source, status, isSaved`.
 History item fields: `id, status, details, source, timestamp`, where
@@ -63,13 +70,18 @@ flutter test
 ```
 
 The native Kotlin source remains testable with `./gradlew testDebugUnitTest`.
-Neither test suite is claimed to have run in this working session.
+GitHub Actions verified native `testDebugUnitTest` (run 45061665081) and
+Flutter analysis/widget tests plus the hybrid build (run 45061735834),
+before the subsequent camera/scan changes. Those last changes require
+fresh verification before release.
 
 ## Release gate
 
-1. Integrate the Flutter module using official Flutter add-to-app Android setup.
-2. Implement and test the native MethodChannel adapter, keeping Room, listener,
-   permissions, sessions and licensing authoritative.
+1. Validate the existing opt-in Flutter module and MethodChannel integration
+   on a real Android device. The native data and license layer remains
+   authoritative, and Kotlin UI remains the default.
+2. Finish login/admin/account UX parity in Flutter; keep native Auth and
+   notification listeners unchanged until acceptance tests pass.
 3. Verify native database migration 2→3 on a backed-up test installation.
 4. Profile startup, scrolling (1,260 leads / 55,971 audit rows), notification
    capture and save flows on the same Samsung device.
@@ -113,9 +125,10 @@ Font weight mapping: 300 light, 400 regular, 500 medium, 700 bold,
 The five-screen light reference uses a three-card metrics row, accuracy panel,
 four quick actions, customer/contact cards, a review queue, audit filters,
 and setting switches. The Flutter dashboard now matches the reference hierarchy.
-Some actions (CSV export and camera capture) currently show a clear "native
-Android integration required" message instead of performing a fake action.
-Do not claim these are production-ready until the Kotlin bridge is implemented.
+CSV export, confirmed audit deletion and manual lead creation now use the
+real Android bridge. Camera and scan buttons hand off to the existing
+Kotlin dialogs. The independent DEMO build is deliberately read-only and
+cannot use any real Android actions. Test on a device before production.
 
 ## Native settings status fields and visual controls
 
@@ -124,10 +137,36 @@ The light reference settings use six permission/monitoring cards. The
 `contactsPermission`, and `batteryOptimizationIgnored` as read-only
 booleans read from Android itself. Missing values are displayed as unknown,
 not as granted. The four existing user preferences retain real
-`setSetting` writes and failure feedback. The native bridge is not yet
-implemented.
+`setSetting` writes and failure feedback. The bridge is implemented in the opt-in hybrid source, while independent
+DEMO builds show unknown permission status and return unsupported actions.
+Normal Kotlin builds are unchanged.
 
-History export/clear and dashboard camera/CSV affordances currently provide
-an explicit integration-required message rather than silently claiming
-success. This distinction must be retained until the original Kotlin
-operation paths are safely bridged.
+## Rebuild the real Flutter/Kotlin hybrid locally (experimental)
+
+Use Flutter >=3.27 and the Android/JDK versions configured in the repo.
+The module files are generated locally and ignored by Git:
+
+```sh
+flutter create --template module --org com.walspreview --project-name wa_lead_saver_ui flutter_module
+cp flutter_ui/pubspec.yaml flutter_module/pubspec.yaml
+cp -R flutter_ui/lib/. flutter_module/lib/
+cd flutter_module && flutter pub get && cd ..
+./gradlew -PwaFlutterUi=true :app:assembleDebug
+```
+
+Authenticated users may open the Flutter UI from the existing Kotlin
+Settings screen in a hybrid-enabled build. Kotlin still handles login, admin,
+notification monitoring and the existing database. Camera and scan return
+to the native screen. Unknown or expired sessions are denied by the bridge.
+
+**Do not publish or install this debug package over a currently working app
+without verifying its signing key.** An APK with the same package name but
+a different signature cannot update the old app in place; uninstalling the
+old app could delete local customers and their audit log.
+
+The licensed Thmanyah font remains user-supplied only. To render it in a
+private local hybrid build, run `flutter_ui/tool/install_thmanyah.py` first,
+copy its local font assets into the generated module, and do not publish
+OTF files or public build artifacts containing them.
+
+Hybrid GitHub build checks intentionally do not upload APKs.

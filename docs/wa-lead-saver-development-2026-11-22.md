@@ -393,3 +393,21 @@ that live Contacts/WhatsApp functionality is present in Flutter.
 - Remaining work: re-use native camera/scan flows from Flutter, account
   lifecycle UI, admin functions, settings parity, device profiling,
   connection/error states and complete acceptance tests.
+
+## Further continuation — reuse original native camera/scan flows
+- Added `openNativeTool(camera|scan)` to typed Kotlin and Dart bridge.
+  Unknown commands are rejected. Flutter quick actions now invoke this
+  method rather than showing a placeholder or navigating incorrectly.
+- Kotlin `MainActivity` receives a guarded intent extra and opens the
+  original CameraX photo dialog or existing scan dialog after restoring
+  the authenticated screen. This uses the original capture implementation,
+  not a second listener or separate customer database.
+- Added Flutter widget test source for camera/scan callbacks; native
+  test source rejects unknown tool commands.
+- Latest integrated branch verification must include those changes:
+  workflow `45062082504` was triggered for hybrid compilation,
+  while native regression workflow `45061986847` tests the Kotlin changes.
+  Check their actual conclusions before making any readiness claim.
+- Added `/flutter_module/` to root gitignore: generated Flutter SDK
+  wrappers and temporary assets must not enter the public repository.
+- No production APK release, merge or client-data modification occurred.
