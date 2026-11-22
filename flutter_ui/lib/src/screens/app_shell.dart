@@ -90,7 +90,7 @@ class _WaAppShellState extends State<WaAppShell> {
                 gateway: widget.gateway,
                 reviewOnly: true,
               )
-            : IndexedStack(index: _selected, children: pages),
+            : pages[_selected],
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selected,
           onDestinationSelected: _navigate,
