@@ -141,6 +141,12 @@ class OfflineGateway extends FixtureGateway {
   }
 }
 
+class SessionLostGateway extends FixtureGateway {
+  @override
+  Future<Map<String, bool>> loadSettings() async =>
+      throw StateError('Account session has expired');
+}
+
 void main() {
   testWidgets('renders real summary values with Arabic RTL', (tester) async {
     final gateway = FixtureGateway();
@@ -418,6 +424,19 @@ void main() {
     await tester.tap(find.byKey(const Key('status_CONTACTED')));
     await tester.pumpAndSettle();
     expect(gateway.updatedLeadStatuses, [(1, 'CONTACTED')]);
+  });
+
+  testWidgets('settings failure still provides return to native login', (tester) async {
+    final gateway = SessionLostGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('return_native_on_settings_error')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const Key('return_native_on_settings_error')));
+    await tester.pumpAndSettle();
+    expect(gateway.returnToNativeCalls, 1);
   });
 
 }

@@ -330,7 +330,21 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
       return const WaFeedback(message: 'جاري قراءة الإعدادات', loading: true);
     }
     if (_error != null) {
-      return WaFeedback(message: _error!, onRetry: _load);
+      return Column(
+        children: [
+          Expanded(child: WaFeedback(message: _error!, onRetry: _load)),
+          if (!widget.isPreview)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+              child: OutlinedButton.icon(
+                key: const Key('return_native_on_settings_error'),
+                onPressed: _returnToNative,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('العودة لتسجيل الدخول وإدارة الحساب'),
+              ),
+            ),
+        ],
+      );
     }
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
