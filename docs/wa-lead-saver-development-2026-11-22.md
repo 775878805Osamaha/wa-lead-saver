@@ -615,3 +615,25 @@ APK into the original app installation until these pass.
 - No production release APK was published; the old Kotlin app, active
   customers and licensed Thmanyah font assets were not modified or leaked.
   Same-package upgrade and on-device testing remain mandatory.
+
+### 2026-11-23 verification closure — both regression workflows green
+- Flutter + Kotlin CI run **45083907444** at source commit
+  `663c210ea2848ff5835c8a637e13e493caff8904`:
+  **SUCCESS**. `flutter analyze lib --no-fatal-infos` passed (11
+  informational/deprecation notices remained), **21 of 21 widget tests
+  passed**, and `./gradlew -PwaFlutterUi=true :app:assembleDebug`
+  succeeded. APK was intentionally NOT published.
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45083907444
+- Kotlin/Room CI run **45083960402** after the one-retry-on-429
+  workflow update: **SUCCESS** at source commit
+  `f61aaf847835bc371ebef6cf26b3102041da9e58`.
+  It includes the new native notes/validation tests. The earlier Maven
+  throttling failure was not mistaken for a code assertion failure.
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45083960402
+- A subsequent **documentation-only** commit records these outcomes.
+  No Kotlin/Flutter source changes were made after these successful runs.
+- This is a source/CI milestone, **not** a real-device certification:
+  signed same-package upgrade, Supabase user/license transitions,
+  background WhatsApp notification capture, Contacts writes, CameraX
+  and permission flows must still be exercised on physical Android.
+  Do not merge PR #1 or distribute the production APK yet.
