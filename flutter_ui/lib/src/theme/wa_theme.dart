@@ -109,9 +109,20 @@ ThemeData makeWaTheme() {
         borderRadius: BorderRadius.circular(14),
       ),
     ),
-    snackBarTheme: const SnackBarThemeData(
-      backgroundColor: WaPalette.ink,
-      contentTextStyle: TextStyle(color: Colors.white),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: WaPalette.surface,
+      contentTextStyle: const TextStyle(
+        color: WaPalette.ink,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      behavior: SnackBarBehavior.floating,
+      elevation: 3,
+      insetPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: WaPalette.border),
+      ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: WaPalette.surface,
