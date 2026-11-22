@@ -25,6 +25,35 @@ abstract class LeadGateway {
   Future<void> exportHistory();
   Future<void> clearHistory();
   Future<void> openNativeTool(String tool);
+  Future<AccountInfo> loadAccountInfo();
+  Future<void> returnToNative();
+}
+
+/// Only account summary values authorized by the existing native session.
+class AccountInfo {
+  const AccountInfo({
+    required this.email,
+    required this.accountNumber,
+    required this.role,
+    required this.licenseStatus,
+    required this.licenseMessage,
+    required this.canSaveContacts,
+  });
+  final String email;
+  final String accountNumber;
+  final String role;
+  final String licenseStatus;
+  final String licenseMessage;
+  final bool canSaveContacts;
+
+  factory AccountInfo.fromMap(Map<String, dynamic> data) => AccountInfo(
+    email: (data['email'] ?? '').toString(),
+    accountNumber: (data['accountNumber'] ?? '').toString(),
+    role: (data['role'] ?? '').toString(),
+    licenseStatus: (data['licenseStatus'] ?? '').toString(),
+    licenseMessage: (data['licenseMessage'] ?? '').toString(),
+    canSaveContacts: data['canSaveContacts'] == true,
+  );
 }
 
 class DashboardSummary {
@@ -266,5 +295,14 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> openNativeTool(String tool) async {
     await _invoke('openNativeTool', {'tool': tool});
+  }
+
+  @override
+  Future<AccountInfo> loadAccountInfo() async =>
+      AccountInfo.fromMap(await _invoke('getAccountInfo'));
+
+  @override
+  Future<void> returnToNative() async {
+    await _invoke('closeFlutter');
   }
 }
