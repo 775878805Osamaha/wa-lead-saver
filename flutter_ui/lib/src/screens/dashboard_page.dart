@@ -88,34 +88,62 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 14),
                 LayoutBuilder(
-                  builder: (context, constraints) => GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: constraints.maxWidth < 480 ? 2 : 3,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.0,
-                    children: [
-                      WaCounterCard(
-                        label: 'العملاء',
-                        value: '${summary.total}',
-                        icon: Icons.people_alt_outlined,
-                        onTap: widget.onOpenLeads,
-                      ),
-                      WaCounterCard(
-                        label: 'المحفوظون',
-                        value: '${summary.saved}',
-                        icon: Icons.contacts_outlined,
-                        onTap: widget.onOpenLeads,
-                      ),
-                      WaCounterCard(
-                        label: 'قائمة المراجعة',
-                        value: '${summary.review}',
-                        icon: Icons.fact_check_outlined,
-                        onTap: widget.onOpenReview,
-                      ),
-                    ],
-                  ),
+                  builder: (context, constraints) {
+                    final total = WaCounterCard(
+                      label: 'العملاء',
+                      value: '${summary.total}',
+                      icon: Icons.people_alt_outlined,
+                      onTap: widget.onOpenLeads,
+                    );
+                    final saved = WaCounterCard(
+                      label: 'المحفوظون',
+                      value: '${summary.saved}',
+                      icon: Icons.contacts_outlined,
+                      onTap: widget.onOpenLeads,
+                    );
+                    final review = WaCounterCard(
+                      label: 'قائمة المراجعة',
+                      value: '${summary.review}',
+                      icon: Icons.fact_check_outlined,
+                      onTap: widget.onOpenReview,
+                    );
+                    if (constraints.maxWidth < 480) {
+                      return Column(
+                        children: [
+                          SizedBox(
+                            height: 156,
+                            child: Row(
+                              children: [
+                                Expanded(child: total),
+                                const SizedBox(width: 12),
+                                Expanded(child: saved),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 86,
+                            child: WaCounterCard(
+                              label: 'قائمة المراجعة',
+                              value: '${summary.review}',
+                              icon: Icons.fact_check_outlined,
+                              onTap: widget.onOpenReview,
+                              horizontal: true,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.0,
+                      children: [total, saved, review],
+                    );
+                  },
                 ),
                 const SizedBox(height: 18),
                 const WaSectionHeader(title: 'أدوات سريعة'),
