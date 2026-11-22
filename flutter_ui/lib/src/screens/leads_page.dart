@@ -111,6 +111,21 @@ class _LeadsPageState extends State<LeadsPage> {
     }
   }
 
+  Future<void> _performContactAction(
+    Future<void> Function() perform,
+  ) async {
+    try {
+      await perform();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(
+          'تعذر تنفيذ الإجراء؛ يلزم إكمال ربط Flutter بخدمات Android.',
+        )),
+      );
+    }
+  }
+
   void _showDetails(LeadEntry lead) {
     showModalBottomSheet<void>(
       context: context,
@@ -312,6 +327,40 @@ class _LeadsPageState extends State<LeadsPage> {
                                     else
                                       const Icon(Icons.chevron_left,
                                         color: WaPalette.green),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _performContactAction(
+                                          () => widget.gateway.callLead(lead.phone),
+                                        ),
+                                        icon: const Icon(Icons.call_outlined, size: 17),
+                                        label: const Text('اتصال'),
+                                        style: OutlinedButton.styleFrom(
+                                          backgroundColor: WaPalette.raised,
+                                          minimumSize: const Size(0, 40),
+                                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _performContactAction(
+                                          () => widget.gateway.openWhatsAppLead(lead.phone),
+                                        ),
+                                        icon: const Icon(Icons.chat_outlined, size: 17),
+                                        label: const Text('واتساب'),
+                                        style: OutlinedButton.styleFrom(
+                                          backgroundColor: WaPalette.raised,
+                                          minimumSize: const Size(0, 40),
+                                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
