@@ -6,6 +6,7 @@ import 'package:wa_lead_saver_ui/src/screens/app_shell.dart';
 
 class FixtureGateway implements LeadGateway {
   int leadCalls = 0;
+  final List<int> savedIds = [];
 
   @override
   Future<DashboardSummary> loadOverview() async =>
@@ -65,13 +66,20 @@ class FixtureGateway implements LeadGateway {
   Future<void> changeSetting(String key, bool enabled) async {}
 
   @override
-  Future<void> saveLead(int id) async {}
+  Future<void> saveLead(int id) async { savedIds.add(id); }
 
   @override
   Future<void> callLead(String number) async {}
 
   @override
   Future<void> openWhatsAppLead(String number) async {}
+}
+
+class OfflineGateway extends FixtureGateway {
+  @override
+  Future<DashboardSummary> loadOverview() async {
+    throw StateError('Native bridge not connected');
+  }
 }
 
 void main() {
@@ -118,4 +126,35 @@ void main() {
     expect(find.text('مراقبة واتساب للأعمال'), findsOneWidget);
     expect(find.text('إذن قراءة الإشعارات'), findsOneWidget);
   });
+  testWidgets('small Android viewport keeps dashboard readable', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(WaLeadSaverApp(gateway: FixtureGateway()));
+    await tester.pumpAndSettle();
+    expect(find.text('إجمالي العملاء'), findsOneWidget);
+    expect(find.text('دقة الالتقاط'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows an error instead of invented counts when native bridge is absent', (tester) async {
+    await tester.pumpWidget(WaLeadSaverApp(gateway: OfflineGateway()));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('تعذر الاتصال ببيانات التطبيق'), findsOneWidget);
+    expect(find.text('1,260'), findsNothing);
+  });
+
+  testWidgets('review save action uses real gateway contract', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('قائمة المراجعة').first);
+    await tester.pumpAndSettle();
+    expect(find.text('عميل تجريبي'), findsOneWidget);
+    await tester.tap(find.text('حفظ جهة الاتصال').first);
+    await tester.pumpAndSettle();
+    expect(gateway.savedIds, contains(1));
+  });
+
 }
