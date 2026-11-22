@@ -5,7 +5,8 @@ migration for the existing native Android application in `app/`.
 
 ## Implemented in source
 
-- Dark RTL Arabic Material 3 theme and responsive navigation.
+- Light RTL Arabic Material 3 theme and responsive navigation, based on the approved 5-screen reference.
+- Thmanyah Sans 1.2 Arabic font family configured in ThemeData; licensed binaries are installed locally, never committed to the public repository.
 - Dashboard with backend-provided counts and monitoring status.
 - Customer search, status filters, review queue, and explicit save action.
 - History keyset-style cursor API, scrolling with lazy ListView.builder.
@@ -75,3 +76,32 @@ Neither test suite is claimed to have run in this working session.
 
 Flutter add-to-app docs: https://docs.flutter.dev/add-to-app/android
 Performance: https://docs.flutter.dev/perf/best-practices
+
+## Using the user-supplied licensed Thmanyah font
+
+The user supplied an archive containing the five `thmanyahsans12` faces
+(Light / Regular / Medium / Bold / Black). The GitHub repository is **PUBLIC**,
+so the licensed OTF binaries are intentionally excluded from commits and
+downloads. Only the app's font family setting and the local installer are
+tracked. Do **not** commit, redistribute, or include the font archive in
+public GitHub Actions artifacts.
+
+From a machine that has the user's licensed font ZIP and Flutter SDK:
+
+```sh
+cd flutter_ui
+python3 tool/install_thmanyah.py "/path/to/خطوط تطبيق ثمانية السعودي.zip"
+flutter pub get
+flutter test
+```
+
+The installer validates the ZIP entries by name, copies only five Sans faces
+into the git-ignored `assets/fonts` directory, and registers them in the
+**local** `pubspec.yaml`. Do not commit the generated font-asset manifest
+change unless the asset delivery strategy is private and rights-cleared.
+Without running this step, Flutter may fall back to an installed Arabic font;
+it is not an accurate Thmanyah render. Visual previews may be created locally
+using the supplied font without distributing its source files.
+
+Font weight mapping: 300 light, 400 regular, 500 medium, 700 bold,
+900 black.
