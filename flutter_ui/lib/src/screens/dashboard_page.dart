@@ -94,7 +94,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisCount: constraints.maxWidth < 480 ? 2 : 3,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.18,
+                    childAspectRatio: 1.0,
                     children: [
                       WaCounterCard(
                         label: 'العملاء',
