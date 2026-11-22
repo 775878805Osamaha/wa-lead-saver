@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,11 +28,14 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -61,6 +65,7 @@ import com.example.ui.theme.ColorScreenBackground
 import com.example.ui.theme.ColorTextMuted
 import com.example.ui.theme.ColorTextPrimary
 import com.example.ui.theme.ColorTextSecondary
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,6 +73,10 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     historyList: List<HistoryEntity>,
+    totalCount: Int = historyList.size,
+    isPageLoading: Boolean = false,
+    hasMore: Boolean = false,
+    onLoadMore: () -> Unit = {},
     selectedFilter: AuditFilter = AuditFilter.ALL,
     onFilterSelected: (AuditFilter) -> Unit = {},
     onExportHistory: () -> Unit,
@@ -75,6 +84,20 @@ fun HistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember { SimpleDateFormat("yyyy/MM/dd · HH:mm", Locale.getDefault()) }
+    val historyScrollState = rememberLazyListState()
+
+    LaunchedEffect(selectedFilter) {
+        historyScrollState.scrollToItem(0)
+    }
+    LaunchedEffect(historyScrollState, hasMore, isPageLoading, historyList.size) {
+        if (hasMore && !isPageLoading && historyList.isNotEmpty()) {
+            snapshotFlow { historyScrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+                .distinctUntilChanged()
+                .collect { lastVisible ->
+                    if (lastVisible >= historyList.size - 8) onLoadMore()
+                }
+        }
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -91,7 +114,7 @@ fun HistoryScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "سجل العمليات (${historyList.size})",
+                    text = "سجل العمليات (${totalCount})",
                     color = ColorTextPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -141,7 +164,7 @@ fun HistoryScreen(
                 }
 
                 // Card 2: Clear History
-                if (historyList.isNotEmpty()) {
+                if (totalCount > 0) {
                     Card(
                         modifier = Modifier
                             .weight(1f)
@@ -232,15 +255,20 @@ fun HistoryScreen(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "لا توجد سجلات تطابق الفلتر المحدد",
-                        color = ColorTextSecondary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    if (isPageLoading) {
+                        CircularProgressIndicator(color = ColorBrandGreen)
+                    } else {
+                        Text(
+                            text = "لا توجد سجلات تطابق الفلتر المحدد",
+                            color = ColorTextSecondary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
+                    state = historyScrollState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -250,6 +278,16 @@ fun HistoryScreen(
                         key = { it.id }
                     ) { item ->
                         HistoryCard(item = item, dateFormatter = dateFormatter)
+                    }
+                    if (isPageLoading) {
+                        item(key = "history_loading_indicator") {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = ColorBrandGreen)
+                            }
+                        }
                     }
                 }
             }
