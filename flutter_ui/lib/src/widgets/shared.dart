@@ -74,11 +74,13 @@ class WaCounterCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.onTap,
+    this.horizontal = false,
   });
   final String label;
   final String value;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool horizontal;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -87,7 +89,23 @@ class WaCounterCard extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Column(
+        child: horizontal
+          ? Row(
+              children: [
+                Icon(icon, color: WaPalette.green),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(label, style: const TextStyle(
+                    color: WaPalette.muted,
+                    fontWeight: FontWeight.w600,
+                  )),
+                ),
+                Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: WaPalette.white, fontWeight: FontWeight.bold,
+                )),
+              ],
+            )
+          : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: WaPalette.green),
