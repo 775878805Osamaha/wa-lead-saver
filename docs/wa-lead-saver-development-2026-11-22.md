@@ -59,3 +59,16 @@ contacts). The screenshots do not prove a performance gain or permission sync.
 
 Repository: https://github.com/775878805Osamaha/wa-lead-saver
 Development branch: feature/flutter-ui-and-history-performance-20261122
+
+## 2026-11-22 follow-up — small-screen layout + visual previews
+- Updated `WaCounterCard` to allow a compact horizontal presentation.
+- Updated `flutter_ui/lib/src/screens/dashboard_page.dart` so narrow
+  screens display two counter cards and a full-width review counter, removing
+  an otherwise unused grid cell. Larger screens retain three columns.
+- Rendered five **HTML/CSS design previews** locally for dashboard, customers,
+  review queue, audit history, and settings. Their colors, RTL direction,
+  content hierarchy, and component types follow the Flutter source, but these
+  ARE NOT screenshots from a running Flutter/Android build. Preview data uses
+  sample or previously observed counts, not live backend records.
+- Browser rendering was visually inspected; native Flutter device capture is
+  still blocked on Flutter SDK/host integration and remains unverified.
