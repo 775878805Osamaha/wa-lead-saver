@@ -695,6 +695,15 @@ fun MainScreen(
                             showLoginDialog = true
                         },
                         onOpenAdmin = onOpenAdminDashboard,
+                        onOpenFlutterUi = if (BuildConfig.WA_FLUTTER_BRIDGE_ENABLED) {
+                            {
+                                context.startActivity(
+                                    android.content.Intent().setClassName(
+                                        context, "com.example.flutterbridge.WaFlutterHostActivity"
+                                    )
+                                )
+                            }
+                        } else null,
                         onLogout = { authViewModel?.logout() },
                         isNotificationListenerActiveState = isListenerActive,
                         hasContactsPermissionState = hasContactsPermission,

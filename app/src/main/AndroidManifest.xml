@@ -61,6 +61,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Enabled only when the optional, authenticated Flutter bridge is built. -->
+        <activity
+            android:name="com.example.flutterbridge.WaFlutterHostActivity"
+            android:exported="false"
+            android:enabled="${waFlutterEnabled}"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:theme="@style/Theme.MyApplication" />
+
         <service
             android:name="com.example.service.WhatsAppNotificationListenerService"
             android:exported="true"

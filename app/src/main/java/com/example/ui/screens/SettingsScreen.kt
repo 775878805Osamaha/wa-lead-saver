@@ -98,6 +98,7 @@ fun SettingsScreen(
     onOpenSamsungGuide: () -> Unit,
     onOpenLogin: () -> Unit = {},
     onOpenAdmin: () -> Unit = {},
+    onOpenFlutterUi: (() -> Unit)? = null,
     onLogout: () -> Unit = {},
     isNotificationListenerActiveState: Boolean? = null,
     hasContactsPermissionState: Boolean? = null,
@@ -157,6 +158,26 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            if (isAuthenticated && onOpenFlutterUi != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable(onClick = onOpenFlutterUi)
+                        .testTag("open_flutter_ui"),
+                    colors = CardDefaults.cardColors(containerColor = ColorBrandGreenTranslucent),
+                    border = BorderStroke(1.dp, ColorBrandGreen),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text("فتح الواجهات الجديدة (Flutter)",
+                            fontWeight = FontWeight.Bold, color = ColorBrandGreen,
+                            fontSize = 15.sp)
+                        Text("نسخة اختبار تستخدم بيانات التطبيق الأصلي، والعودة متاحة",
+                            color = ColorTextSecondary, fontSize = 12.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // GROUP 1: تفضيلات الالتقاط والمراقبة
             SectionHeader(title = "تفضيلات الالتقاط والمراقبة")

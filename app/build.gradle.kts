@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
 }
 
+val waFlutterUiEnabled = providers.gradleProperty("waFlutterUi").orNull == "true"
+
 android {
     namespace = "com.example"
     compileSdk = 36
@@ -17,6 +19,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("boolean", "WA_FLUTTER_BRIDGE_ENABLED", waFlutterUiEnabled.toString())
+        manifestPlaceholders["waFlutterEnabled"] = waFlutterUiEnabled.toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -101,6 +105,12 @@ android {
             }
         }
     }
+    sourceSets {
+        getByName("main") {
+            if (waFlutterUiEnabled) java.srcDir("src/flutterBridge/java")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -118,6 +128,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 }
 
 dependencies {
+    if (waFlutterUiEnabled) implementation(project(":flutter"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
