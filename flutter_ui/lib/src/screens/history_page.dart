@@ -21,6 +21,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
   String? _error;
   int _total = 0;
   int _generation = 0;
+  bool _actionInProgress = false;
 
   @override
   void initState() {
@@ -88,10 +89,69 @@ class _HistoryPageViewState extends State<HistoryPageView> {
     return '${d.year}/${two(d.month)}/${two(d.day)}  ${two(d.hour)}:${two(d.minute)}';
   }
 
-  void _nativeActionPending(String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('أداة $action تحتاج إلى ربط Flutter بالخدمة الأصلية.')),
+  Future<void> _exportHistory() async {
+    if (_actionInProgress) return;
+    setState(() => _actionInProgress = true);
+    try {
+      await widget.gateway.exportHistory();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تجهيز ملف CSV — اختر تطبيق المشاركة')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تصدير السجل؛ العملية غير متاحة في المعاينة')),
+      );
+    } finally {
+      if (mounted) setState(() => _actionInProgress = false);
+    }
+  }
+
+  Future<void> _confirmClearHistory() async {
+    if (_actionInProgress) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('مسح سجل العمليات؟'),
+        content: const Text(
+          'سيتم حذف سجل العمليات المحلي بالكامل. لا يمكن التراجع عن الحذف. '
+          'لن تُحذف جهات الاتصال المحفوظة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            key: const Key('confirm_clear_history'),
+            style: FilledButton.styleFrom(
+              backgroundColor: WaPalette.red, foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('تأكيد المسح'),
+          ),
+        ],
+      ),
     );
+    if (!mounted || confirmed != true) return;
+    setState(() => _actionInProgress = true);
+    try {
+      await widget.gateway.clearHistory();
+      if (!mounted) return;
+      await _load(reset: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم مسح سجل العمليات بنجاح')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر مسح السجل؛ لم يتم حذف بياناتك')),
+      );
+    } finally {
+      if (mounted) setState(() => _actionInProgress = false);
+    }
   }
 
   @override
@@ -115,7 +175,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _nativeActionPending('مسح السجل'),
+                    onPressed: _actionInProgress ? null : _confirmClearHistory,
                     icon: const Icon(Icons.delete_outline, size: 17),
                     label: const Text('مسح السجل'),
                     style: OutlinedButton.styleFrom(
@@ -127,7 +187,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
                 const SizedBox(width: 9),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _nativeActionPending('تصدير CSV'),
+                    onPressed: _actionInProgress ? null : _exportHistory,
                     icon: const Icon(Icons.file_download_outlined, size: 17),
                     label: const Text('تصدير CSV'),
                     style: OutlinedButton.styleFrom(
