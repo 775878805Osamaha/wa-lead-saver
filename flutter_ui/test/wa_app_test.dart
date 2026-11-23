@@ -21,6 +21,7 @@ class FixtureGateway implements LeadGateway {
   final List<(int, String)> updatedLeadStatuses = [];
   final List<(int, String)> updatedLeadNotes = [];
   final List<(int, String)> updatedLeadNames = [];
+  final List<(int, String)> updatedLeadNames = [];
 
   @override
   Future<DashboardSummary> loadOverview() async {
@@ -95,6 +96,11 @@ class FixtureGateway implements LeadGateway {
   @override
   Future<void> updateLeadNotes(int id, String notes) async {
     updatedLeadNotes.add((id, notes));
+  }
+
+  @override
+  Future<void> updateLeadDisplayName(int id, String name) async {
+    updatedLeadNames.add((id, name));
   }
 
   @override
@@ -565,6 +571,62 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('manual_lead_phone')), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('renaming a customer updates CRM only through the gateway', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit_customer_name_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('edit_customer_name')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('edit_customer_name')), '  العميل الجديد  ',
+    );
+    await tester.tap(find.byKey(const Key('save_customer_name')));
+    await tester.pumpAndSettle();
+    expect(gateway.updatedLeadNames, [(1, 'العميل الجديد')]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('canceling a name edit does not modify the customer', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit_customer_name_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('edit_customer_name')), 'اسم مرفوض');
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
+    expect(gateway.updatedLeadNames, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an empty customer name disables the save button', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عميل تجريبي').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit_customer_name_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('edit_customer_name')), '   ');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<FilledButton>(find.byKey(const Key('save_customer_name'))).onPressed,
+      isNull,
+    );
+    expect(gateway.updatedLeadNames, isEmpty);
   });
 
 }

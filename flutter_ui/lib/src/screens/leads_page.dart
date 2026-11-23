@@ -294,6 +294,30 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _renameLead(LeadEntry lead) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _LeadNameDialog(initialName: lead.name),
+    );
+    if (!mounted || name == null) return;
+    final cleanName = name.trim();
+    if (cleanName.isEmpty || cleanName == lead.name.trim()) return;
+    try {
+      await widget.gateway.updateLeadDisplayName(lead.id, cleanName);
+      if (!mounted) return;
+      await _load(reset: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تحديث اسم العميل داخل التطبيق')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تعديل اسم العميل؛ لم يتغير السجل')),
+      );
+    }
+  }
+
   void _showDetails(LeadEntry lead) {
     showModalBottomSheet<void>(
       context: context,
@@ -311,7 +335,29 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(lead.name, style: Theme.of(context).textTheme.titleLarge),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      lead.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('edit_customer_name_button'),
+                    tooltip: 'تعديل اسم العميل داخل التطبيق',
+                    icon: const Icon(Icons.drive_file_rename_outline),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _renameLead(lead);
+                    },
+                  ),
+                ],
+              ),
+              const Text(
+                'الاسم هنا داخل التطبيق فقط، ولا يغير جهة اتصال الهاتف',
+                style: TextStyle(fontSize: 11, color: WaPalette.muted),
+              ),
               const SizedBox(height: 8),
               SelectableText(lead.phone, textDirection: TextDirection.ltr),
               const SizedBox(height: 10),
@@ -661,6 +707,71 @@ class _LeadNotesDialogState extends State<_LeadNotesDialog> {
         key: const Key('save_customer_notes'),
         onPressed: () => Navigator.pop(context, _controller.text),
         child: const Text('حفظ الملاحظات'),
+      ),
+    ],
+  );
+}
+
+/// Dialog-local controller avoids use-after-dispose during route exit
+/// animations. This operation never renames an Android Contacts entry.
+class _LeadNameDialog extends StatefulWidget {
+  const _LeadNameDialog({required this.initialName});
+  final String initialName;
+
+  @override
+  State<_LeadNameDialog> createState() => _LeadNameDialogState();
+}
+
+class _LeadNameDialogState extends State<_LeadNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('تعديل اسم العميل'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          key: const Key('edit_customer_name'),
+          controller: _controller,
+          maxLength: 120,
+          textInputAction: TextInputAction.done,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            labelText: 'الاسم داخل التطبيق',
+            hintText: 'اكتب اسم العميل',
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'لن يتم تغيير رقم الهاتف أو اسم جهة الاتصال المحفوظة.',
+          style: TextStyle(fontSize: 12, color: WaPalette.muted),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('إلغاء'),
+      ),
+      FilledButton(
+        key: const Key('save_customer_name'),
+        onPressed: _controller.text.trim().isEmpty
+            ? null
+            : () => Navigator.pop(context, _controller.text.trim()),
+        child: const Text('حفظ الاسم'),
       ),
     ],
   );
