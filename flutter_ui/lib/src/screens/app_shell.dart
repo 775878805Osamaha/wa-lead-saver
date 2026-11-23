@@ -18,10 +18,24 @@ class WaAppShell extends StatefulWidget {
 class _WaAppShellState extends State<WaAppShell> {
   int _selected = 0;
   bool _reviewOpen = false;
+  bool _manualAddRequested = false;
+
+  void _openManualAdd() => setState(() {
+    _selected = 1;
+    _reviewOpen = false;
+    _manualAddRequested = true;
+  });
+
+  void _manualAddHandled() {
+    if (mounted && _manualAddRequested) {
+      setState(() => _manualAddRequested = false);
+    }
+  }
 
   void _navigate(int index) => setState(() {
         _selected = index;
         _reviewOpen = false;
+        _manualAddRequested = false;
       });
 
   @override
@@ -31,9 +45,14 @@ class _WaAppShellState extends State<WaAppShell> {
         gateway: widget.gateway,
         onOpenReview: () => setState(() => _reviewOpen = true),
         onOpenLeads: () => _navigate(1),
+        onAddManualLead: _openManualAdd,
         onOpenHistory: () => _navigate(2),
       ),
-      LeadsPage(gateway: widget.gateway),
+      LeadsPage(
+        gateway: widget.gateway,
+        openManualAdd: _manualAddRequested,
+        onManualAddHandled: _manualAddHandled,
+      ),
       HistoryPageView(gateway: widget.gateway),
       SettingsPage(gateway: widget.gateway, isPreview: widget.isPreview),
     ];

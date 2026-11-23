@@ -9,11 +9,13 @@ class DashboardPage extends StatefulWidget {
     required this.gateway,
     required this.onOpenReview,
     required this.onOpenLeads,
+    required this.onAddManualLead,
     required this.onOpenHistory,
   });
   final LeadGateway gateway;
   final VoidCallback onOpenReview;
   final VoidCallback onOpenLeads;
+  final VoidCallback onAddManualLead;
   final VoidCallback onOpenHistory;
 
   @override
@@ -149,7 +151,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                     Expanded(child: _Shortcut(
                       icon: Icons.person_add_alt_1_outlined,
                       text: 'إضافة يدوية',
-                      onTap: widget.onOpenLeads,
+                      onTap: widget.onAddManualLead,
                     )),
                     const SizedBox(width: 7),
                     Expanded(child: _Shortcut(

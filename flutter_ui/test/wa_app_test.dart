@@ -539,4 +539,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('dashboard manual-add shortcut opens real form directly once', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('إضافة يدوية'));
+    await tester.tap(find.text('إضافة يدوية'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('manual_lead_phone')), findsOneWidget);
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('manual_lead_phone')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
 }

@@ -8,9 +8,12 @@ import '../widgets/shared.dart';
 class LeadsPage extends StatefulWidget {
   const LeadsPage({
     super.key, required this.gateway, this.reviewOnly = false,
+    this.openManualAdd = false, this.onManualAddHandled,
   });
   final LeadGateway gateway;
   final bool reviewOnly;
+  final bool openManualAdd;
+  final VoidCallback? onManualAddHandled;
 
   @override
   State<LeadsPage> createState() => _LeadsPageState();
@@ -36,6 +39,24 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(_maybeLoadMore);
     _load(reset: true);
+    _scheduleRequestedManualAdd();
+  }
+
+  @override
+  void didUpdateWidget(covariant LeadsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.openManualAdd && widget.openManualAdd) {
+      _scheduleRequestedManualAdd();
+    }
+  }
+
+  void _scheduleRequestedManualAdd() {
+    if (!widget.openManualAdd || widget.reviewOnly) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.openManualAdd) return;
+      widget.onManualAddHandled?.call();
+      _addManualLead();
+    });
   }
 
   @override
