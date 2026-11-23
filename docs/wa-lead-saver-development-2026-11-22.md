@@ -710,3 +710,49 @@ APK into the original app installation until these pass.
   a lawful private font installation/build process is required.
 - PR #1 remains draft and unmerged to protect the current installed app
   and local database.
+
+## 2026-11-23 — CRM-only customer display-name editing
+
+### What changed
+- Added `LeadDao.updateLeadDisplayName` as a narrow SQL UPDATE on
+  `leads.displayName` plus `updatedAt`, returning the affected-row
+  count. It does not write to the device Contacts provider or change
+  `phoneNumber`, `contactName`, `isSaved`, or license/session fields.
+- `LeadRepository.updateLeadDisplayName` validates ID and a trimmed
+  nonempty name of at most 120 characters and fails when no matching
+  record was updated.
+- Added typed `updateLeadDisplayName(id,name)` to the Kotlin MethodChannel
+  command whitelist and `LeadGateway`. The independent synthetic preview
+  explicitly refuses actual writes.
+- Added an Arabic rename button in the scrollable customer-detail sheet.
+  The dialog owns/disposes its TextEditingController in StatefulWidget
+  state to avoid the previously discovered route-animation use-after-
+  dispose bug. The UI clearly says it changes the name inside the app
+  only, not the phone contact. Blank names cannot be submitted.
+- Added Flutter widget tests for successful rename, cancel without write,
+  and disabled save for whitespace-only names.
+- Added Robolectric/Room tests confirming CRM-only updates, preservation
+  of saved/phone/contactName fields, and rejection of empty, oversized,
+  non-string, missing and unknown-ID updates.
+
+### Verification evidence
+- Native Android branch CI `45184088556` **SUCCESS** on commit
+  `e493f984088250e380d83d47740d62e0f9e20222`:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45184088556
+- First Flutter integration CI `45184247279` FAILED before executing
+  widget tests due to duplicate fake-gateway field/method declarations
+  in the test file; no production APK was built or released.
+- Corrected test duplicate in source commit
+  `ef40d5bc56e576e437f23e1d9850cd58f2ba8974`.
+- Follow-up hybrid CI `45184595768` completed Flutter analysis and
+  widget tests **SUCCESS**. At the time of this report addition, the
+  hybrid APK compile step had not yet been confirmed complete:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45184595768
+  Check its final conclusion before claiming a fully green hybrid build.
+
+### Release gates
+- Still not merged, and no same-package APK was published.
+- Must verify physical-device login/license transitions, Contacts
+  preservation, app database upgrade, WhatsApp notification capture,
+  CameraX/scan round trips, and legitimate private Thmanyah font
+  integration before labeling the user-facing app complete.
