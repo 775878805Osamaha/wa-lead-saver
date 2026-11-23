@@ -768,6 +768,21 @@ class LeadRepository(
         return Result.success(Unit)
     }
 
+    suspend fun updateLeadDisplayName(id: Long, name: String): Result<Unit> {
+        val cleaned = name.trim()
+        require(id > 0L && cleaned.isNotEmpty() && cleaned.length <= 120) {
+            "Customer name is invalid"
+        }
+        val affected = leadDao.updateLeadDisplayName(
+            id = id, name = cleaned, updatedAt = System.currentTimeMillis()
+        )
+        return if (affected == 1) {
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalArgumentException("Customer not found"))
+        }
+    }
+
     suspend fun updateLeadNotes(id: Long, notes: String): Result<Unit> {
         val now = System.currentTimeMillis()
         leadDao.updateLeadNotes(id, notes.trim(), now)

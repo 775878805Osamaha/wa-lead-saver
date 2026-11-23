@@ -236,6 +236,16 @@ class AndroidLeadUiDataSource(
         repository.updateLeadStatus(existing.id, newStatus).getOrThrow()
     }
 
+    /** CRM-only name update; the device's Contacts provider is untouched. */
+    suspend fun updateLeadDisplayName(id: Long, name: String) {
+        require(id > 0) { "Invalid lead id" }
+        val cleaned = name.trim()
+        require(cleaned.isNotEmpty() && cleaned.length <= 120) {
+            "Customer name must contain 1–120 characters"
+        }
+        repository.updateLeadDisplayName(id, cleaned).getOrThrow()
+    }
+
     /**
      * Save private notes using the existing Room repository. Never sends
      * notes through Contacts or WhatsApp, and never modifies the phone.

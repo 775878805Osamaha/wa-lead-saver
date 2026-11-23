@@ -164,6 +164,50 @@ class FlutterNativeDataSourceTest {
     }
 
     @Test
+    fun renamingCustomerUpdatesOnlyCrmNameAndLeavesPhoneAndContactNameIntact() = runTest {
+        val id = database.leadDao().insertLead(
+            LeadEntity(
+                phoneNumber = "+967700003321",
+                normalizedNumber = "+967700003321",
+                displayName = "الاسم القديم",
+                contactName = "اسم جهات الاتصال",
+                isSaved = true
+            )
+        )
+        router.execute(
+            "updateLeadDisplayName", mapOf("id" to id, "name" to "  الاسم الجديد  ")
+        )
+        val updated = database.leadDao().getLeadById(id)!!
+        assertEquals("الاسم الجديد", updated.displayName)
+        assertEquals("اسم جهات الاتصال", updated.contactName)
+        assertEquals("+967700003321", updated.phoneNumber)
+        assertTrue(updated.isSaved)
+    }
+
+    @Test
+    fun renamingCustomerRejectsBlankOverlongMissingAndNonexistentIds() = runTest {
+        val id = database.leadDao().insertLead(
+            LeadEntity(phoneNumber = "+967700003322", displayName = "الاسم الأصلي")
+        )
+        for (args in listOf(
+            mapOf<String, Any?>("id" to id, "name" to ""),
+            mapOf<String, Any?>("id" to id, "name" to "   "),
+            mapOf<String, Any?>("id" to id, "name" to "أ".repeat(121)),
+            mapOf<String, Any?>("id" to id),
+            mapOf<String, Any?>("id" to id, "name" to 17),
+            mapOf<String, Any?>("id" to 999999L, "name" to "غير موجود")
+        )) {
+            try {
+                router.execute("updateLeadDisplayName", args)
+                fail("Invalid CRM rename accepted: $args")
+            } catch (_: IllegalArgumentException) {
+                // The mutation must be rejected before any database change.
+            }
+        }
+        assertEquals("الاسم الأصلي", database.leadDao().getLeadById(id)?.displayName)
+    }
+
+    @Test
     fun paginatesLeadsWithTiedTimestampsExactlyOnce() = runTest {
         database.leadDao().insertLeads((1..125).map { n ->
             LeadEntity(

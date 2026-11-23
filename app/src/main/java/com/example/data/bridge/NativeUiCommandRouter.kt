@@ -54,6 +54,12 @@ class NativeUiCommandRouter(
             dataSource.updateLeadStatus(id, requiredString(args, "status"))
             mapOf("ok" to true)
         }
+        "updateLeadDisplayName" -> {
+            val id = (args["id"] as? Number)?.toLong()
+                ?: throw IllegalArgumentException("Missing lead id")
+            dataSource.updateLeadDisplayName(id, requiredString(args, "name"))
+            mapOf("ok" to true)
+        }
         "updateLeadNotes" -> {
             val id = (args["id"] as? Number)?.toLong()
                 ?: throw IllegalArgumentException("Missing lead id")

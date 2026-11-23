@@ -126,6 +126,11 @@ interface LeadDao {
     @Query("UPDATE leads SET notes = :notes, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateLeadNotes(id: Long, notes: String, updatedAt: Long)
 
+    // Rename the CRM display only, never Android Contacts. Return affected
+    // rows so the caller cannot report a successful write for a deleted lead.
+    @Query("UPDATE leads SET displayName = :name, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateLeadDisplayName(id: Long, name: String, updatedAt: Long): Int
+
     @Query("UPDATE leads SET tags = :tags, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateLeadTags(id: Long, tags: String, updatedAt: Long)
 
