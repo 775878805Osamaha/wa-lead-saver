@@ -11,7 +11,7 @@ class HistoryPageView extends StatefulWidget {
   State<HistoryPageView> createState() => _HistoryPageViewState();
 }
 
-class _HistoryPageViewState extends State<HistoryPageView> {
+class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingObserver {
   final ScrollController _scroll = ScrollController();
   List<HistoryEntry> _records = [];
   String _filter = 'ALL';
@@ -26,10 +26,16 @@ class _HistoryPageViewState extends State<HistoryPageView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(() {
       if (_scroll.hasClients && _scroll.position.extentAfter < 420) _load();
     });
     _load(reset: true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load(reset: true);
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -156,6 +162,7 @@ class _HistoryPageViewState extends State<HistoryPageView> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
     super.dispose();
   }

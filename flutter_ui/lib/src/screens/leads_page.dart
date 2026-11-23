@@ -16,7 +16,7 @@ class LeadsPage extends StatefulWidget {
   State<LeadsPage> createState() => _LeadsPageState();
 }
 
-class _LeadsPageState extends State<LeadsPage> {
+class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   static const int pageSize = 40;
   final TextEditingController _search = TextEditingController();
   final ScrollController _scroll = ScrollController();
@@ -33,8 +33,19 @@ class _LeadsPageState extends State<LeadsPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(_maybeLoadMore);
     _load(reset: true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Reload original Room records after returning from Android/WhatsApp.
+    // Preserve the user's search and selected customer status.
+    if (state == AppLifecycleState.resumed) {
+      _debounce?.cancel();
+      _load(reset: true);
+    }
   }
 
   void _maybeLoadMore() {
@@ -352,6 +363,7 @@ class _LeadsPageState extends State<LeadsPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _search.dispose();
     _scroll.dispose();

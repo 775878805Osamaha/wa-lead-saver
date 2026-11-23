@@ -7,6 +7,8 @@ import 'package:wa_lead_saver_ui/src/screens/app_shell.dart';
 
 class FixtureGateway implements LeadGateway {
   int leadCalls = 0;
+  int dashboardCalls = 0;
+  int historyCalls = 0;
   int auditClearCalls = 0;
   int auditExportCalls = 0;
   int returnToNativeCalls = 0;
@@ -20,10 +22,12 @@ class FixtureGateway implements LeadGateway {
   final List<(int, String)> updatedLeadNotes = [];
 
   @override
-  Future<DashboardSummary> loadOverview() async =>
-      const DashboardSummary(
-        saved: 4, review: 2, total: 6, monitoringActive: true,
-      );
+  Future<DashboardSummary> loadOverview() async {
+    dashboardCalls++;
+    return const DashboardSummary(
+      saved: 4, review: 2, total: 6, monitoringActive: true,
+    );
+  }
 
   @override
   Future<LeadPage> loadLeads({
@@ -54,7 +58,9 @@ class FixtureGateway implements LeadGateway {
     String filter = 'ALL',
     String? cursor,
     int limit = 60,
-  }) async => const HistoryPage(
+  }) async {
+    historyCalls++;
+    return const HistoryPage(
         items: [
           HistoryEntry(
             id: 1, status: 'Saved', details: 'تم الحفظ',
@@ -64,6 +70,7 @@ class FixtureGateway implements LeadGateway {
         total: 1,
         hasMore: false,
       );
+  }
 
   @override
   Future<Map<String, bool>> loadSettings() async => {
@@ -481,6 +488,54 @@ void main() {
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
     expect(gateway.updatedLeadNotes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dashboard re-fetches real counts when app resumes', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    final before = gateway.dashboardCalls;
+    expect(before, greaterThan(0));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(gateway.dashboardCalls, greaterThan(before));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('customer search is retained and list refreshed on resume', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lead_search')), 'عميل');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    final before = gateway.leadCalls;
+    expect(before, greaterThan(1));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(gateway.leadCalls, greaterThan(before));
+    final field = tester.widget<TextField>(find.byKey(const Key('lead_search')));
+    expect(field.controller?.text, 'عميل');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('audit history refreshes after returning from Android', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('السجل').last);
+    await tester.pumpAndSettle();
+    final before = gateway.historyCalls;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(gateway.historyCalls, greaterThan(before));
+    expect(find.text('سجل العمليات (1)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
