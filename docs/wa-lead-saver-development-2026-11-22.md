@@ -637,3 +637,36 @@ APK into the original app installation until these pass.
   background WhatsApp notification capture, Contacts writes, CameraX
   and permission flows must still be exercised on physical Android.
   Do not merge PR #1 or distribute the production APK yet.
+
+## 2026-11-23 — Refresh after Android resume (Flutter lifecycle)
+
+### Implemented on the isolated branch
+- Dashboard now observes app foreground transitions and fetches a fresh
+  `getOverview` result after return from a background Android activity.
+- Customer pages re-query real Room-backed `getLeads` when Flutter resumes
+  from dialer/WhatsApp/native tools; the current search text, status filter
+  and review-only mode remain selected, while old page cursors are cleared.
+  Existing generation guards discard responses from superseded page loads.
+- Audit history re-queries real `getHistory` on resume without changing
+  the selected audit filter, and clears stale cursor state.
+- Each screen registers and unregisters `WidgetsBindingObserver` with
+  widget lifecycle, preventing callbacks after pages are disposed.
+- Existing settings page already refreshed permission, country-code and
+  account state on resume. No Kotlin database schema, notification listener,
+  account settings, or Contacts writes were changed in this batch.
+- Added three focused Flutter tests for dashboard refresh, customer search
+  preservation and history refresh after simulated paused/resumed events.
+
+### Verification status
+- Source commit: `39a4d45eab7ee624c54f3f9d8442729d667ab422`.
+- Automatic Flutter/native integration workflow:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45180803614
+  Started automatically after the widget test file changed.
+  **Check the final workflow result before claiming the new lifecycle
+  regression tests passed.** Kotlin native tests were last verified green
+  by https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45083960402
+  and are not rerun for this Flutter-only commit.
+- This work is still not an APK release. No device install, WhatsApp
+  capture, session expiry, or on-device permissions benchmark was completed.
+- PR #1 is draft/unmerged. The user's original Kotlin app and live contacts
+  remain unchanged.
