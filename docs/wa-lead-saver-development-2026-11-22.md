@@ -756,3 +756,23 @@ APK into the original app installation until these pass.
   preservation, app database upgrade, WhatsApp notification capture,
   CameraX/scan round trips, and legitimate private Thmanyah font
   integration before labeling the user-facing app complete.
+
+### 2026-11-23 — Final CI verification for CRM rename
+
+- Source commit `ef40d5bc56e576e437f23e1d9850cd58f2ba8974`:
+  full Flutter-native integrated CI **SUCCESS**, run `45184595768`.
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45184595768
+- `flutter analyze lib --no-fatal-infos` succeeded with 11 remaining
+  nonfatal analyzer deprecation/info notices.
+- **28 of 28 Flutter widget tests passed** (includes 3 new rename tests,
+  existing native bridge UI flows, app lifecycle and RTL layout tests).
+- `./gradlew --no-daemon -PwaFlutterUi=true :app:assembleDebug` built
+  successfully. Integrated debug APK intentionally **not published**.
+- Kotlin Room `testDebugUnitTest` had already **succeeded** in run
+  `45184088556` for the same native-source changes, including CRM-only
+  rename preservation and invalid-input cases.
+- A documentation-only commit follows; **the working Kotlin app has not
+  been merged, overwritten, or installed over the existing version**.
+  Physical Android tests, signer continuity, Supabase login/license
+  lifecycle, notification capture and backup/migration validation remain
+  mandatory before production.
