@@ -8,6 +8,12 @@ plugins {
 }
 
 val waFlutterUiEnabled = providers.gradleProperty("waFlutterUi").orNull == "true"
+// A separate install-only QA package. Never change production's app identity
+// or accidentally overwrite a user's existing Room database.
+val waInstallableTest = providers.gradleProperty("waInstallableTest").orNull == "true"
+require(!waInstallableTest || waFlutterUiEnabled) {
+    "waInstallableTest requires -PwaFlutterUi=true"
+}
 
 android {
     namespace = "com.example"
@@ -21,6 +27,11 @@ android {
         versionName = "1.0"
         buildConfigField("boolean", "WA_FLUTTER_BRIDGE_ENABLED", waFlutterUiEnabled.toString())
         manifestPlaceholders["waFlutterEnabled"] = waFlutterUiEnabled.toString()
+        manifestPlaceholders["waQaAppLabel"] = if (waInstallableTest) {
+            "WA Lead Saver - QA"
+        } else {
+            "@string/app_name"
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -93,6 +104,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (waInstallableTest) {
+                applicationIdSuffix = ".hybridqa"
+                versionNameSuffix = "-hybrid-qa"
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
