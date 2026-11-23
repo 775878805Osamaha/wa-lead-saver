@@ -670,3 +670,43 @@ APK into the original app installation until these pass.
   capture, session expiry, or on-device permissions benchmark was completed.
 - PR #1 is draft/unmerged. The user's original Kotlin app and live contacts
   remain unchanged.
+
+## 2026-11-23 — Verified lifecycle refresh and dashboard quick-add
+
+### Completed verification
+- Regression build `45180803614` failed two lifecycle widget tests:
+  1. dashboard `setState` assignment lambda returned a `Future`,
+     violating Flutter's synchronous state-callback contract;
+  2. test drove an invalid direct `paused -> resumed` lifecycle transition.
+- Fixed the dashboard callback to a block returning `void` and used
+  valid `inactive -> resumed` transitions in tests.
+- New Flutter+Kotlin workflow `45181178590` **SUCCESS** at commit
+  `834b76e12d29260a7f91e862e6c6fefef5fd3e5e`:
+  **24 / 24 Flutter widget tests passed**, `flutter analyze` passed with
+  11 nonfatal deprecation/info notices, and the opt-in hybrid APK compiled.
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45181178590
+- App foreground-resume behavior retains current customer search/filter
+  while refreshing counts, customers and history from the Kotlin-native
+  source. Pages unregister Flutter lifecycle observers on disposal.
+- No Android device tests or same-package APK release occurred.
+
+### Follow-up UX implementation
+- Dashboard `إضافة يدوية` now requests a real add-customer dialog on
+  the customers tab rather than merely navigating to the list.
+- `WaAppShell` consumes the one-time request. `LeadsPage` opens the
+  dialog after the frame is ready, preventing repeated popups when
+  revisiting the customers tab.
+- Added widget regression verifying the dialog appears, can be canceled,
+  and does not reopen on subsequent tab navigation.
+- Commit `108c5a4ae336ca2c558ffce2e50827008ec9aa5d`, automated hybrid
+  workflow `45181860070`. **Check its final conclusion** before
+  declaring this new shortcut verified.
+
+### Remaining production blockers
+- The original Kotlin login, Supabase license, notifications, contacts,
+  CameraX, in-app admin, and actual upgrade path need end-to-end phone
+  testing. The debug integrated build is not published by CI.
+- Thmanyah OTF files remain excluded from public build artifacts;
+  a lawful private font installation/build process is required.
+- PR #1 remains draft and unmerged to protect the current installed app
+  and local database.
