@@ -21,7 +21,6 @@ class FixtureGateway implements LeadGateway {
   final List<(int, String)> updatedLeadStatuses = [];
   final List<(int, String)> updatedLeadNotes = [];
   final List<(int, String)> updatedLeadNames = [];
-  final List<(int, String)> updatedLeadNames = [];
 
   @override
   Future<DashboardSummary> loadOverview() async {
@@ -96,11 +95,6 @@ class FixtureGateway implements LeadGateway {
   @override
   Future<void> updateLeadNotes(int id, String notes) async {
     updatedLeadNotes.add((id, notes));
-  }
-
-  @override
-  Future<void> updateLeadDisplayName(int id, String name) async {
-    updatedLeadNames.add((id, name));
   }
 
   @override
