@@ -497,7 +497,7 @@ void main() {
     await tester.pumpAndSettle();
     final before = gateway.dashboardCalls;
     expect(before, greaterThan(0));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(gateway.dashboardCalls, greaterThan(before));
@@ -515,7 +515,7 @@ void main() {
     await tester.pumpAndSettle();
     final before = gateway.leadCalls;
     expect(before, greaterThan(1));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(gateway.leadCalls, greaterThan(before));
@@ -531,7 +531,7 @@ void main() {
     await tester.tap(find.text('السجل').last);
     await tester.pumpAndSettle();
     final before = gateway.historyCalls;
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(gateway.historyCalls, greaterThan(before));

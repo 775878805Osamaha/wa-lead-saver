@@ -43,7 +43,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
 
   Future<void> _refresh() async {
     final refreshed = widget.gateway.loadOverview();
-    setState(() => _overview = refreshed);
+    setState(() { _overview = refreshed; });
     try {
       await refreshed;
     } catch (_) {
