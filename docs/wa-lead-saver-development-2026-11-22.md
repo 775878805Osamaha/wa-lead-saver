@@ -776,3 +776,50 @@ APK into the original app installation until these pass.
   Physical Android tests, signer continuity, Supabase login/license
   lifecycle, notification capture and backup/migration validation remain
   mandatory before production.
+
+## 2026-11-23 — Installable browser-download QA APK (user requested)
+
+### Direct verified download
+- **Release**: https://github.com/775878805Osamaha/wa-lead-saver/releases/tag/wa-hybrid-qa-45190651567
+- **APK**: https://github.com/775878805Osamaha/wa-lead-saver/releases/download/wa-hybrid-qa-45190651567/WA-Lead-Saver-Hybrid-QA.apk
+- Release asset name `WA-Lead-Saver-Hybrid-QA.apk`, verified existing at
+  169,943,790 bytes (approximately 170 MB).
+- GitHub Actions run `45190651567`: **SUCCESS**. Source commit
+  `de8e64abfd1dee5692f46e302052df327b606a1c`.
+- **28 Flutter widget tests passed**, `flutter analyze` passed with
+  11 non-blocking/deprecation notices; debug Android assembly succeeded.
+- Android `apksigner verify` confirmed APK v2 signature; `aapt`
+  verified package `com.example.waleadsaver.hybridqa`, versionName
+  `1.0-hybrid-qa`. Included Flutter engine libraries were checked.
+- Supabase URL and anonymous key **were present** in the GitHub build
+  environment; no secret values were printed in the source report.
+- Artifact backup is retained in workflow Artifacts for 14 days.
+- QA release was published as **prerelease**, not a production release.
+
+### Independent package safety
+- Added opt-in Gradle `-PwaInstallableTest=true` (requires
+  `-PwaFlutterUi=true`). Debug package applicationIdSuffix is
+  `.hybridqa`, and label is `WA Lead Saver - QA`.
+- Manifest FileProvider authority now uses
+  `${applicationId}.fileprovider`, matching the existing
+  `CsvExportHelper` and preventing authority conflicts if both apps
+  are installed.
+- The old production identifier remains `com.example.waleadsaver`
+  and its Room/DataStore data are unchanged by installing the QA package.
+- A QA install begins with an **empty isolated database** and no
+  preexisting native session. To see Flutter, sign in from the existing
+  Kotlin UI and use Settings > فتح الواجهات الجديدة (Flutter).
+  This login may still depend on server-side license/device allowance.
+- QA is debug-signed with CI signing identity, so subsequent QA updates
+  may require uninstalling the *QA app only*; **never uninstall the
+  original app**. The test APK lacks the licensed Thmanyah font binaries.
+- Not certified on a physical Android device. Avoid using live customer
+  data, writing real contacts, or enabling notification monitoring on
+  production accounts before on-device acceptance testing.
+
+### Next stage
+Verify launch, Android package side-by-side installation, Supabase
+login/session/license state, native Flutter bridge, customer mutation,
+WhatsApp notifications, Android contact permissions, CameraX, CSV export,
+and device/keyboard/RTL stability from actual user screenshots.
+PR #1 remains draft/unmerged and the original app untouched.
