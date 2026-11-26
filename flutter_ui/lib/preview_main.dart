@@ -168,4 +168,13 @@ class PreviewLeadGateway implements LeadGateway {
   @override
   Future<void> openPermissionSettings(String permission) async =>
       throw UnsupportedError('Preview cannot edit Android permissions');
+
+  @override
+  Future<AccessState> checkAccess() async => const AccessState(
+    allowed: false, message: 'نسخة معاينة لا تحتوي على تسجيل دخول',
+  );
+
+  @override
+  Future<void> openNativeLogin() async =>
+      throw UnsupportedError('Preview cannot authenticate');
 }

@@ -33,6 +33,20 @@ abstract class LeadGateway {
   Future<String> loadCountryCode();
   Future<void> changeCountryCode(String code);
   Future<void> openPermissionSettings(String permission);
+  Future<AccessState> checkAccess();
+  Future<void> openNativeLogin();
+}
+
+/// Safe account access result: no customer data or authentication tokens.
+class AccessState {
+  const AccessState({required this.allowed, required this.message});
+  final bool allowed;
+  final String message;
+
+  factory AccessState.fromMap(Map<String, dynamic> data) => AccessState(
+    allowed: data['allowed'] == true,
+    message: (data['message'] ?? '').toString(),
+  );
 }
 
 /// Only account summary values authorized by the existing native session.
@@ -348,5 +362,14 @@ class NativeLeadGateway implements LeadGateway {
   @override
   Future<void> openPermissionSettings(String permission) async {
     await _invoke('openPermissionSettings', {'permission': permission});
+  }
+
+  @override
+  Future<AccessState> checkAccess() async =>
+      AccessState.fromMap(await _invoke('getAccessState'));
+
+  @override
+  Future<void> openNativeLogin() async {
+    await _invoke('openNativeLogin');
   }
 }
