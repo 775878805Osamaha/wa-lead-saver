@@ -67,7 +67,7 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:theme="@style/Theme.MyApplication" />
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
         <!-- Production builds keep the original Kotlin launcher. -->
         <activity-alias

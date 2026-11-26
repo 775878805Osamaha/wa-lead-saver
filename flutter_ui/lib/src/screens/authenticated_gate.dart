@@ -27,7 +27,9 @@ class _AuthenticatedGateState extends State<AuthenticatedGate>
 
   void _reload() {
     if (mounted) {
-      setState(() => _access = widget.gateway.checkAccess());
+      setState(() {
+        _access = widget.gateway.checkAccess();
+      });
     }
   }
 

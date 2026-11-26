@@ -12,6 +12,11 @@ class FixtureGateway implements LeadGateway {
   int auditClearCalls = 0;
   int auditExportCalls = 0;
   int returnToNativeCalls = 0;
+  int nativeLoginCalls = 0;
+  AccessState accessState = const AccessState(
+    allowed: false,
+    message: 'سجّل الدخول لعرض عملائك',
+  );
   String countryCode = '+967';
   final List<String> changedCountryCodes = [];
   final List<String> openedPermissionScreens = [];
@@ -151,6 +156,12 @@ class FixtureGateway implements LeadGateway {
   Future<void> openPermissionSettings(String permission) async {
     openedPermissionScreens.add(permission);
   }
+
+  @override
+  Future<AccessState> checkAccess() async => accessState;
+
+  @override
+  Future<void> openNativeLogin() async { nativeLoginCalls++; }
 }
 
 class OfflineGateway extends FixtureGateway {
@@ -621,6 +632,52 @@ void main() {
       isNull,
     );
     expect(gateway.updatedLeadNames, isEmpty);
+  });
+
+  testWidgets('QA APK opens the light Flutter login front door, not Kotlin dashboard', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: gateway, requiresAuthentication: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('flutter_login_gate')), findsOneWidget);
+    expect(find.byType(WaAppShell), findsNothing);
+    final theme = Theme.of(tester.element(find.byKey(const Key('flutter_login_gate'))));
+    expect(theme.brightness, Brightness.light);
+    await tester.tap(find.byKey(const Key('login_via_native')));
+    await tester.pumpAndSettle();
+    expect(gateway.nativeLoginCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('verified account opens all four real Flutter tabs', (tester) async {
+    final gateway = FixtureGateway()
+      ..accessState = const AccessState(allowed: true, message: 'مفعل');
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: gateway, requiresAuthentication: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaAppShell), findsOneWidget);
+    expect(find.text('الرئيسية'), findsOneWidget);
+    expect(find.text('العملاء'), findsOneWidget);
+    expect(find.text('السجل'), findsOneWidget);
+    expect(find.text('الإعدادات'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('return from native authentication unlocks Flutter on resume', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: gateway, requiresAuthentication: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('flutter_login_gate')), findsOneWidget);
+    gateway.accessState = const AccessState(allowed: true, message: 'مفعل');
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.byType(WaAppShell), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
 }
