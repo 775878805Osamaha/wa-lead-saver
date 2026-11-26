@@ -59,3 +59,39 @@ Do not uninstall the existing WA Lead Saver application, or the previous
 QA version if it contains any useful test data. The new Flutter QA package
 has an independent Room database and may have a different debug signature.
 Wait for a **verified new release** before suggesting a browser download.
+
+## VERIFIED download after launcher fix (26 November 2026)
+- **Successful source build:** commit
+  `baf6e5a84be5332f1ece1f372dc5825e5b7ddebf`, workflow
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45877784082
+  — **SUCCESS**, Flutter analyze completed, **31/31 widget tests passed**,
+  Supabase build variables present, and Android Gradle APK build completed.
+- Android `apksigner verify` confirms APK v2 signature.
+- `aapt dump badging` confirmed package
+  `com.example.waleadsaver.flutterqa`, versionName `1.0-flutter-qa`,
+  and **launchable-activity `com.example.flutterbridge.WaFlutterHostActivity`**.
+  This specifically proves the old native Kotlin launcher is not the
+  Android launch target for this tested QA APK.
+- Flutter engine `lib/arm64-v8a/libflutter.so` is present.
+- SHA-256: `ea917ce7b7f627346453c9aac8593f8d57ac7b1fcc1a6d95406368487ea841e7`
+- Release published as **pre-release, not production**:
+  https://github.com/775878805Osamaha/wa-lead-saver/releases/tag/wa-flutter-qa-45877784082
+- **Direct browser download URL**:
+  https://github.com/775878805Osamaha/wa-lead-saver/releases/download/wa-flutter-qa-45877784082/WA-Lead-Saver-Flutter-QA.apk
+- Asset `WA-Lead-Saver-Flutter-QA.apk`, **169,949,562 bytes**.
+- Separate Kotlin/Room native regression run **SUCCESS**:
+  https://github.com/775878805Osamaha/wa-lead-saver/actions/runs/45877784086
+- The failed prior build was intentionally NOT released; it compiled but the
+  Android launcher alias failed aapt's launcher detection. The replacement
+  direct activity passed that test.
+
+### Physical-device instructions and limitations
+Install **WA Lead Saver - Flutter QA**, NOT the old Hybrid QA download;
+keep the original application installed. Opening the new app should display
+a light Flutter sign-in gate. Tap `تسجيل الدخول` to use the existing native
+Kotlin authentication form. Once account verification is successful,
+the Flutter dashboard is unlocked with four tabs. The native login/admin
+dialogs still use Kotlin styling, so the complete app is not yet 100%
+visual parity. A real phone screenshot/install and live listener/camera/
+contacts validation must follow. No user's production database was
+migrated or modified by this separate QA package.
