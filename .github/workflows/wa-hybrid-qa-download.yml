@@ -1,6 +1,7 @@
 name: WA Lead Saver - Flutter-first QA APK
 
 # One deliberately requested, separately installable test build.
+# v2 checks the actual Android Flutter launcher; old Kotlin entry is disabled.
 # No automatic publication from everyday feature commits.
 on:
   push:

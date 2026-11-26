@@ -658,7 +658,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byType(WaAppShell), findsOneWidget);
-    expect(find.text('الرئيسية'), findsOneWidget);
+    // The home title and navigation destination legitimately share a label.
+    expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('العملاء'), findsOneWidget);
     expect(find.text('السجل'), findsOneWidget);
     expect(find.text('الإعدادات'), findsOneWidget);
