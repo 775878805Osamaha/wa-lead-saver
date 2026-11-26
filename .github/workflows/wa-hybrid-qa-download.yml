@@ -7,7 +7,7 @@ on:
     branches:
       - feature/flutter-ui-and-history-performance-20261122
     paths:
-      - '.github/workflows/wa-flutter-qa-download.yml'
+      - '.github/workflows/wa-hybrid-qa-download.yml'
   workflow_dispatch:
 
 permissions:
