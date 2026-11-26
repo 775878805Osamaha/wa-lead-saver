@@ -130,11 +130,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
     private var pendingIntentUri by mutableStateOf<android.net.Uri?>(null)
     private var pendingFlutterTool by mutableStateOf<String?>(null)
+    private var openedFromFlutterForLogin by mutableStateOf(false)
+    private var pendingFlutterSettings by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingIntentUri = intent?.data
         pendingFlutterTool = intent?.getStringExtra("wa_flutter_native_tool")
+        openedFromFlutterForLogin = intent?.getBooleanExtra("wa_flutter_native_login", false) == true
+        pendingFlutterSettings = intent?.getBooleanExtra("wa_flutter_native_settings", false) == true
         enableEdgeToEdge()
         setContent {
             WALeadSaverTheme {
@@ -169,6 +173,17 @@ class MainActivity : ComponentActivity() {
                 val authState by authViewModel.authState.collectAsStateWithLifecycle()
                 val activeRecoverySession by authViewModel.activeRecoverySession.collectAsStateWithLifecycle()
                 var showAdminDashboard by remember { mutableStateOf(false) }
+                // Return to the same light Flutter launcher after a successful
+                // native Supabase sign-in, instead of leaving the old dashboard.
+                LaunchedEffect(authState, openedFromFlutterForLogin, activeRecoverySession) {
+                    if (openedFromFlutterForLogin &&
+                        activeRecoverySession == null &&
+                        (authState is AuthState.AuthenticatedUser ||
+                         authState is AuthState.AuthenticatedAdmin)) {
+                        openedFromFlutterForLogin = false
+                        finish()
+                    }
+                }
 
                 // 1. Password Reset Flow via Deep Link
                 if (activeRecoverySession != null) {
@@ -182,6 +197,17 @@ class MainActivity : ComponentActivity() {
                         onCancel = {
                             authViewModel.clearRecoverySession()
                             pendingIntentUri = null
+                        }
+                    )
+                } else if (openedFromFlutterForLogin &&
+                    authState !is AuthState.AuthenticatedUser &&
+                    authState !is AuthState.AuthenticatedAdmin) {
+                    LoginScreen(
+                        authViewModel = authViewModel,
+                        reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
+                        onDismiss = {
+                            openedFromFlutterForLogin = false
+                            finish()
                         }
                     )
                 } else if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
@@ -198,6 +224,11 @@ class MainActivity : ComponentActivity() {
                         authViewModel = authViewModel,
                         onOpenAdminDashboard = { showAdminDashboard = true },
                         requestedNativeTool = pendingFlutterTool,
+                        requestedNativeSettings = pendingFlutterSettings,
+                        onNativeSettingsHandled = {
+                            pendingFlutterSettings = false
+                            intent?.removeExtra("wa_flutter_native_settings")
+                        },
                         onNativeToolHandled = {
                             pendingFlutterTool = null
                             intent?.removeExtra("wa_flutter_native_tool")
@@ -212,6 +243,12 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingIntentUri = intent.data
+        if (intent.getBooleanExtra("wa_flutter_native_login", false)) {
+            openedFromFlutterForLogin = true
+        }
+        if (intent.getBooleanExtra("wa_flutter_native_settings", false)) {
+            pendingFlutterSettings = true
+        }
         intent.getStringExtra("wa_flutter_native_tool")?.let {
             pendingFlutterTool = it
         }
@@ -224,13 +261,21 @@ fun MainScreen(
     authViewModel: AuthViewModel? = null,
     onOpenAdminDashboard: () -> Unit = {},
     requestedNativeTool: String? = null,
-    onNativeToolHandled: () -> Unit = {}
+    onNativeToolHandled: () -> Unit = {},
+    requestedNativeSettings: Boolean = false,
+    onNativeSettingsHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentTab by remember { mutableStateOf(AppTab.DASHBOARD) }
+    LaunchedEffect(requestedNativeSettings) {
+        if (requestedNativeSettings) {
+            currentTab = AppTab.SETTINGS
+            onNativeSettingsHandled()
+        }
+    }
     var showQueueScreen by remember { mutableStateOf(false) }
     var showPhotoScanDialog by remember { mutableStateOf(false) }
     var showSaveExistingDialog by remember { mutableStateOf(false) }

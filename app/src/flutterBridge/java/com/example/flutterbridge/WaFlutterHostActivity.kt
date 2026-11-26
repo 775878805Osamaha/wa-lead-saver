@@ -1,6 +1,8 @@
 package com.example.flutterbridge
 
 import android.os.SystemClock
+import android.content.Intent
+import com.example.MainActivity
 import com.example.data.auth.AuthRepository
 import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseManager
@@ -55,9 +57,47 @@ class WaFlutterHostActivity : FlutterActivity() {
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, "wa_lead_saver/native_v1"
         ).setMethodCallHandler { call, reply ->
-            // Returning to the native login screen must work even if the
-            // session has expired or the account has been stopped.
+            // These two commands are intentionally accessible without a
+            // session. Guests must be able to authenticate and see a truthful
+            // access state, but never read/write customer data.
+            if (call.method == "openNativeLogin") {
+                startActivity(Intent(this, MainActivity::class.java).apply {
+                    putExtra("wa_flutter_native_login", true)
+                })
+                reply.success(mapOf("ok" to true))
+                return@setMethodCallHandler
+            }
+            if (call.method == "getAccessState") {
+                scope.launch {
+                    try {
+                        val state = withContext(Dispatchers.IO) {
+                            authRepository.checkInitialSession()
+                        }
+                        val signedIn = state is AuthState.AuthenticatedAdmin ||
+                            state is AuthState.AuthenticatedUser
+                        val license = licenseManager.checkLicense()
+                        val accepted = license is LicenseStatus.Active ||
+                            license is LicenseStatus.PendingActivation
+                        reply.success(mapOf(
+                            "allowed" to (signedIn && accepted),
+                            "message" to if (!signedIn)
+                                "سجّل الدخول لعرض عملائك الحقيقيين"
+                            else if (!accepted) license.message
+                            else "تم التحقق من الحساب"
+                        ))
+                    } catch (error: Exception) {
+                        reply.success(mapOf(
+                            "allowed" to false,
+                            "message" to "تعذر التحقق من الجلسة. أعد المحاولة أو افتح تسجيل الدخول."
+                        ))
+                    }
+                }
+                return@setMethodCallHandler
+            }
             if (call.method == "closeFlutter") {
+                startActivity(Intent(this, MainActivity::class.java).apply {
+                    putExtra("wa_flutter_native_settings", true)
+                })
                 reply.success(mapOf("ok" to true))
                 finish()
                 return@setMethodCallHandler

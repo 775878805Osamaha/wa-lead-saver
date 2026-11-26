@@ -27,8 +27,10 @@ android {
         versionName = "1.0"
         buildConfigField("boolean", "WA_FLUTTER_BRIDGE_ENABLED", waFlutterUiEnabled.toString())
         manifestPlaceholders["waFlutterEnabled"] = waFlutterUiEnabled.toString()
+        manifestPlaceholders["waNativeLauncherEnabled"] = (!waInstallableTest).toString()
+        manifestPlaceholders["waQaFlutterLauncherEnabled"] = waInstallableTest.toString()
         manifestPlaceholders["waQaAppLabel"] = if (waInstallableTest) {
-            "WA Lead Saver - QA"
+            "WA Lead Saver - Flutter QA"
         } else {
             "@string/app_name"
         }
@@ -106,8 +108,8 @@ android {
     buildTypes {
         debug {
             if (waInstallableTest) {
-                applicationIdSuffix = ".hybridqa"
-                versionNameSuffix = "-hybrid-qa"
+                applicationIdSuffix = ".flutterqa"
+                versionNameSuffix = "-flutter-qa"
             }
         }
         release {
