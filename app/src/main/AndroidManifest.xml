@@ -62,33 +62,23 @@
         <!-- Enabled only when the optional, authenticated Flutter bridge is built. -->
         <activity
             android:name="com.example.flutterbridge.WaFlutterHostActivity"
-            android:exported="false"
+            android:exported="${waQaFlutterLauncherEnabled}"
             android:enabled="${waFlutterEnabled}"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <!-- Production builds keep the original Kotlin launcher. -->
         <activity-alias
             android:name="com.example.NativeLauncher"
             android:targetActivity="com.example.MainActivity"
             android:enabled="${waNativeLauncherEnabled}"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="${waQaAppLabel}">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <!-- Only opt-in QA builds launch the real light Flutter front door.
-             The original Kotlin launcher is disabled in these builds. -->
-        <activity-alias
-            android:name="com.example.flutterbridge.QaFlutterLauncher"
-            android:targetActivity="com.example.flutterbridge.WaFlutterHostActivity"
-            android:enabled="${waQaFlutterLauncherEnabled}"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:label="${waQaAppLabel}">

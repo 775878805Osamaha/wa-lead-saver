@@ -93,7 +93,7 @@ jobs:
           echo "$BADGING" | grep -F "package: name='com.example.waleadsaver.flutterqa'"
           # Catch the exact problem reported by the user: the old APK opened
           # Kotlin MainActivity instead of the light Flutter screen.
-          echo "$BADGING" | grep -F "launchable-activity: name='com.example.flutterbridge.QaFlutterLauncher'"
+          echo "$BADGING" | grep -F "launchable-activity: name='com.example.flutterbridge.WaFlutterHostActivity'"
           if echo "$BADGING" | grep -F "launchable-activity: name='com.example.NativeLauncher'"; then
             echo '::error::The dark native launcher must be disabled in Flutter QA.'
             exit 1
@@ -157,7 +157,7 @@ jobs:
           {
             echo "### WA Lead Saver — Flutter-first installable QA APK"
             echo "- Package: com.example.waleadsaver.flutterqa (new separate test app)"
-            echo "- Android launcher verified: com.example.flutterbridge.QaFlutterLauncher"
+            echo "- Android launcher verified: com.example.flutterbridge.WaFlutterHostActivity"
             echo "- All source and APK checks above must pass before the link is shared."
             if [ -n "${RELEASE_TAG:-}" ]; then
               echo "- Direct APK: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/WA-Lead-Saver-Flutter-QA.apk"
