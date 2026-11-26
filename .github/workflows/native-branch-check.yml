@@ -1,8 +1,19 @@
 name: WA Lead Saver native regression tests (branch only)
 
-# Runs only on this isolated development branch. No APK, no release, no merge.
+# Runs on the isolated development branch and PRs targeting it. No APK, release, or merge.
 on:
   push:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - '.github/workflows/native-branch-check.yml'
+  pull_request:
     branches:
       - feature/flutter-ui-and-history-performance-20261122
     paths:
