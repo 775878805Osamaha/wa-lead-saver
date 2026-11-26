@@ -111,6 +111,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.LeadDetailsScreen
 import com.example.ui.screens.LeadsScreen
+import com.example.ui.screens.FlutterLoginAppearance
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.QueueScreen
 import com.example.ui.screens.ResetPasswordScreen
@@ -202,14 +203,16 @@ class MainActivity : ComponentActivity() {
                 } else if (openedFromFlutterForLogin &&
                     authState !is AuthState.AuthenticatedUser &&
                     authState !is AuthState.AuthenticatedAdmin) {
-                    LoginScreen(
-                        authViewModel = authViewModel,
-                        reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
-                        onDismiss = {
-                            openedFromFlutterForLogin = false
-                            finish()
-                        }
-                    )
+                    FlutterLoginAppearance {
+                        LoginScreen(
+                            authViewModel = authViewModel,
+                            reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
+                            onDismiss = {
+                                openedFromFlutterForLogin = false
+                                finish()
+                            }
+                        )
+                    }
                 } else if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
                     AdminDashboardScreen(
                         authViewModel = authViewModel,
