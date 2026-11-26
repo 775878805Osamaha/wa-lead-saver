@@ -1,0 +1,24 @@
+name: Flutter UI static checks
+
+# Manual only: conserve Actions minutes until the migration is ready to test.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install Flutter UI dependencies
+        working-directory: flutter_ui
+        run: flutter pub get
+      - name: Analyze Flutter UI
+        working-directory: flutter_ui
+        run: flutter analyze
+      - name: Run Flutter widget tests
+        working-directory: flutter_ui
+        run: flutter test

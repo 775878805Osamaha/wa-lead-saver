@@ -55,9 +55,10 @@ class LeadRepository(
 
     val queuedLeads: Flow<List<LeadEntity>> = leadDao.getQueuedLeads()
     val allLeads: Flow<List<LeadEntity>> = leadDao.getAllLeads()
+    val totalLeadsCount: Flow<Int> = leadDao.getTotalLeadsCount()
     val totalSavedCount: Flow<Int> = leadDao.getTotalSavedCount()
     val queueCount: Flow<Int> = leadDao.getQueueCount()
-    val allHistory: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
+    val recentHistory: Flow<List<HistoryEntity>> = historyDao.observeRecentHistory()
     val settings: Flow<AppSettings> = settingsDataStore.settingsFlow
 
     private val benchmarkResultFlow = kotlinx.coroutines.flow.MutableStateFlow<com.example.util.BenchmarkEvaluationResult?>(null)
@@ -68,48 +69,37 @@ class LeadRepository(
         return result
     }
 
-    val captureStats: Flow<CaptureStats> = combine(allHistory, allLeads, benchmarkResultFlow) { history, leads, benchmark ->
-        val saved = leads.count { it.isSaved }
-        val queued = leads.filter { !it.isSaved }
-        val needsReview = queued.count { it.tags.contains("NEEDS_REVIEW") }
-        val duplicates = history.count { it.status.equals("Duplicate", ignoreCase = true) }
-        val groupExcluded = history.count { it.status.contains("Group", ignoreCase = true) }
-        val invalidOrExcluded = history.count {
-            it.status.equals("Excluded", ignoreCase = true) ||
-            it.status.equals("Invalid Number", ignoreCase = true) ||
-            it.status.contains("System", ignoreCase = true)
-        }
-        val candidates = saved + queued.size + duplicates
+    val captureStats: Flow<CaptureStats> = combine(
+        historyDao.observeCaptureCounts(),
+        leadDao.observeCaptureCounts(),
+        benchmarkResultFlow
+    ) { historyCounts, leadCounts, benchmark ->
+        val saved = leadCounts.saved
+        val needsReview = leadCounts.needsReview
+        val duplicates = historyCounts.duplicates
+        val groupExcluded = historyCounts.groupExcluded
+        val invalidOrExcluded = historyCounts.invalidOrExcluded
+        val candidates = leadCounts.total + duplicates
         val totalAnalyzed = candidates + groupExcluded + invalidOrExcluded
-        val totalReceived = history.size.coerceAtLeast(totalAnalyzed)
+        val totalReceived = historyCounts.total.coerceAtLeast(totalAnalyzed)
 
-        // Verified live ground-truth cases
-        val userVerifiedLeads = leads.count { it.tags.contains("CONFIRMED") || it.isSaved }
-
+        // Saving a phone number or automatic "CONFIRMED" tags is not
+        // independent ground-truth. Accuracy needs a labeled benchmark.
         val accuracy: Int?
         val evaluatedCount: Int
         val passedCount: Int
         val methodNote: String
 
-        if (benchmark != null) {
-            val total = benchmark.totalCases + (if (userVerifiedLeads > 0) userVerifiedLeads else 0)
-            val passed = benchmark.passedCases + (if (userVerifiedLeads > 0) userVerifiedLeads else 0)
-            accuracy = if (total > 0) ((passed * 100) / total).coerceIn(0, 100) else null
-            evaluatedCount = total
-            passedCount = passed
-            methodNote = "محسوبة استناداً إلى ${benchmark.totalCases} حالة اختبار مصنفة مسبقاً" +
-                    (if (userVerifiedLeads > 0) " و $userVerifiedLeads عملاء تم التحقق منهم" else "")
-        } else if (userVerifiedLeads > 0) {
-            accuracy = 100
-            evaluatedCount = userVerifiedLeads
-            passedCount = userVerifiedLeads
-            methodNote = "محسوبة استناداً إلى $userVerifiedLeads حالة تم التحقق منها بشرياً"
+        if (benchmark != null && benchmark.totalCases > 0) {
+            accuracy = benchmark.accuracyPercentage.coerceIn(0, 100)
+            evaluatedCount = benchmark.totalCases
+            passedCount = benchmark.passedCases
+            methodNote = "نتيجة اختبار على ${benchmark.totalCases} حالة مصنفة مسبقاً؛ لا تمثل نسبة نجاح جميع الإشعارات الحقيقية"
         } else {
-            // Strictly NO fake 100%: null accuracy when no ground-truth test data exists
             accuracy = null
             evaluatedCount = 0
             passedCount = 0
-            methodNote = "لم يتم تقييم الدقة بعد (بانتظار بيانات الاختبار المصنفة)"
+            methodNote = "لا تتوفر نتيجة اختبار مصنف؛ لا يمكن حساب الدقة من عدد العملاء المحفوظين"
         }
 
         CaptureStats(
@@ -647,6 +637,17 @@ class LeadRepository(
         }
     }
 
+    suspend fun getFilteredHistoryCount(filter: com.example.data.model.AuditFilter): Int =
+        historyDao.getFilteredCount(filter.name)
+
+    suspend fun getHistoryPage(
+        filter: com.example.data.model.AuditFilter,
+        beforeTimestamp: Long?,
+        beforeId: Long?,
+        pageSize: Int = 80
+    ): List<HistoryEntity> =
+        historyDao.getHistoryPage(filter.name, beforeTimestamp, beforeId, pageSize)
+
     suspend fun getFullHistoryForExport(): List<HistoryEntity> {
         return historyDao.getAllHistoryList()
     }
@@ -765,6 +766,21 @@ class LeadRepository(
         val now = System.currentTimeMillis()
         leadDao.updateLeadStatus(id, newStatus.name, now)
         return Result.success(Unit)
+    }
+
+    suspend fun updateLeadDisplayName(id: Long, name: String): Result<Unit> {
+        val cleaned = name.trim()
+        require(id > 0L && cleaned.isNotEmpty() && cleaned.length <= 120) {
+            "Customer name is invalid"
+        }
+        val affected = leadDao.updateLeadDisplayName(
+            id = id, name = cleaned, updatedAt = System.currentTimeMillis()
+        )
+        return if (affected == 1) {
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalArgumentException("Customer not found"))
+        }
     }
 
     suspend fun updateLeadNotes(id: Long, notes: String): Result<Unit> {

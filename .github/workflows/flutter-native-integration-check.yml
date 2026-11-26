@@ -1,0 +1,73 @@
+name: WA Lead Saver Flutter-native integration (experimental)
+
+# Isolated build verification ONLY; never upload or publish an installable
+# production APK before DB migration, auth, license and device testing.
+on:
+  push:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    paths:
+      - '.github/workflows/flutter-native-integration-check.yml'
+      # Include the dispatch-test regression to verify the corrected hit target.
+      - 'flutter_ui/test/wa_app_test.dart'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-hybrid-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assemble-experimental:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Prepare Flutter module (not committed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --template module --org com.walspreview --project-name wa_lead_saver_ui flutter_module
+          cp flutter_ui/pubspec.yaml flutter_module/pubspec.yaml
+          cp -R flutter_ui/lib/. flutter_module/lib/
+          rm -rf flutter_module/test
+          cp -R flutter_ui/test flutter_module/test
+          cd flutter_module
+          flutter pub get
+          test -f .android/include_flutter.groovy
+      - name: Validate Flutter source
+        shell: bash
+        working-directory: flutter_module
+        run: |
+          flutter analyze lib --no-fatal-infos
+      - name: Run RTL, manual-add and audit confirmation widget tests
+        shell: bash
+        working-directory: flutter_module
+        run: flutter test
+      - name: Build opt-in native + Flutter APK (never publish)
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon -PwaFlutterUi=true :app:assembleDebug --stacktrace
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          echo "Compiled Android host with Flutter engine:"
+          unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
+          echo "Hybrid APK compiled; file intentionally not published."

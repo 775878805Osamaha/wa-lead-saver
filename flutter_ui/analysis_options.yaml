@@ -1,0 +1,9 @@
+analyzer:
+  errors:
+    invalid_assignment: error
+    missing_required_param: error
+linter:
+  rules:
+    - prefer_const_constructors
+    - avoid_print
+    - use_key_in_widget_constructors

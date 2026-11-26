@@ -131,13 +131,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }.flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
+    val totalLeadsCount: StateFlow<Int> = repository.totalLeadsCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
+
     val totalSavedCount: StateFlow<Int> = repository.totalSavedCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
 
     val queueCount: StateFlow<Int> = repository.queueCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), 0)
 
-    val historyList: StateFlow<List<HistoryEntity>> = repository.allHistory
+    val historyList: StateFlow<List<HistoryEntity>> = repository.recentHistory
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     val captureStats: StateFlow<com.example.data.model.CaptureStats> = repository.captureStats
@@ -145,25 +148,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val selectedAuditFilter = MutableStateFlow(com.example.data.model.AuditFilter.ALL)
 
-    val filteredHistory: StateFlow<List<HistoryEntity>> = combine(
-        repository.allHistory,
-        selectedAuditFilter
-    ) { history, filter ->
-        when (filter) {
-            com.example.data.model.AuditFilter.ALL -> history
-            com.example.data.model.AuditFilter.SAVED -> history.filter { it.status.equals("Saved", ignoreCase = true) }
-            com.example.data.model.AuditFilter.NEEDS_REVIEW -> history.filter { it.status.equals("Needs Review", ignoreCase = true) }
-            com.example.data.model.AuditFilter.GROUP_EXCLUDED -> history.filter { it.status.contains("Group", ignoreCase = true) }
-            com.example.data.model.AuditFilter.DUPLICATE -> history.filter { it.status.contains("Duplicate", ignoreCase = true) }
-            com.example.data.model.AuditFilter.EXCLUDED -> history.filter {
-                it.status.equals("Excluded", ignoreCase = true) ||
-                it.status.equals("Invalid Number", ignoreCase = true) ||
-                it.status.contains("System", ignoreCase = true) ||
-                it.status.contains("unavailable", ignoreCase = true)
+    // Page only the visible audit rows; never keep the full audit table in UI state.
+    private val _filteredHistory = MutableStateFlow<List<HistoryEntity>>(emptyList())
+    val filteredHistory: StateFlow<List<HistoryEntity>> = _filteredHistory.asStateFlow()
+    private val _historyTotalCount = MutableStateFlow(0)
+    val historyTotalCount: StateFlow<Int> = _historyTotalCount.asStateFlow()
+    private val _historyIsLoading = MutableStateFlow(false)
+    val historyIsLoading: StateFlow<Boolean> = _historyIsLoading.asStateFlow()
+    private val _historyHasMore = MutableStateFlow(true)
+    val historyHasMore: StateFlow<Boolean> = _historyHasMore.asStateFlow()
+    private var historyGeneration = 0
+    private var historyPageJob: kotlinx.coroutines.Job? = null
+
+    fun loadHistoryPage(reset: Boolean = false) {
+        if (reset) {
+            ++historyGeneration
+            historyPageJob?.cancel()
+            _filteredHistory.value = emptyList()
+            _historyTotalCount.value = 0
+            _historyHasMore.value = true
+            _historyIsLoading.value = false
+        }
+        if (_historyIsLoading.value || !_historyHasMore.value) return
+        val generation = historyGeneration
+        val filter = selectedAuditFilter.value
+        val last = _filteredHistory.value.lastOrNull()
+        _historyIsLoading.value = true
+        historyPageJob = viewModelScope.launch {
+            try {
+                val count = if (last == null) repository.getFilteredHistoryCount(filter)
+                            else _historyTotalCount.value
+                val nextPage = repository.getHistoryPage(
+                    filter = filter,
+                    beforeTimestamp = last?.timestamp,
+                    beforeId = last?.id,
+                    pageSize = 80
+                )
+                if (generation != historyGeneration) return@launch
+                _historyTotalCount.value = count
+                _filteredHistory.value = _filteredHistory.value + nextPage
+                _historyHasMore.value = nextPage.isNotEmpty() &&
+                    nextPage.size == 80 && _filteredHistory.value.size < count
+            } catch (e: Exception) {
+                if (generation == historyGeneration) {
+                    _userMessage.value = "تعذر تحميل سجل العمليات: ${e.localizedMessage ?: "خطأ غير متوقع"}"
+                }
+            } finally {
+                if (generation == historyGeneration) _historyIsLoading.value = false
             }
         }
-    }.flowOn(Dispatchers.Default)
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+    }
 
     val settings: StateFlow<AppSettings> = repository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), AppSettings())
@@ -330,7 +364,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearHistory() {
         viewModelScope.launch {
             repository.clearHistory()
-            _userMessage.value = "History cleared"
+            loadHistoryPage(reset = true)
+            _userMessage.value = "تم مسح سجل العمليات"
         }
     }
 
@@ -570,7 +605,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setAuditFilter(filter: com.example.data.model.AuditFilter) {
+        if (selectedAuditFilter.value == filter) return
         selectedAuditFilter.value = filter
+        loadHistoryPage(reset = true)
     }
 
     fun updateLeadClassification(id: Long, decision: com.example.data.model.CaptureDecision, reason: String = "") {

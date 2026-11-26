@@ -96,6 +96,7 @@ import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseStatus
 import com.example.data.database.entity.LeadEntity
 import com.example.data.datastore.AppSettings
+import com.example.data.model.AuditFilter
 import com.example.data.model.DateFilter
 import com.example.data.model.LeadSource
 import com.example.data.model.LeadStatus
@@ -128,10 +129,16 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
     private var pendingIntentUri by mutableStateOf<android.net.Uri?>(null)
+    private var pendingFlutterTool by mutableStateOf<String?>(null)
+    private var openedFromFlutterForLogin by mutableStateOf(false)
+    private var pendingFlutterSettings by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingIntentUri = intent?.data
+        pendingFlutterTool = intent?.getStringExtra("wa_flutter_native_tool")
+        openedFromFlutterForLogin = intent?.getBooleanExtra("wa_flutter_native_login", false) == true
+        pendingFlutterSettings = intent?.getBooleanExtra("wa_flutter_native_settings", false) == true
         enableEdgeToEdge()
         setContent {
             WALeadSaverTheme {
@@ -166,6 +173,17 @@ class MainActivity : ComponentActivity() {
                 val authState by authViewModel.authState.collectAsStateWithLifecycle()
                 val activeRecoverySession by authViewModel.activeRecoverySession.collectAsStateWithLifecycle()
                 var showAdminDashboard by remember { mutableStateOf(false) }
+                // Return to the same light Flutter launcher after a successful
+                // native Supabase sign-in, instead of leaving the old dashboard.
+                LaunchedEffect(authState, openedFromFlutterForLogin, activeRecoverySession) {
+                    if (openedFromFlutterForLogin &&
+                        activeRecoverySession == null &&
+                        (authState is AuthState.AuthenticatedUser ||
+                         authState is AuthState.AuthenticatedAdmin)) {
+                        openedFromFlutterForLogin = false
+                        finish()
+                    }
+                }
 
                 // 1. Password Reset Flow via Deep Link
                 if (activeRecoverySession != null) {
@@ -181,6 +199,17 @@ class MainActivity : ComponentActivity() {
                             pendingIntentUri = null
                         }
                     )
+                } else if (openedFromFlutterForLogin &&
+                    authState !is AuthState.AuthenticatedUser &&
+                    authState !is AuthState.AuthenticatedAdmin) {
+                    LoginScreen(
+                        authViewModel = authViewModel,
+                        reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
+                        onDismiss = {
+                            openedFromFlutterForLogin = false
+                            finish()
+                        }
+                    )
                 } else if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
                     AdminDashboardScreen(
                         authViewModel = authViewModel,
@@ -193,7 +222,17 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         viewModel = viewModel,
                         authViewModel = authViewModel,
-                        onOpenAdminDashboard = { showAdminDashboard = true }
+                        onOpenAdminDashboard = { showAdminDashboard = true },
+                        requestedNativeTool = pendingFlutterTool,
+                        requestedNativeSettings = pendingFlutterSettings,
+                        onNativeSettingsHandled = {
+                            pendingFlutterSettings = false
+                            intent?.removeExtra("wa_flutter_native_settings")
+                        },
+                        onNativeToolHandled = {
+                            pendingFlutterTool = null
+                            intent?.removeExtra("wa_flutter_native_tool")
+                        }
                     )
                 }
             }
@@ -204,6 +243,15 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingIntentUri = intent.data
+        if (intent.getBooleanExtra("wa_flutter_native_login", false)) {
+            openedFromFlutterForLogin = true
+        }
+        if (intent.getBooleanExtra("wa_flutter_native_settings", false)) {
+            pendingFlutterSettings = true
+        }
+        intent.getStringExtra("wa_flutter_native_tool")?.let {
+            pendingFlutterTool = it
+        }
     }
 }
 
@@ -211,13 +259,23 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     viewModel: MainViewModel,
     authViewModel: AuthViewModel? = null,
-    onOpenAdminDashboard: () -> Unit = {}
+    onOpenAdminDashboard: () -> Unit = {},
+    requestedNativeTool: String? = null,
+    onNativeToolHandled: () -> Unit = {},
+    requestedNativeSettings: Boolean = false,
+    onNativeSettingsHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentTab by remember { mutableStateOf(AppTab.DASHBOARD) }
+    LaunchedEffect(requestedNativeSettings) {
+        if (requestedNativeSettings) {
+            currentTab = AppTab.SETTINGS
+            onNativeSettingsHandled()
+        }
+    }
     var showQueueScreen by remember { mutableStateOf(false) }
     var showPhotoScanDialog by remember { mutableStateOf(false) }
     var showSaveExistingDialog by remember { mutableStateOf(false) }
@@ -236,7 +294,12 @@ fun MainScreen(
     val captureStats by viewModel.captureStats.collectAsStateWithLifecycle()
     val selectedAuditFilter by viewModel.selectedAuditFilter.collectAsStateWithLifecycle()
     val filteredHistory by viewModel.filteredHistory.collectAsStateWithLifecycle()
-    val allLeads by viewModel.allLeads.collectAsStateWithLifecycle(emptyList())
+    val historyTotalCount by viewModel.historyTotalCount.collectAsStateWithLifecycle()
+    val historyIsLoading by viewModel.historyIsLoading.collectAsStateWithLifecycle()
+    val historyHasMore by viewModel.historyHasMore.collectAsStateWithLifecycle()
+    // A cheap Room COUNT flow is enough for the navigation badge and title.
+    // Avoid observing the full customer list in the app-level scaffold.
+    val totalLeadsCount by viewModel.totalLeadsCount.collectAsStateWithLifecycle(0)
     val filteredLeads by viewModel.filteredLeads.collectAsStateWithLifecycle(emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle("")
     val selectedStatus by viewModel.selectedStatusFilter.collectAsStateWithLifecycle(null)
@@ -258,6 +321,22 @@ fun MainScreen(
     val authState by authViewModel?.authState?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(AuthState.Unauthenticated) }
 
     val isAuthenticated = authState is AuthState.AuthenticatedUser || authState is AuthState.AuthenticatedAdmin
+
+    // Flutter uses these existing native CameraX / contacts workflows.
+    // Defer opening until the original app's authentication is restored.
+    LaunchedEffect(requestedNativeTool, isAuthenticated) {
+        if (requestedNativeTool != null && isAuthenticated) {
+            when (requestedNativeTool) {
+                "camera" -> showPhotoScanDialog = true
+                "scan" -> showSaveExistingDialog = true
+            }
+            onNativeToolHandled()
+        }
+    }
+
+    LaunchedEffect(currentTab) {
+        if (currentTab == AppTab.HISTORY) viewModel.loadHistoryPage(reset = true)
+    }
 
     // Automatic seamless transition to Main Screen upon successful authentication without pressing Back
     LaunchedEffect(isAuthenticated) {
@@ -311,8 +390,20 @@ fun MainScreen(
 
     val exportHistory = {
         scope.launch {
-            val list = viewModel.repository.getFullHistoryForExport()
-            CsvExportHelper.exportHistoryToCsv(context, list)
+            try {
+                CsvExportHelper.exportHistoryToCsv(context) { beforeTime, beforeId ->
+                    viewModel.repository.getHistoryPage(
+                        filter = AuditFilter.ALL,
+                        beforeTimestamp = beforeTime,
+                        beforeId = beforeId,
+                        pageSize = 500
+                    )
+                }
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar(
+                    "تعذر تصدير السجل: ${e.localizedMessage ?: "خطأ غير متوقع"}"
+                )
+            }
         }
     }
 
@@ -396,7 +487,7 @@ fun MainScreen(
                         ) {
                             AppTab.entries.forEach { tab ->
                                 val isSelected = !showQueueScreen && currentTab == tab
-                                val badgeCount = if (tab == AppTab.LEADS) allLeads.size else 0
+                                val badgeCount = if (tab == AppTab.LEADS) totalLeadsCount else 0
 
                                 Box(
                                     modifier = Modifier
@@ -606,7 +697,7 @@ fun MainScreen(
                         } else {
                             LeadsScreen(
                                 leads = filteredLeads,
-                                totalCount = allLeads.size,
+                                totalCount = totalLeadsCount,
                                 searchQuery = searchQuery,
                                 selectedStatus = selectedStatus,
                                 selectedSource = selectedSource,
@@ -630,6 +721,10 @@ fun MainScreen(
 
                     AppTab.HISTORY -> HistoryScreen(
                         historyList = filteredHistory,
+                        totalCount = historyTotalCount,
+                        isPageLoading = historyIsLoading,
+                        hasMore = historyHasMore,
+                        onLoadMore = { viewModel.loadHistoryPage() },
                         selectedFilter = selectedAuditFilter,
                         onFilterSelected = { viewModel.setAuditFilter(it) },
                         onExportHistory = { exportHistory() },
@@ -669,6 +764,15 @@ fun MainScreen(
                             showLoginDialog = true
                         },
                         onOpenAdmin = onOpenAdminDashboard,
+                        onOpenFlutterUi = if (BuildConfig.WA_FLUTTER_BRIDGE_ENABLED) {
+                            {
+                                context.startActivity(
+                                    android.content.Intent().setClassName(
+                                        context, "com.example.flutterbridge.WaFlutterHostActivity"
+                                    )
+                                )
+                            }
+                        } else null,
                         onLogout = { authViewModel?.logout() },
                         isNotificationListenerActiveState = isListenerActive,
                         hasContactsPermissionState = hasContactsPermission,

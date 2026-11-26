@@ -1,0 +1,167 @@
+name: WA Lead Saver - Flutter-first QA APK
+
+# One deliberately requested, separately installable test build.
+# No automatic publication from everyday feature commits.
+on:
+  push:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    paths:
+      - '.github/workflows/wa-hybrid-qa-download.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wa-downloadable-hybrid-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa-installable:
+    name: Verify and publish side-by-side Android QA build
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Flutter Android module from latest source
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --template module --org com.walspreview --project-name wa_lead_saver_ui flutter_module
+          cp flutter_ui/pubspec.yaml flutter_module/pubspec.yaml
+          cp -R flutter_ui/lib/. flutter_module/lib/
+          rm -rf flutter_module/test
+          cp -R flutter_ui/test flutter_module/test
+          cd flutter_module
+          flutter pub get
+          test -f .android/include_flutter.groovy
+      - name: Check Flutter analyzer and widget tests
+        shell: bash
+        working-directory: flutter_module
+        run: |
+          set -euo pipefail
+          flutter analyze lib --no-fatal-infos
+          flutter test
+      - name: Check Supabase build parameters without printing secrets
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo 'Supabase settings are present.'
+            echo 'SUPABASE_READY=yes' >> "$GITHUB_ENV"
+          else
+            echo '::warning::Supabase is not fully configured. Login may not work in this QA build.'
+            echo 'SUPABASE_READY=no' >> "$GITHUB_ENV"
+          fi
+      - name: Build separate Flutter-first QA application
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          # The QA app has its own package, independent local database and
+          # permissions; the user's original app is NOT an upgrade target.
+          # Compile Kotlin and Flutter without touching the installed app.
+          ./gradlew --no-daemon -PwaFlutterUi=true -PwaInstallableTest=true :app:assembleDebug --stacktrace
+      - name: Validate the actual signed installable APK
+        id: validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          BADGING="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK")"
+          echo "$BADGING" | grep -F "package: name='com.example.waleadsaver.flutterqa'"
+          # Catch the exact problem reported by the user: the old APK opened
+          # Kotlin MainActivity instead of the light Flutter screen.
+          echo "$BADGING" | grep -F "launchable-activity: name='com.example.flutterbridge.QaFlutterLauncher'"
+          if echo "$BADGING" | grep -F "launchable-activity: name='com.example.NativeLauncher'"; then
+            echo '::error::The dark native launcher must be disabled in Flutter QA.'
+            exit 1
+          fi
+          grep -F 'requiresAuthentication: true' flutter_module/lib/main.dart
+          unzip -Z1 "$APK" | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
+          mkdir -p dist
+          cp "$APK" dist/WA-Lead-Saver-Flutter-QA.apk
+          sha256sum dist/WA-Lead-Saver-Flutter-QA.apk | tee dist/SHA256.txt
+          ls -lh dist/WA-Lead-Saver-Flutter-QA.apk
+      - name: Upload downloadable APK to GitHub Actions (fallback)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          path: |
+            dist/WA-Lead-Saver-Flutter-QA.apk
+            dist/SHA256.txt
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish tested Flutter-first APK for browser download
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="wa-flutter-qa-${GITHUB_RUN_ID}"
+          cat > dist/release-notes.md <<'NOTES'
+          ## WA Lead Saver — Flutter-first QA / اختبار التصميم الجديد
+          - **Separately installable:** package `com.example.waleadsaver.flutterqa`.
+            It must NOT replace your installed WA Lead Saver app or touch
+            that app's private Room/DataStore records.
+          - **The launcher now opens the white/green Flutter screen directly.**
+            Guests see a light sign-in gate instead of the old Kotlin dashboard.
+            After sign-in via the existing native Supabase form, the Flutter
+            dashboard, customers, audit history and settings open automatically.
+          - The original Kotlin camera, monitoring, CRM and account/license
+            services remain wired into the real Flutter UI.
+          - **Not a production release.** Real-device permission, contacts,
+            auth/licensing, background notifications and data behavior are
+            not yet certified. Test carefully; avoid real customer data.
+          - Open "WA Lead Saver - Flutter QA". The light Flutter sign-in
+            screen is immediate. Tap "تسجيل الدخول" to use the original
+            login form, and return to Flutter after successful authentication.
+          - This is a THIRD app identity; it does not replace either the
+            original app or the older Hybrid QA test app.
+          - Licensed Thmanyah fonts are intentionally NOT in this public
+            build. Supabase configuration depends on repository settings.
+          - QA APK uses a debug signing identity; future QA versions may
+            require uninstalling this separate QA app only. Never uninstall
+            the existing production app to install this test.
+          NOTES
+          if [ "$SUPABASE_READY" != "yes" ]; then
+            echo 'WARNING: Supabase parameters were absent; login may be unavailable.' >> dist/release-notes.md
+          fi
+          gh release create "$TAG"             "dist/WA-Lead-Saver-Flutter-QA.apk#WA-Lead-Saver-Flutter-QA.apk"             --target "$GITHUB_SHA"             --title "WA Lead Saver - Flutter First QA (test only)"             --notes-file dist/release-notes.md             --prerelease
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+      - name: Summarize verified installation link
+        shell: bash
+        run: |
+          {
+            echo "### WA Lead Saver — Flutter-first installable QA APK"
+            echo "- Package: com.example.waleadsaver.flutterqa (new separate test app)"
+            echo "- Android launcher verified: com.example.flutterbridge.QaFlutterLauncher"
+            echo "- All source and APK checks above must pass before the link is shared."
+            if [ -n "${RELEASE_TAG:-}" ]; then
+              echo "- Direct APK: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/WA-Lead-Saver-Flutter-QA.apk"
+            else
+              echo "- Pre-release upload failed. Use this workflow run's Artifacts section and unzip the APK."
+            fi
+            echo "- Supabase configured: ${SUPABASE_READY:-unknown}"
+          } >> "$GITHUB_STEP_SUMMARY"

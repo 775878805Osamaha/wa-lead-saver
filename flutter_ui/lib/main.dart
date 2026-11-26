@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'src/data/gateway.dart';
+import 'src/screens/app_shell.dart';
+import 'src/screens/authenticated_gate.dart';
+import 'src/theme/wa_theme.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const WaLeadSaverApp(
+    gateway: NativeLeadGateway(),
+    requiresAuthentication: true,
+  ));
+}
+
+class WaLeadSaverApp extends StatelessWidget {
+  const WaLeadSaverApp({
+    super.key,
+    required this.gateway,
+    this.isPreview = false,
+    this.requiresAuthentication = false,
+  });
+  final LeadGateway gateway;
+  final bool isPreview;
+  final bool requiresAuthentication;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'WA Lead Saver',
+        debugShowCheckedModeBanner: false,
+        theme: makeWaTheme(),
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: requiresAuthentication
+            ? AuthenticatedGate(gateway: gateway)
+            : WaAppShell(gateway: gateway, isPreview: isPreview),
+      );
+}

@@ -23,7 +23,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="${waQaAppLabel}"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
@@ -31,14 +31,12 @@
         <activity
             android:name="com.example.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="${waQaAppLabel}"
             android:launchMode="singleTask"
             android:theme="@style/Theme.MyApplication"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!-- The native activity retains authentication/recovery, but the
+                 QA launcher now points directly to the light Flutter host. -->
 
             <!-- Supabase Password Recovery Deep Link Filter -->
             <intent-filter android:autoVerify="true">
@@ -61,6 +59,45 @@
             </intent-filter>
         </activity>
 
+        <!-- Enabled only when the optional, authenticated Flutter bridge is built. -->
+        <activity
+            android:name="com.example.flutterbridge.WaFlutterHostActivity"
+            android:exported="false"
+            android:enabled="${waFlutterEnabled}"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+
+        <!-- Production builds keep the original Kotlin launcher. -->
+        <activity-alias
+            android:name="com.example.NativeLauncher"
+            android:targetActivity="com.example.MainActivity"
+            android:enabled="${waNativeLauncherEnabled}"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="${waQaAppLabel}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Only opt-in QA builds launch the real light Flutter front door.
+             The original Kotlin launcher is disabled in these builds. -->
+        <activity-alias
+            android:name="com.example.flutterbridge.QaFlutterLauncher"
+            android:targetActivity="com.example.flutterbridge.WaFlutterHostActivity"
+            android:enabled="${waQaFlutterLauncherEnabled}"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="${waQaAppLabel}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name="com.example.service.WhatsAppNotificationListenerService"
             android:exported="true"
@@ -73,7 +110,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.example.waleadsaver.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
