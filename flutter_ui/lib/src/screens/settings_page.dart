@@ -20,6 +20,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   final TextEditingController _countryCodeController = TextEditingController();
   bool _countryLoading = true;
   bool _countrySaving = false;
+  bool _countryDirty = false;
+  String? _persistedCountryCode;
   String? _countryError;
   bool _loading = true;
   String? _saving;
@@ -82,7 +84,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
     try {
       final code = await widget.gateway.loadCountryCode();
       if (!mounted || generation != _countryGeneration) return;
-      _countryCodeController.text = code;
+      _persistedCountryCode = code;
+      if (!_countryDirty) _countryCodeController.text = code;
     } catch (_) {
       if (mounted && generation == _countryGeneration) {
         setState(() => _countryError = 'تعذر قراءة رمز الدولة من Android');
@@ -116,6 +119,11 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
     try {
       await widget.gateway.changeCountryCode(code);
       if (!mounted) return;
+      setState(() {
+        _persistedCountryCode = code;
+        _countryDirty = false;
+        _countryCodeController.text = code;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم حفظ رمز الدولة الافتراضي')),
       );
@@ -143,6 +151,10 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
           Expanded(child: TextField(
             key: const Key('country_code_input'),
             controller: _countryCodeController,
+            onChanged: (value) => setState(() {
+              _countryDirty = value.trim() != _persistedCountryCode;
+              _countryError = null;
+            }),
             enabled: !_countryLoading && !_countrySaving,
             keyboardType: TextInputType.phone,
             textDirection: TextDirection.ltr,
@@ -159,6 +171,21 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
             child: const Text('حفظ'),
           ),
         ]),
+        if (_countryDirty) ...[
+          const SizedBox(height: 6),
+          const Text('تعديل غير محفوظ', style: TextStyle(color: WaPalette.amber)),
+          TextButton(
+            key: const Key('discard_country_code'),
+            onPressed: _countryLoading || _countrySaving || _persistedCountryCode == null ? null : () {
+              setState(() {
+                _countryCodeController.text = _persistedCountryCode!;
+                _countryDirty = false;
+                _countryError = null;
+              });
+            },
+            child: const Text('إلغاء التعديل'),
+          ),
+        ],
       ]),
     ),
   );
@@ -207,7 +234,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   Widget _accountCard() => FutureBuilder<AccountInfo>(
     future: _accountInfo,
     builder: (context, snapshot) {
-      final info = snapshot.data;
+      final info = snapshot.connectionState == ConnectionState.done
+          ? snapshot.data : null;
       return Card(
         key: const Key('account_license_card'),
         child: Padding(
@@ -288,7 +316,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
         title: Text(title, style: const TextStyle(
           fontSize: 14, fontWeight: FontWeight.w800,
         )),
-        subtitle: Text(subtitle, style: const TextStyle(
+        subtitle: Text('$subtitle · ${granted == null ? 'غير معروفة' : granted ? 'ممنوحة' : 'غير ممنوحة'}', style: const TextStyle(
           color: WaPalette.muted, fontSize: 11.5,
         )),
         trailing: Icon(

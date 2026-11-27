@@ -220,7 +220,7 @@ class _Metric extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: SizedBox(
-        height: 120,
+        height: 120 + (MediaQuery.textScalerOf(context).scale(12) - 12).clamp(0, 36).toDouble() * 3,
         child: Padding(
           padding: const EdgeInsets.all(6),
           child: Column(
@@ -268,7 +268,8 @@ class _AccuracyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percent = data.accuracyPercentage;
-    final valid = percent != null && data.evaluatedCases > 0;
+    final valid = percent != null && data.evaluatedCases > 0 &&
+        data.passedCases >= 0 && data.passedCases <= data.evaluatedCases;
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
@@ -350,7 +351,7 @@ class _Shortcut extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: SizedBox(
-        height: 80,
+        height: 80 + (MediaQuery.textScalerOf(context).scale(12) - 12).clamp(0, 36).toDouble() * 3,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3),
           child: Column(

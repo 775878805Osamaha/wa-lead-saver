@@ -589,7 +589,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                                     CircleAvatar(
                                       backgroundColor: WaPalette.raised,
                                       child: Text(
-                                        lead.name.isEmpty ? '؟' : lead.name.substring(0, 1),
+                                        lead.name.isEmpty ? '؟' : String.fromCharCode(lead.name.runes.first),
                                         style: const TextStyle(color: WaPalette.green),
                                       ),
                                     ),
@@ -618,7 +618,10 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                                     style: const TextStyle(color: WaPalette.muted),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
+                                Text('الحالة: ${_statusLabel(lead.status)}',
+                                  style: const TextStyle(color: WaPalette.green, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     Expanded(

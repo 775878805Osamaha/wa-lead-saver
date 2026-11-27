@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/gateway.dart';
 import '../data/page_guard.dart';
+import '../widgets/history_status.dart';
 import '../theme/wa_theme.dart';
 import '../widgets/shared.dart';
 
@@ -76,19 +77,6 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
       }
     } finally {
       if (mounted && generation == _generation) setState(() => _loading = false);
-    }
-  }
-
-  String _arabicStatus(String status) {
-    switch (status.trim().toLowerCase()) {
-      case 'saved': return 'تم الحفظ';
-      case 'needs review': return 'بانتظار المراجعة';
-      case 'duplicate': return 'مكرر';
-      case 'group excluded': return 'مجموعة مستبعدة';
-      case 'excluded': return 'مستبعد';
-      case 'failed': return 'فشل الحفظ';
-      case 'invalid number': return 'رقم غير صالح';
-      default: return status;
     }
   }
 
@@ -287,16 +275,16 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      _arabicStatus(entry.status),
-                                      style: const TextStyle(
+                                      historyStatusLabel(entry.status),
+                                      style: TextStyle(
                                         fontSize: 16, fontWeight: FontWeight.bold,
-                                        color: WaPalette.green,
+                                        color: historyStatusColor(entry.status),
                                       ),
                                     ),
                                   ),
-                                  Text(entry.source, style: const TextStyle(
-                                    color: WaPalette.muted, fontSize: 12,
-                                  )),
+                                  Flexible(child: Text(entry.source, maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: WaPalette.muted, fontSize: 12))),
                                 ],
                               ),
                               if (entry.details.isNotEmpty) ...[
@@ -309,7 +297,7 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
                                     onPressed: () => showDialog<void>(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: Text(_arabicStatus(entry.status)),
+                                        title: Text(historyStatusLabel(entry.status)),
                                         content: SingleChildScrollView(child: SelectableText(entry.details)),
                                         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق'))],
                                       ),
