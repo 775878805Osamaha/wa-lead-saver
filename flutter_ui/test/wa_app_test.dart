@@ -211,7 +211,10 @@ void main() {
         TextDirection.rtl);
     final appTheme = Theme.of(tester.element(find.byType(WaAppShell)));
     expect(appTheme.brightness, Brightness.light);
-    expect(appTheme.textTheme.bodyMedium?.fontFamily, 'ThmanyahSans');
+    // No licensed font asset is bundled in public QA: test the actual fallback.
+    expect(appTheme.textTheme.bodyMedium?.fontFamily,
+        ThemeData(brightness: Brightness.light, useMaterial3: true)
+            .textTheme.bodyMedium?.fontFamily);
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('6'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);

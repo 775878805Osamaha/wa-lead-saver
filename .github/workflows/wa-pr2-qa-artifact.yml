@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: wa-pr2-qa-${{ github.event.pull_request.number }}
@@ -20,7 +21,7 @@ jobs:
     name: Verify and upload side-by-side Android QA artifact
     if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126' || github.event.pull_request.head.ref == 'fix/qa-honest-photo-ui-20261127')
     runs-on: ubuntu-latest
-    timeout-minutes: 32
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,6 +116,28 @@ jobs:
           sha256sum dist/WA-Lead-Saver-Flutter-QA.apk | tee dist/SHA256.txt
           git rev-parse HEAD > dist/SOURCE_COMMIT.txt
           ls -lh dist/WA-Lead-Saver-Flutter-QA.apk
+      - name: Enable KVM for Android 13 emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Require two actual Android 13 cold starts before APK upload
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/qa_android_startup_smoke.sh dist/WA-Lead-Saver-Flutter-QA.apk diagnostics/candidate
+      - name: Upload candidate startup evidence even if failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-candidate-diagnostics
+          path: diagnostics/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload downloadable APK to GitHub Actions (fallback)
         uses: actions/upload-artifact@v4
         with:
@@ -125,3 +148,55 @@ jobs:
             dist/SOURCE_COMMIT.txt
           retention-days: 14
           if-no-files-found: error
+
+  reproduce-previous-apk:
+    name: Reproduce crash on previously delivered APKs (Android 13)
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/qa-honest-photo-ui-20261127'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          run-id: 46038680969
+          github-token: ${{ github.token }}
+          path: previous/admin
+      - uses: actions/download-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          run-id: 46036099226
+          github-token: ${{ github.token }}
+          path: previous/auth
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Reproduce both historical builds and collect crash stack traces
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set +e
+            bash scripts/qa_android_startup_smoke.sh previous/admin/WA-Lead-Saver-Flutter-QA.apk diagnostics/admin
+            a=$?
+            bash scripts/qa_android_startup_smoke.sh previous/auth/WA-Lead-Saver-Flutter-QA.apk diagnostics/auth
+            b=$?
+            echo "admin=$a auth=$b" | tee diagnostics/result.txt
+            test "$a" -eq 0 && test "$b" -eq 0
+      - name: Preserve previous APK crash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-previous-diagnostics
+          path: diagnostics/
+          if-no-files-found: error
+          retention-days: 14
