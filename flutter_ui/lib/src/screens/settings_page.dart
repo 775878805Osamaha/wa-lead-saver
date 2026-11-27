@@ -37,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   }
 
   Future<void> _load() async {
+    if (_saving != null) return;
     final generation = ++_settingsGeneration;
     setState(() { _loading = true; _error = null; });
     try {

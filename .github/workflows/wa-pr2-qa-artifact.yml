@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - feature/flutter-ui-and-history-performance-20261122
+      - fix/flutter-qa-light-auth-20261126
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -17,7 +18,7 @@ concurrency:
 jobs:
   qa-installable:
     name: Verify and upload side-by-side Android QA artifact
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126' || github.event.pull_request.head.ref == 'fix/qa-honest-photo-ui-20261127')
     runs-on: ubuntu-latest
     timeout-minutes: 32
     steps:
