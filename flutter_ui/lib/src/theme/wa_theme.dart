@@ -34,7 +34,6 @@ ThemeData makeWaTheme() {
   );
 
   return ThemeData(
-    fontFamily: 'ThmanyahSans',
     useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: WaPalette.background,
@@ -48,7 +47,6 @@ ThemeData makeWaTheme() {
       surfaceTintColor: Colors.transparent,
       titleTextStyle: TextStyle(
         color: WaPalette.ink,
-        fontFamily: 'ThmanyahSans',
         fontSize: 22,
         fontWeight: FontWeight.w700,
       ),

@@ -120,6 +120,7 @@ fun SaveExistingContactsDialog(
                 }
 
                 if (!showCustomInput) {
+                    if (!qaNativePalette.light) {
                     Button(
                         onClick = {
                             onScanText(
@@ -145,6 +146,7 @@ fun SaveExistingContactsDialog(
                         )
                     }
 
+                    }
                     OutlinedButton(
                         onClick = { showCustomInput = true },
                         modifier = Modifier

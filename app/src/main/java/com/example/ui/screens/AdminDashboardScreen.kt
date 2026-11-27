@@ -180,13 +180,13 @@ fun AdminDashboardScreen(
                         onClick = { showServerConfigDialog = true },
                         modifier = Modifier.testTag("admin_server_settings_button")
                     ) {
-                        Icon(Icons.Default.Dns, contentDescription = "Supabase Server Config", tint = Color.White)
+                        Icon(Icons.Default.Dns, contentDescription = if (qaNativePalette.light) "إعدادات الخادم" else "Supabase Server Config", tint = Color.White)
                     }
                     IconButton(
                         onClick = { authViewModel.loadAdminCustomers() },
                         modifier = Modifier.testTag("admin_refresh_button")
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
+                        Icon(Icons.Default.Refresh, contentDescription = if (qaNativePalette.light) "تحديث" else "Refresh", tint = Color.White)
                     }
                     IconButton(
                         onClick = {
@@ -195,7 +195,7 @@ fun AdminDashboardScreen(
                         },
                         modifier = Modifier.testTag("admin_logout_button")
                     ) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout", tint = Color.White)
+                        Icon(Icons.Default.ExitToApp, contentDescription = if (qaNativePalette.light) "تسجيل الخروج" else "Logout", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -682,13 +682,13 @@ fun AdminCustomerCard(
                             Icon(Icons.Default.Smartphone, contentDescription = "الأجهزة المسجلة", tint = qaNativePalette.teal, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Edit, contentDescription = if (qaNativePalette.light) "تعديل الحساب" else "Edit", tint = Color.Gray, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = onResetDevices, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Reset Devices", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Refresh, contentDescription = if (qaNativePalette.light) "إعادة ضبط الأجهزة" else "Reset Devices", tint = Color.Gray, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Delete, contentDescription = if (qaNativePalette.light) "حذف الحساب" else "Delete", tint = Color.Red, modifier = Modifier.size(18.dp))
                         }
                     }
                 }

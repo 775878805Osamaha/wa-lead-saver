@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wa_lead_saver_ui/main.dart';
@@ -177,6 +179,29 @@ class SessionLostGateway extends FixtureGateway {
       throw StateError('Account session has expired');
 }
 
+class DelayedAccessGateway extends FixtureGateway {
+  Completer<AccessState>? pending;
+  @override
+  Future<AccessState> checkAccess() async =>
+      pending == null ? accessState : await pending!.future;
+}
+
+class DelayedSearchGateway extends FixtureGateway {
+  final oldResponse = Completer<LeadPage>();
+  @override
+  Future<LeadPage> loadLeads({
+    String query = '', String status = '', String? cursor,
+    int limit = 40, bool reviewOnly = false,
+  }) {
+    if (query.isEmpty) return oldResponse.future;
+    return Future.value(const LeadPage(
+      items: [LeadEntry(id: 7, name: 'نتيجة حديثة', phone: '0000000',
+        source: 'MANUAL', status: 'NEW')],
+      total: 1, hasMore: false,
+    ));
+  }
+}
+
 void main() {
   testWidgets('renders real summary values with Arabic RTL', (tester) async {
     final gateway = FixtureGateway();
@@ -186,7 +211,10 @@ void main() {
         TextDirection.rtl);
     final appTheme = Theme.of(tester.element(find.byType(WaAppShell)));
     expect(appTheme.brightness, Brightness.light);
-    expect(appTheme.textTheme.bodyMedium?.fontFamily, 'ThmanyahSans');
+    // No licensed font asset is bundled in public QA: test the actual fallback.
+    expect(appTheme.textTheme.bodyMedium?.fontFamily,
+        ThemeData(brightness: Brightness.light, useMaterial3: true)
+            .textTheme.bodyMedium?.fontFamily);
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('6'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
@@ -679,6 +707,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(WaAppShell), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pending and revoked authentication hide previously visible customer UI', (tester) async {
+    final gateway = DelayedAccessGateway()
+      ..accessState = const AccessState(allowed: true, message: 'مفعل');
+    await tester.pumpWidget(WaLeadSaverApp(
+      gateway: gateway, requiresAuthentication: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaAppShell), findsOneWidget);
+    gateway.pending = Completer<AccessState>();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(find.byType(WaAppShell), findsNothing);
+    expect(find.byKey(const Key('flutter_login_gate')), findsOneWidget);
+    gateway.pending!.complete(const AccessState(allowed: false, message: 'انتهت الجلسة'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaAppShell), findsNothing);
+    expect(find.text('انتهت الجلسة'), findsOneWidget);
+  });
+
+  testWidgets('obsolete search response cannot appear during debounce', (tester) async {
+    final gateway = DelayedSearchGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العملاء').last);
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('lead_search')), 'حديث');
+    gateway.oldResponse.complete(const LeadPage(
+      items: [LeadEntry(id: 1, name: 'نتيجة قديمة', phone: '0000000',
+        source: 'MANUAL', status: 'NEW')],
+      total: 1, hasMore: false,
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('نتيجة قديمة'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(find.text('نتيجة حديثة'), findsOneWidget);
+    expect(find.text('نتيجة قديمة'), findsNothing);
   });
 
 }

@@ -24,6 +24,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserver {
   late Future<DashboardSummary> _overview;
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -54,6 +55,8 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
   }
 
   Future<void> _exportHistory() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
     try {
       await widget.gateway.exportHistory();
       if (!mounted) return;
@@ -65,6 +68,8 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذر تصدير السجل من هذه النسخة')),
       );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 

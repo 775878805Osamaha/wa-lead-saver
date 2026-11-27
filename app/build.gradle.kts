@@ -126,7 +126,8 @@ android {
     }
     sourceSets {
         getByName("main") {
-            if (waFlutterUiEnabled) java.srcDir("src/flutterBridge/java")
+            // AGP 9 built-in Kotlin does not compile added Kotlin files registered as Java sources.
+            if (waFlutterUiEnabled) kotlin.directories += "src/flutterBridge/java"
         }
     }
 

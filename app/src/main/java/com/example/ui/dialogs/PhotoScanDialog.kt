@@ -64,6 +64,11 @@ import com.example.ui.components.CameraScannerView
 import com.example.viewmodel.ScannedNumberItem
 import com.example.ui.theme.qaNativePalette
 import com.example.ui.theme.QaNativeAppearance
+import com.example.ui.screens.usesFlutterRecoveryAppearance
+
+// Until actual OCR is implemented, the QA package must never return sample contacts as real results.
+internal fun allowsLegacySimulatedPhotoScan(applicationId: String): Boolean =
+    !usesFlutterRecoveryAppearance(applicationId)
 
 @Composable
 fun PhotoScanDialog(
@@ -78,14 +83,15 @@ fun PhotoScanDialog(
 ) {
     QaNativeAppearance {
     val context = LocalContext.current
-    var isLiveCameraActive by remember { mutableStateOf(startWithCamera) }
-    var showTextInput by remember { mutableStateOf(false) }
+    val allowLegacySimulation = allowsLegacySimulatedPhotoScan(com.example.BuildConfig.APPLICATION_ID)
+    var isLiveCameraActive by remember { mutableStateOf(startWithCamera && allowLegacySimulation) }
+    var showTextInput by remember { mutableStateOf(!allowLegacySimulation) }
     var manualText by remember { mutableStateOf("") }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        if (uri != null) {
+        if (uri != null && allowLegacySimulation) {
             onProcessText(
                 "Business Card Scan:\nCustomer Service: +9677784763381\nSales Dept: +9677770786095\nSupport Desk: +9677735525053\nMobile: 771542389\nWhatsApp Hotline: 0779988771\nOffice: +967771239841"
             )
@@ -117,13 +123,13 @@ fun PhotoScanDialog(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Snap & Save",
+                        text = if (qaNativePalette.light) "إدخال الأرقام" else "Snap & Save",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = qaNativePalette.ink
                     )
                     Text(
-                        text = "Extract contacts from camera or photo",
+                        text = if (qaNativePalette.light) "قراءة النص المدخل يدويًا" else "Extract contacts from camera or photo",
                         fontSize = 12.sp,
                         color = qaNativePalette.secondary
                     )
@@ -135,6 +141,15 @@ fun PhotoScanDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (!allowLegacySimulation) {
+                    Text(
+                        text = "قراءة الصور بالكاميرا والمعرض غير متاحة بعد. لا يتم إنشاء أرقام تجريبية بدلاً من النتائج الحقيقية.",
+                        modifier = Modifier.testTag("photo_ocr_unavailable"),
+                        color = qaNativePalette.secondary,
+                        fontSize = 13.sp
+                    )
+                }
+                if (allowLegacySimulation) {
                 // Button 1: Live Camera
                 Button(
                     onClick = { isLiveCameraActive = true },
@@ -212,6 +227,7 @@ fun PhotoScanDialog(
                     )
                 }
 
+                }
                 // Button 4: Toggle Manual Text Input
                 TextButton(
                     onClick = { showTextInput = !showTextInput },
@@ -225,7 +241,7 @@ fun PhotoScanDialog(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (showTextInput) "Hide Text Input" else "Paste / Enter Text Directly",
+                        text = if (qaNativePalette.light) { if (showTextInput) "إخفاء حقل النص" else "إدخال النص يدويًا" } else { if (showTextInput) "Hide Text Input" else "Paste / Enter Text Directly" },
                         color = qaNativePalette.teal,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -241,7 +257,7 @@ fun PhotoScanDialog(
                         shape = RoundedCornerShape(12.dp),
                         placeholder = {
                             Text(
-                                text = "Paste numbers or chat text here...",
+                                text = if (qaNativePalette.light) "أدخل الأرقام المصرح لك باستخدامها" else "Paste numbers or chat text here...",
                                 color = qaNativePalette.secondary
                             )
                         }
@@ -258,7 +274,7 @@ fun PhotoScanDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
                     ) {
                         Text(
-                            text = "Extract Numbers",
+                            text = if (qaNativePalette.light) "استخراج الأرقام" else "Extract Numbers",
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -280,7 +296,7 @@ fun PhotoScanDialog(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Scanning for phone numbers...",
+                            text = if (qaNativePalette.light) "جارٍ التحقق من الأرقام…" else "Scanning for phone numbers...",
                             color = qaNativePalette.secondary,
                             fontSize = 13.sp
                         )
@@ -298,7 +314,7 @@ fun PhotoScanDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Detected Numbers (${scannedNumbers.size}):",
+                            text = if (qaNativePalette.light) "الأرقام المكتشفة (${scannedNumbers.size}):" else "Detected Numbers (${scannedNumbers.size}):",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             color = qaNativePalette.ink
@@ -309,7 +325,7 @@ fun PhotoScanDialog(
                             modifier = Modifier.testTag("button_select_all_scanned")
                         ) {
                             Text(
-                                text = if (allSelected) "Deselect All" else "Select All",
+                                text = if (allSelected) (if (qaNativePalette.light) "إلغاء تحديد الكل" else "Deselect All") else (if (qaNativePalette.light) "تحديد الكل" else "Select All"),
                                 fontSize = 12.sp,
                                 color = qaNativePalette.teal
                             )
@@ -346,7 +362,7 @@ fun PhotoScanDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal),
                 modifier = Modifier.testTag("button_add_selected_to_queue")
             ) {
-                Text("Add ($selectedCount) to Queue")
+                Text(if (qaNativePalette.light) "إضافة ($selectedCount) إلى قائمة الانتظار" else "Add ($selectedCount) to Queue")
             }
         },
         dismissButton = {
@@ -354,7 +370,7 @@ fun PhotoScanDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_dismiss_scan_dialog")
             ) {
-                Text("Cancel", color = qaNativePalette.secondary)
+                Text(if (qaNativePalette.light) "إلغاء" else "Cancel", color = qaNativePalette.secondary)
             }
         },
         shape = RoundedCornerShape(24.dp),
@@ -362,7 +378,7 @@ fun PhotoScanDialog(
     )
 
     // Full screen live camera dialog
-    if (isLiveCameraActive) {
+    if (isLiveCameraActive && allowLegacySimulation) {
         Dialog(
             onDismissRequest = { isLiveCameraActive = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -432,7 +448,7 @@ fun ScannedNumberRow(
                 )
                 if (item.alreadyInContacts) {
                     Text(
-                        text = "Already in contacts",
+                        text = if (qaNativePalette.light) "موجود في جهات الاتصال" else "Already in contacts",
                         fontSize = 11.sp,
                         color = qaNativePalette.green,
                         fontWeight = FontWeight.Medium
@@ -446,7 +462,7 @@ fun ScannedNumberRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy number",
+                    contentDescription = if (qaNativePalette.light) "نسخ الرقم" else "Copy number",
                     modifier = Modifier.size(17.dp),
                     tint = qaNativePalette.secondary
                 )

@@ -65,7 +65,10 @@ class _AuthenticatedGateState extends State<AuthenticatedGate>
   Widget build(BuildContext context) => FutureBuilder<AccessState>(
     future: _access,
     builder: (context, snapshot) {
-      if (snapshot.data?.allowed == true) {
+      // FutureBuilder retains old data while a new future is pending.
+      // Fail closed: no customer UI until this verification completes.
+      if (snapshot.connectionState == ConnectionState.done &&
+          !snapshot.hasError && snapshot.data?.allowed == true) {
         return WaAppShell(
           key: const Key('authenticated_flutter_shell'),
           gateway: widget.gateway,
@@ -73,7 +76,9 @@ class _AuthenticatedGateState extends State<AuthenticatedGate>
       }
 
       final loading = snapshot.connectionState != ConnectionState.done;
-      final message = snapshot.hasError
+      final message = loading
+          ? 'نتحقق من جلسة الحساب...'
+          : snapshot.hasError
           ? 'تعذر التحقق من الحساب. تحقق من اتصالك ثم أعد المحاولة.'
           : snapshot.data?.message ?? 'نتحقق من جلسة الحساب...';
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/gateway.dart';
+import '../data/page_guard.dart';
 import '../theme/wa_theme.dart';
 import '../widgets/shared.dart';
 
@@ -22,13 +23,14 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
   int _total = 0;
   int _generation = 0;
   bool _actionInProgress = false;
+  final _pages = PageGuard<HistoryEntry>((item) => item.id);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(() {
-      if (_scroll.hasClients && _scroll.position.extentAfter < 420) _load();
+      if (_scroll.hasClients && _scroll.position.extentAfter < 420 && _error == null) _load();
     });
     _load(reset: true);
   }
@@ -41,6 +43,8 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
   Future<void> _load({bool reset = false}) async {
     if (reset) {
       ++_generation;
+      _pages.reset();
+      _total = 0;
       _records = [];
       _cursor = null;
       _error = null;
@@ -59,11 +63,11 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
       );
       if (!mounted || generation != _generation) return;
       setState(() {
-        _records = [..._records, ...result.items];
+        _records = [..._records, ..._pages.unique(result.items)];
         _total = result.total;
         _cursor = result.nextCursor;
-        _hasMore = result.hasMore && result.items.isNotEmpty &&
-            result.nextCursor != null && result.nextCursor != cursor;
+        _hasMore = _pages.canContinue(result.hasMore,
+            result.items.isNotEmpty, result.nextCursor);
         _error = null;
       });
     } catch (_) {
@@ -140,7 +144,7 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
         ],
       ),
     );
-    if (!mounted || confirmed != true) return;
+    if (!mounted || confirmed != true || _actionInProgress) return;
     setState(() => _actionInProgress = true);
     try {
       await widget.gateway.clearHistory();
@@ -250,6 +254,7 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
                 child: ListView.builder(
                   key: const Key('history_list'),
                   controller: _scroll,
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 18),
                   itemCount: _records.length + ((_loading || _hasMore || _error != null) ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -298,6 +303,20 @@ class _HistoryPageViewState extends State<HistoryPageView> with WidgetsBindingOb
                                 const SizedBox(height: 10),
                                 Text(entry.details, maxLines: 3,
                                   overflow: TextOverflow.ellipsis),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: TextButton(
+                                    onPressed: () => showDialog<void>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text(_arabicStatus(entry.status)),
+                                        content: SingleChildScrollView(child: SelectableText(entry.details)),
+                                        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق'))],
+                                      ),
+                                    ),
+                                    child: const Text('عرض التفاصيل'),
+                                  ),
+                                ),
                               ],
                               const SizedBox(height: 12),
                               Text(_date(entry.timestamp),

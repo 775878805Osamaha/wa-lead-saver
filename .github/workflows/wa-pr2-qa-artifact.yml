@@ -5,10 +5,12 @@ on:
   pull_request:
     branches:
       - feature/flutter-ui-and-history-performance-20261122
+      - fix/flutter-qa-light-auth-20261126
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: wa-pr2-qa-${{ github.event.pull_request.number }}
@@ -17,9 +19,9 @@ concurrency:
 jobs:
   qa-installable:
     name: Verify and upload side-by-side Android QA artifact
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126' || github.event.pull_request.head.ref == 'fix/qa-honest-photo-ui-20261127')
     runs-on: ubuntu-latest
-    timeout-minutes: 32
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,6 +109,7 @@ jobs:
             echo '::error::The dark native launcher must be disabled in Flutter QA.'
             exit 1
           fi
+          bash scripts/verify_qa_launcher_dex.sh "$APK"
           grep -F 'requiresAuthentication: true' flutter_module/lib/main.dart
           unzip -Z1 "$APK" | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
           mkdir -p dist
@@ -114,6 +117,28 @@ jobs:
           sha256sum dist/WA-Lead-Saver-Flutter-QA.apk | tee dist/SHA256.txt
           git rev-parse HEAD > dist/SOURCE_COMMIT.txt
           ls -lh dist/WA-Lead-Saver-Flutter-QA.apk
+      - name: Enable KVM for Android 13 emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Require Android 13 cold starts and real guest login handoff before APK upload
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/qa_android_startup_smoke.sh dist/WA-Lead-Saver-Flutter-QA.apk diagnostics/candidate && bash scripts/qa_android_auth_handoff.sh diagnostics/auth-handoff
+      - name: Upload candidate startup evidence even if failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-candidate-diagnostics
+          path: diagnostics/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload downloadable APK to GitHub Actions (fallback)
         uses: actions/upload-artifact@v4
         with:
@@ -124,3 +149,48 @@ jobs:
             dist/SOURCE_COMMIT.txt
           retention-days: 14
           if-no-files-found: error
+
+  reproduce-previous-apk:
+    name: Verify historical APK negative controls (Android 13)
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/qa-honest-photo-ui-20261127'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          run-id: 46038680969
+          github-token: ${{ github.token }}
+          path: previous/admin
+      - uses: actions/download-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          run-id: 46036099226
+          github-token: ${{ github.token }}
+          path: previous/auth
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Reproduce both historical builds and collect crash stack traces
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/reproduce_previous_qa.sh
+      - name: Preserve previous APK crash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-previous-diagnostics
+          path: diagnostics/
+          if-no-files-found: error
+          retention-days: 14

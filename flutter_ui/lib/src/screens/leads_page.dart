@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../data/gateway.dart';
+import '../data/page_guard.dart';
 import '../theme/wa_theme.dart';
 import '../widgets/shared.dart';
 
@@ -32,6 +33,10 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   int _total = 0;
   int _generation = 0;
   String? _error;
+  final _pages = PageGuard<LeadEntry>((item) => item.id);
+  bool _searchPending = false;
+  bool _manualAddOpen = false;
+  final Set<int> _savingIds = {};
 
   @override
   void initState() {
@@ -70,17 +75,26 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   }
 
   void _maybeLoadMore() {
-    if (_scroll.hasClients && _scroll.position.extentAfter < 480) _load();
+    if (_scroll.hasClients && _scroll.position.extentAfter < 480 && _error == null) _load();
   }
 
   void _setStatus(String value) {
     if (_status == value) return;
+    _debounce?.cancel();
     setState(() => _status = value);
     _load(reset: true);
   }
 
   void _onSearch(String value) {
     _debounce?.cancel();
+    ++_generation;
+    setState(() {
+      _searchPending = true;
+      _loading = true;
+      _items = [];
+      _total = 0;
+      _error = null;
+    });
     _debounce = Timer(const Duration(milliseconds: 320), () {
       if (mounted) _load(reset: true);
     });
@@ -89,6 +103,8 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   Future<void> _load({bool reset = false}) async {
     if (reset) {
       ++_generation;
+      _pages.reset();
+      _searchPending = false;
       _items = [];
       _total = 0;
       _cursor = null;
@@ -96,7 +112,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
       _error = null;
       _loading = false;
     }
-    if (_loading || !_hasMore) return;
+    if (_searchPending || _loading || !_hasMore) return;
     final generation = _generation;
     final currentCursor = _cursor;
     setState(() => _loading = true);
@@ -110,13 +126,11 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
       );
       if (!mounted || generation != _generation) return;
       setState(() {
-        _items = [..._items, ...response.items];
+        _items = [..._items, ..._pages.unique(response.items)];
         _total = response.total;
         _cursor = response.nextCursor;
-        _hasMore = response.hasMore &&
-            response.items.isNotEmpty &&
-            response.nextCursor != null &&
-            response.nextCursor != currentCursor;
+        _hasMore = _pages.canContinue(response.hasMore,
+            response.items.isNotEmpty, response.nextCursor);
         _error = null;
       });
     } catch (_) {
@@ -129,6 +143,8 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   }
 
   Future<void> _save(LeadEntry lead) async {
+    if (!_savingIds.add(lead.id)) return;
+    setState(() {});
     try {
       await widget.gateway.saveLead(lead.id);
       if (!mounted) return;
@@ -141,6 +157,9 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لم يكتمل الحفظ. تحقق من الصلاحيات ثم أعد المحاولة')),
       );
+    } finally {
+      _savingIds.remove(lead.id);
+      if (mounted) setState(() {});
     }
   }
 
@@ -160,6 +179,9 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
   }
 
   Future<void> _addManualLead() async {
+    if (_manualAddOpen) return;
+    setState(() => _manualAddOpen = true);
+    try {
     String name = '';
     String phone = '';
     final newLead = await showDialog<({String name, String phone})>(
@@ -167,7 +189,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, updateDialog) => AlertDialog(
           title: const Text('إضافة عميل يدويًا'),
-          content: Column(
+          content: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
@@ -198,7 +220,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                 style: TextStyle(color: WaPalette.muted, fontSize: 12),
               ),
             ],
-          ),
+          )),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -235,6 +257,9 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذرت إضافة العميل؛ تحقق من الرقم والترخيص')),
       );
+    }
+    } finally {
+      if (mounted) setState(() => _manualAddOpen = false);
     }
   }
 
@@ -459,9 +484,14 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                     controller: _search,
                     onChanged: _onSearch,
                     textInputAction: TextInputAction.search,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'البحث بالاسم أو رقم الهاتف',
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _search.text.isEmpty ? null : IconButton(
+                        tooltip: 'مسح البحث',
+                        icon: const Icon(Icons.close),
+                        onPressed: () { _search.clear(); _onSearch(''); },
+                      ),
                     ),
                   ),
                 ),
@@ -470,7 +500,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                   IconButton.filled(
                     key: const Key('add_manual_lead'),
                     tooltip: 'إضافة عميل يدويًا',
-                    onPressed: _addManualLead,
+                    onPressed: _manualAddOpen ? null : _addManualLead,
                     icon: const Icon(Icons.person_add_alt_1_outlined),
                   ),
                 ],
@@ -520,6 +550,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                 child: ListView.builder(
                   key: const Key('leads_list'),
                   controller: _scroll,
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 18),
                   itemCount: _items.length + ((_loading || _error != null || _hasMore) ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -603,7 +634,7 @@ class _LeadsPageState extends State<LeadsPage> with WidgetsBindingObserver {
                                     ),
                                     if (widget.reviewOnly && !lead.isSaved)
                                       FilledButton(
-                                        onPressed: () => _save(lead),
+                                        onPressed: _savingIds.contains(lead.id) ? null : () => _save(lead),
                                         child: const Text('حفظ جهة الاتصال'),
                                       )
                                     else

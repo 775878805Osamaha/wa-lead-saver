@@ -24,6 +24,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   bool _loading = true;
   String? _saving;
   String? _error;
+  int _settingsGeneration = 0;
+  int _countryGeneration = 0;
 
   @override
   void initState() {
@@ -35,23 +37,26 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   }
 
   Future<void> _load() async {
+    if (_saving != null) return;
+    final generation = ++_settingsGeneration;
     setState(() { _loading = true; _error = null; });
     try {
       final values = await widget.gateway.loadSettings();
-      if (!mounted) return;
+      if (!mounted || generation != _settingsGeneration) return;
       setState(() => _settings = values);
     } catch (_) {
-      if (mounted) {
+      if (mounted && generation == _settingsGeneration) {
         setState(() => _error =
           'تعذر جلب الإعدادات من Android. لم يتم تغيير أي تفضيل.');
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _settingsGeneration) setState(() => _loading = false);
     }
   }
 
   Future<void> _change(String key, bool next) async {
     if (_saving != null) return;
+    ++_settingsGeneration;
     setState(() => _saving = key);
     try {
       await widget.gateway.changeSetting(key, next);
@@ -68,20 +73,22 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   }
 
   Future<void> _loadCountryCode() async {
+    if (_countrySaving) return;
+    final generation = ++_countryGeneration;
     if (mounted) setState(() {
       _countryLoading = true;
       _countryError = null;
     });
     try {
       final code = await widget.gateway.loadCountryCode();
-      if (!mounted) return;
+      if (!mounted || generation != _countryGeneration) return;
       _countryCodeController.text = code;
     } catch (_) {
-      if (mounted) {
+      if (mounted && generation == _countryGeneration) {
         setState(() => _countryError = 'تعذر قراءة رمز الدولة من Android');
       }
     } finally {
-      if (mounted) setState(() => _countryLoading = false);
+      if (mounted && generation == _countryGeneration) setState(() => _countryLoading = false);
     }
   }
 
@@ -101,6 +108,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
       setState(() => _countryError = 'الرمز غير صالح، مثال: +967');
       return;
     }
+    ++_countryGeneration;
     setState(() {
       _countrySaving = true;
       _countryError = null;
@@ -171,7 +179,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       setState(() => _accountInfo = widget.gateway.loadAccountInfo());
-      _load();
+      if (_saving == null) _load();
       _loadCountryCode();
     }
   }
