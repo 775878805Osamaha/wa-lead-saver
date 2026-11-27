@@ -109,6 +109,7 @@ jobs:
             echo '::error::The dark native launcher must be disabled in Flutter QA.'
             exit 1
           fi
+          bash scripts/verify_qa_launcher_dex.sh "$APK"
           grep -F 'requiresAuthentication: true' flutter_module/lib/main.dart
           unzip -Z1 "$APK" | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
           mkdir -p dist
@@ -184,14 +185,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            set +e
-            bash scripts/qa_android_startup_smoke.sh previous/admin/WA-Lead-Saver-Flutter-QA.apk diagnostics/admin
-            a=$?
-            bash scripts/qa_android_startup_smoke.sh previous/auth/WA-Lead-Saver-Flutter-QA.apk diagnostics/auth
-            b=$?
-            echo "admin=$a auth=$b" | tee diagnostics/result.txt
-            test "$a" -eq 0 && test "$b" -eq 0
+          script: bash scripts/reproduce_previous_qa.sh
       - name: Preserve previous APK crash evidence
         if: always()
         uses: actions/upload-artifact@v4
