@@ -83,9 +83,9 @@ import com.example.ui.dialogs.ManageCustomerDevicesDialog
 import com.example.ui.dialogs.ReactivateCustomerAccountDialog
 import com.example.ui.dialogs.RenewSubscriptionDialog
 import com.example.ui.dialogs.StopCustomerAccountDialog
-import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.theme.WhatsAppTeal
 import com.example.viewmodel.AuthViewModel
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +93,7 @@ fun AdminDashboardScreen(
     authViewModel: AuthViewModel,
     onLogout: () -> Unit
 ) {
+    QaNativeAppearance {
     val rawCustomers by authViewModel.rawCustomersList.collectAsStateWithLifecycle()
     val filteredCustomers by authViewModel.filteredCustomers.collectAsStateWithLifecycle()
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
@@ -198,7 +199,7 @@ fun AdminDashboardScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = WhatsAppTeal
+                    containerColor = qaNativePalette.teal
                 )
             )
         }
@@ -207,21 +208,21 @@ fun AdminDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF8F9FA))
+                .background(if (qaNativePalette.light) qaNativePalette.background else Color(0xFFF8F9FA))
         ) {
             // Metrics Summary Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .background(Color(0xFFF1F5F9))
+                    .background(if (qaNativePalette.light) qaNativePalette.greenBg else Color(0xFFF1F5F9))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MetricChipCard(
                     title = "إجمالي العملاء",
                     value = totalCustomers.toString(),
-                    color = WhatsAppTeal,
+                    color = qaNativePalette.teal,
                     onClick = { authViewModel.setAdminStatusFilter(null) }
                 )
                 MetricChipCard(
@@ -233,7 +234,7 @@ fun AdminDashboardScreen(
                 MetricChipCard(
                     title = "نشط",
                     value = activeCustomersCount.toString(),
-                    color = WhatsAppGreen,
+                    color = qaNativePalette.green,
                     onClick = { authViewModel.setAdminStatusFilter(CustomerActivationStatus.ACTIVE) }
                 )
                 MetricChipCard(
@@ -288,8 +289,8 @@ fun AdminDashboardScreen(
                         onClick = { authViewModel.setAdminStatusFilter(null) },
                         label = { Text(stringResource(R.string.filter_all), fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = WhatsAppTeal.copy(alpha = 0.2f),
-                            selectedLabelColor = WhatsAppTeal
+                            selectedContainerColor = qaNativePalette.teal.copy(alpha = 0.2f),
+                            selectedLabelColor = qaNativePalette.teal
                         )
                     )
                     FilterChip(
@@ -306,8 +307,8 @@ fun AdminDashboardScreen(
                         onClick = { authViewModel.setAdminStatusFilter(CustomerActivationStatus.ACTIVE) },
                         label = { Text(stringResource(R.string.active), fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = WhatsAppGreen.copy(alpha = 0.2f),
-                            selectedLabelColor = WhatsAppGreen
+                            selectedContainerColor = qaNativePalette.green.copy(alpha = 0.2f),
+                            selectedLabelColor = qaNativePalette.green
                         )
                     )
                     FilterChip(
@@ -336,7 +337,7 @@ fun AdminDashboardScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = WhatsAppTeal)
+                    CircularProgressIndicator(color = qaNativePalette.teal)
                 }
             } else if (filteredCustomers.isEmpty()) {
                 Box(
@@ -495,6 +496,7 @@ fun AdminDashboardScreen(
             }
         )
     }
+    }
 }
 
 @Composable
@@ -530,11 +532,11 @@ fun AdminCustomerCard(
                 if (!customer.accountNumber.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = WhatsAppTeal.copy(alpha = 0.1f)
+                        color = qaNativePalette.teal.copy(alpha = 0.1f)
                     ) {
                         Text(
                             text = customer.accountNumber!!,
-                            color = WhatsAppTeal,
+                            color = qaNativePalette.teal,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             fontFamily = FontFamily.Monospace,
@@ -636,7 +638,7 @@ fun AdminCustomerCard(
                         Icons.Default.Smartphone,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = if (customer.isActivated) WhatsAppTeal else Color.LightGray
+                        tint = if (customer.isActivated) qaNativePalette.teal else Color.LightGray
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -677,7 +679,7 @@ fun AdminCustomerCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (account != null) {
                         IconButton(onClick = onManageDevices, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Smartphone, contentDescription = "الأجهزة المسجلة", tint = WhatsAppTeal, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Smartphone, contentDescription = "الأجهزة المسجلة", tint = qaNativePalette.teal, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray, modifier = Modifier.size(18.dp))
@@ -696,7 +698,7 @@ fun AdminCustomerCard(
                     CustomerActivationStatus.UNACTIVATED -> {
                         Button(
                             onClick = onActivate,
-                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.green),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.testTag("activate_btn_${customer.profileId}")
                         ) {
@@ -720,7 +722,7 @@ fun AdminCustomerCard(
                     CustomerActivationStatus.INACTIVE -> {
                         Button(
                             onClick = onReactivate,
-                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.green),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.testTag("reactivate_btn_${customer.profileId}")
                         ) {

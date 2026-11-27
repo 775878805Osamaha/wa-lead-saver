@@ -40,16 +40,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.CardBackground
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppTeal
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @Composable
 fun SaveExistingContactsDialog(
     onScanText: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    QaNativeAppearance {
     var textInput by remember { mutableStateOf("") }
     var showCustomInput by remember { mutableStateOf(false) }
 
@@ -63,13 +62,13 @@ fun SaveExistingContactsDialog(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(WhatsAppTeal.copy(alpha = 0.15f)),
+                        .background(qaNativePalette.teal.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Group,
                         contentDescription = null,
-                        tint = WhatsAppTeal,
+                        tint = qaNativePalette.teal,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -77,13 +76,13 @@ fun SaveExistingContactsDialog(
                 Column {
                     Text(
                         text = "Save Existing Contacts",
-                        color = TextPrimary,
+                        color = qaNativePalette.ink,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Scan chats & group members",
-                        color = TextSecondary,
+                        color = qaNativePalette.secondary,
                         fontSize = 12.sp
                     )
                 }
@@ -107,14 +106,14 @@ fun SaveExistingContactsDialog(
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = WhatsAppTeal,
+                            tint = qaNativePalette.teal,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Extract unsaved contact numbers from WhatsApp group chat logs, exported .txt files, or pasted member messages.",
                             fontSize = 12.sp,
-                            color = TextPrimary,
+                            color = qaNativePalette.ink,
                             lineHeight = 16.sp
                         )
                     }
@@ -138,7 +137,7 @@ fun SaveExistingContactsDialog(
                             .height(48.dp)
                             .testTag("button_scan_sample_group"),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                        colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
                     ) {
                         Text(
                             text = "Scan Sample Group Export",
@@ -153,18 +152,18 @@ fun SaveExistingContactsDialog(
                             .height(48.dp)
                             .testTag("button_paste_group_text"),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, WhatsAppTeal)
+                        border = BorderStroke(1.dp, qaNativePalette.teal)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentPaste,
                             contentDescription = null,
-                            tint = WhatsAppTeal,
+                            tint = qaNativePalette.teal,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Paste Chat / Members Text",
-                            color = WhatsAppTeal,
+                            color = qaNativePalette.teal,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -192,7 +191,7 @@ fun SaveExistingContactsDialog(
                             .height(46.dp)
                             .testTag("button_process_pasted_text"),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                        colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
                     ) {
                         Text(
                             text = "Extract Unsaved Numbers",
@@ -206,7 +205,7 @@ fun SaveExistingContactsDialog(
                     ) {
                         Text(
                             text = "Back to options",
-                            color = TextSecondary,
+                            color = qaNativePalette.secondary,
                             fontSize = 13.sp
                         )
                     }
@@ -221,11 +220,12 @@ fun SaveExistingContactsDialog(
             ) {
                 Text(
                     text = "Close",
-                    color = TextSecondary
+                    color = qaNativePalette.secondary
                 )
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = CardBackground
+        containerColor = qaNativePalette.surface
     )
+    }
 }

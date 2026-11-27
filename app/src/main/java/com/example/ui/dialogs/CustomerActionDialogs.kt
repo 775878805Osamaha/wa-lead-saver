@@ -43,11 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.auth.AdminCustomerItem
-import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.theme.WhatsAppTeal
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @Composable
 fun ActivateRegisteredCustomerDialog(
@@ -55,6 +55,7 @@ fun ActivateRegisteredCustomerDialog(
     onDismiss: () -> Unit,
     onConfirmActivate: (maxDevices: Int, expiresAt: String?) -> Unit
 ) {
+    QaNativeAppearance {
     val cal = Calendar.getInstance()
     cal.add(Calendar.YEAR, 1)
     val defaultOneYear = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
@@ -70,7 +71,7 @@ fun ActivateRegisteredCustomerDialog(
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = WhatsAppGreen,
+                    tint = qaNativePalette.green,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
@@ -178,7 +179,7 @@ fun ActivateRegisteredCustomerDialog(
                     val finalExpiry = if (isUnlimitedExpiry) null else expiresAt.takeIf { it.isNotBlank() }
                     onConfirmActivate(maxDev, finalExpiry)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.green),
                 modifier = Modifier.testTag("admin_confirm_activate_btn")
             ) {
                 Text(stringResource(R.string.admin_action_activate), color = Color.White, fontWeight = FontWeight.Bold)
@@ -190,6 +191,7 @@ fun ActivateRegisteredCustomerDialog(
             }
         }
     )
+    }
 }
 
 @Composable
@@ -198,6 +200,7 @@ fun StopCustomerAccountDialog(
     onDismiss: () -> Unit,
     onConfirmStop: () -> Unit
 ) {
+    QaNativeAppearance {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -244,6 +247,7 @@ fun StopCustomerAccountDialog(
             }
         }
     )
+    }
 }
 
 @Composable
@@ -252,6 +256,7 @@ fun ReactivateCustomerAccountDialog(
     onDismiss: () -> Unit,
     onConfirmReactivate: (newExpiresAt: String?) -> Unit
 ) {
+    QaNativeAppearance {
     val cal = Calendar.getInstance()
     cal.add(Calendar.YEAR, 1)
     val defaultOneYear = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
@@ -266,7 +271,7 @@ fun ReactivateCustomerAccountDialog(
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = WhatsAppGreen,
+                    tint = qaNativePalette.green,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
@@ -307,7 +312,7 @@ fun ReactivateCustomerAccountDialog(
                     val finalExpiry = if (customer.status == com.example.data.auth.CustomerActivationStatus.EXPIRED) expiresAt else null
                     onConfirmReactivate(finalExpiry)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.green),
                 modifier = Modifier.testTag("admin_confirm_reactivate_btn")
             ) {
                 Text(stringResource(R.string.admin_action_activate), color = Color.White, fontWeight = FontWeight.Bold)
@@ -319,6 +324,7 @@ fun ReactivateCustomerAccountDialog(
             }
         }
     )
+    }
 }
 
 @Composable
@@ -327,6 +333,7 @@ fun RenewSubscriptionDialog(
     onDismiss: () -> Unit,
     onConfirmRenew: (newExpiresAt: String) -> Unit
 ) {
+    QaNativeAppearance {
     var selectedPreset by remember { mutableStateOf(12) }
     val cal = Calendar.getInstance()
     cal.add(Calendar.MONTH, selectedPreset)
@@ -405,7 +412,7 @@ fun RenewSubscriptionDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirmRenew(customExpiry) },
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.green),
                 modifier = Modifier.testTag("admin_confirm_renew_btn")
             ) {
                 Text("تأكيد التجديد", color = Color.White, fontWeight = FontWeight.Bold)
@@ -417,6 +424,7 @@ fun RenewSubscriptionDialog(
             }
         }
     )
+    }
 }
 
 @Composable
@@ -427,6 +435,7 @@ fun ManageCustomerDevicesDialog(
     onRemoveDevice: (deviceId: String) -> Unit,
     onResetAllDevices: () -> Unit
 ) {
+    QaNativeAppearance {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -434,7 +443,7 @@ fun ManageCustomerDevicesDialog(
                 Icon(
                     androidx.compose.material.icons.Icons.Default.Person,
                     contentDescription = null,
-                    tint = WhatsAppTeal,
+                    tint = qaNativePalette.teal,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
@@ -544,6 +553,7 @@ fun ManageCustomerDevicesDialog(
             }
         }
     )
+    }
 }
 
 @Composable
@@ -551,6 +561,7 @@ fun AdminAuditLogDialog(
     actions: List<com.example.data.auth.AdminActionItem>,
     onDismiss: () -> Unit
 ) {
+    QaNativeAppearance {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -611,7 +622,7 @@ fun AdminAuditLogDialog(
                                             },
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 13.sp,
-                                            color = WhatsAppTeal
+                                            color = qaNativePalette.teal
                                         )
                                         Text(
                                             text = action.createdAt.split("T").getOrNull(0) ?: "",
@@ -647,4 +658,5 @@ fun AdminAuditLogDialog(
             }
         }
     )
+    }
 }
