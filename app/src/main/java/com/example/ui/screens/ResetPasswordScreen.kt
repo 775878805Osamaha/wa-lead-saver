@@ -70,12 +70,51 @@ import com.example.viewmodel.AuthViewModel
  * Screen for entering and saving a new password following a Supabase recovery deep link.
  * Built with RTL layout, Arabic strings, and Material 3 design system.
  */
+internal fun usesFlutterRecoveryAppearance(applicationId: String): Boolean =
+    applicationId == "com.example.waleadsaver.flutterqa"
+
+internal class ResetPasswordPalette(light: Boolean) {
+    private val qa = LoginPalette(true)
+    val background = if (light) qa.background else Color(0xFFF4F7FA)
+    val surface = Color.White
+    val iconBackground = if (light) qa.successBg else Color(0xFFE3F8EF)
+    val primary = if (light) qa.green else WhatsAppTeal
+    val action = if (light) qa.green else WhatsAppGreen
+    val ink = if (light) qa.ink else Color(0xFF172B3A)
+    val secondary = if (light) qa.secondary else Color(0xFF718096)
+    val errorBg = if (light) qa.errorBg else Color(0xFFFDECEC)
+    val error = if (light) qa.error else Color(0xFFB91C1C)
+    val errorDetail = if (light) qa.error else Color(0xFF991B1B)
+    val successIcon = if (light) qa.green else Color(0xFF087F68)
+    val successText = if (light) qa.green else Color(0xFF065F46)
+    val disabled = if (light) qa.disabled else Color(0xFFCBD5E1)
+}
+
 @Composable
 fun ResetPasswordScreen(
     authViewModel: AuthViewModel,
     recoverySession: RecoverySession?,
     onResetComplete: () -> Unit,
     onCancel: () -> Unit
+) {
+    val light = usesFlutterRecoveryAppearance(com.example.BuildConfig.APPLICATION_ID)
+    val palette = ResetPasswordPalette(light)
+    if (light) {
+        FlutterLoginAppearance {
+            ResetPasswordContent(authViewModel, recoverySession, onResetComplete, onCancel, palette)
+        }
+    } else {
+        ResetPasswordContent(authViewModel, recoverySession, onResetComplete, onCancel, palette)
+    }
+}
+
+@Composable
+private fun ResetPasswordContent(
+    authViewModel: AuthViewModel,
+    recoverySession: RecoverySession?,
+    onResetComplete: () -> Unit,
+    onCancel: () -> Unit,
+    palette: ResetPasswordPalette
 ) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -106,7 +145,7 @@ fun ResetPasswordScreen(
         modifier = Modifier
             .fillMaxSize()
             .testTag("reset_password_screen"),
-        color = Color(0xFFF4F7FA)
+        color = palette.background
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -122,13 +161,13 @@ fun ResetPasswordScreen(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE3F8EF)),
+                        .background(palette.iconBackground),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.LockReset,
                         contentDescription = null,
-                        tint = WhatsAppTeal,
+                        tint = palette.primary,
                         modifier = Modifier.size(44.dp)
                     )
                 }
@@ -139,13 +178,13 @@ fun ResetPasswordScreen(
                     text = stringResource(R.string.auth_reset_screen_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF172B3A)
+                    color = palette.ink
                 )
 
                 Text(
                     text = stringResource(R.string.auth_reset_screen_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF718096),
+                    color = palette.secondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
                 )
@@ -156,7 +195,7 @@ fun ResetPasswordScreen(
                         .fillMaxWidth()
                         .testTag("reset_password_card"),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = palette.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
@@ -170,19 +209,19 @@ fun ResetPasswordScreen(
                                     .fillMaxWidth()
                                     .testTag("invalid_session_card"),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDECEC))
+                                colors = CardDefaults.cardColors(containerColor = palette.errorBg)
                             ) {
                                 Column(modifier = Modifier.padding(14.dp)) {
                                     Text(
                                         text = "جلسة الاستعادة غير صالحة أو منتهية",
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFB91C1C),
+                                        color = palette.error,
                                         style = MaterialTheme.typography.titleSmall
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "يبدو أن الرابط المستخدم غير صالح أو انتهت صلاحيته. يُرجى طلب رابط استعادة جديد من شاشة تسجيل الدخول.",
-                                        color = Color(0xFF991B1B),
+                                        color = palette.errorDetail,
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -197,7 +236,7 @@ fun ResetPasswordScreen(
                                     .height(48.dp)
                                     .testTag("reset_return_to_login_btn"),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                                colors = ButtonDefaults.buttonColors(containerColor = palette.primary)
                             ) {
                                 Text(
                                     text = stringResource(R.string.auth_recovery_back_to_login),
@@ -213,7 +252,7 @@ fun ResetPasswordScreen(
                                     .fillMaxWidth()
                                     .testTag("reset_success_card"),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F8EF))
+                                colors = CardDefaults.cardColors(containerColor = palette.iconBackground)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(16.dp),
@@ -222,13 +261,13 @@ fun ResetPasswordScreen(
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = Color(0xFF087F68),
+                                        tint = palette.successIcon,
                                         modifier = Modifier.size(28.dp)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
                                         text = stringResource(R.string.auth_password_reset_success),
-                                        color = Color(0xFF065F46),
+                                        color = palette.successText,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -244,7 +283,7 @@ fun ResetPasswordScreen(
                                     .height(48.dp)
                                     .testTag("reset_success_continue_btn"),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)
+                                colors = ButtonDefaults.buttonColors(containerColor = palette.action)
                             ) {
                                 Text(
                                     text = stringResource(R.string.auth_recovery_back_to_login),
@@ -263,7 +302,7 @@ fun ResetPasswordScreen(
                                 },
                                 label = { Text(stringResource(R.string.auth_new_password_label)) },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = palette.primary)
                                 },
                                 trailingIcon = {
                                     IconButton(onClick = { isNewPasswordVisible = !isNewPasswordVisible }) {
@@ -280,8 +319,8 @@ fun ResetPasswordScreen(
                                     imeAction = ImeAction.Next
                                 ),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = WhatsAppTeal,
-                                    focusedLabelColor = WhatsAppTeal
+                                    focusedBorderColor = palette.primary,
+                                    focusedLabelColor = palette.primary
                                 ),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
@@ -300,7 +339,7 @@ fun ResetPasswordScreen(
                                 },
                                 label = { Text(stringResource(R.string.auth_confirm_new_password_label)) },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = WhatsAppTeal)
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = palette.primary)
                                 },
                                 trailingIcon = {
                                     IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
@@ -331,8 +370,8 @@ fun ResetPasswordScreen(
                                     }
                                 ),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = WhatsAppTeal,
-                                    focusedLabelColor = WhatsAppTeal
+                                    focusedBorderColor = palette.primary,
+                                    focusedLabelColor = palette.primary
                                 ),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
@@ -349,11 +388,11 @@ fun ResetPasswordScreen(
                                         .fillMaxWidth()
                                         .testTag("reset_error_card"),
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFDECEC))
+                                    colors = CardDefaults.cardColors(containerColor = palette.errorBg)
                                 ) {
                                     Text(
                                         text = activeError,
-                                        color = Color(0xFFB91C1C),
+                                        color = palette.error,
                                         style = MaterialTheme.typography.bodySmall,
                                         modifier = Modifier.padding(12.dp),
                                         textAlign = TextAlign.Start
@@ -385,8 +424,8 @@ fun ResetPasswordScreen(
                                     .testTag("save_new_password_btn"),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = WhatsAppGreen,
-                                    disabledContainerColor = Color(0xFFCBD5E1)
+                                    containerColor = palette.action,
+                                    disabledContainerColor = palette.disabled
                                 )
                             ) {
                                 if (isLoading) {
@@ -413,7 +452,7 @@ fun ResetPasswordScreen(
                             ) {
                                 Text(
                                     text = stringResource(R.string.auth_recovery_back_to_login),
-                                    color = WhatsAppTeal,
+                                    color = palette.primary,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
                                 )

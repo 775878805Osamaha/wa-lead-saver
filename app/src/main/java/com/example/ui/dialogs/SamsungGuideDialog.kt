@@ -33,16 +33,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.CardBackground
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppTeal
 import com.example.util.PermissionHelper
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @Composable
 fun SamsungGuideDialog(
     onDismiss: () -> Unit
 ) {
+    QaNativeAppearance {
     val context = LocalContext.current
 
     AlertDialog(
@@ -55,13 +54,13 @@ fun SamsungGuideDialog(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(WhatsAppTeal.copy(alpha = 0.15f)),
+                        .background(qaNativePalette.teal.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = WhatsAppTeal,
+                        tint = qaNativePalette.teal,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -69,13 +68,13 @@ fun SamsungGuideDialog(
                 Column {
                     Text(
                         text = "Samsung One UI Guide",
-                        color = TextPrimary,
+                        color = qaNativePalette.ink,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Keep background detection alive",
-                        color = TextSecondary,
+                        color = qaNativePalette.secondary,
                         fontSize = 12.sp
                     )
                 }
@@ -87,7 +86,7 @@ fun SamsungGuideDialog(
             ) {
                 Text(
                     text = "Samsung devices apply strict battery saving rules to background services. To ensure WA Lead Saver captures notifications continuously:",
-                    color = TextSecondary,
+                    color = qaNativePalette.secondary,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
@@ -118,7 +117,7 @@ fun SamsungGuideDialog(
                 },
                 modifier = Modifier.testTag("button_open_samsung_app_settings"),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
             ) {
                 Icon(
                     imageVector = Icons.Default.OpenInNew,
@@ -139,13 +138,14 @@ fun SamsungGuideDialog(
             ) {
                 Text(
                     text = "Got it",
-                    color = TextSecondary
+                    color = qaNativePalette.secondary
                 )
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = CardBackground
+        containerColor = qaNativePalette.surface
     )
+    }
 }
 
 @Composable
@@ -162,7 +162,7 @@ private fun GuideStepItem(
             modifier = Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(WhatsAppTeal),
+                .background(qaNativePalette.teal),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -178,14 +178,14 @@ private fun GuideStepItem(
         ) {
             Text(
                 text = title,
-                color = TextPrimary,
+                color = qaNativePalette.ink,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = instruction,
-                color = TextSecondary,
+                color = qaNativePalette.secondary,
                 fontSize = 12.sp,
                 lineHeight = 16.sp
             )

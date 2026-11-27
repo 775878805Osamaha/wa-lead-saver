@@ -38,6 +38,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -111,6 +113,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.LeadDetailsScreen
 import com.example.ui.screens.LeadsScreen
+import com.example.ui.screens.FlutterLoginAppearance
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.QueueScreen
 import com.example.ui.screens.ResetPasswordScreen
@@ -125,6 +128,23 @@ import com.example.util.WhatsAppHelper
 import com.example.viewmodel.AuthViewModel
 import com.example.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+
+// The native activity is a temporary authentication handoff, never the
+// dashboard, when entered from the Flutter login gate.
+internal enum class FlutterLoginRoute { NATIVE, RECOVERY, CHECKING, LOGIN, RETURN_TO_FLUTTER }
+
+internal fun resolveFlutterLoginRoute(
+    fromFlutter: Boolean,
+    auth: AuthState,
+    hasRecovery: Boolean
+): FlutterLoginRoute = when {
+    hasRecovery -> FlutterLoginRoute.RECOVERY
+    !fromFlutter -> FlutterLoginRoute.NATIVE
+    auth is AuthState.Initializing -> FlutterLoginRoute.CHECKING
+    auth is AuthState.AuthenticatedUser || auth is AuthState.AuthenticatedAdmin ->
+        FlutterLoginRoute.RETURN_TO_FLUTTER
+    else -> FlutterLoginRoute.LOGIN
+}
 
 class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
@@ -173,20 +193,19 @@ class MainActivity : ComponentActivity() {
                 val authState by authViewModel.authState.collectAsStateWithLifecycle()
                 val activeRecoverySession by authViewModel.activeRecoverySession.collectAsStateWithLifecycle()
                 var showAdminDashboard by remember { mutableStateOf(false) }
-                // Return to the same light Flutter launcher after a successful
-                // native Supabase sign-in, instead of leaving the old dashboard.
-                LaunchedEffect(authState, openedFromFlutterForLogin, activeRecoverySession) {
-                    if (openedFromFlutterForLogin &&
-                        activeRecoverySession == null &&
-                        (authState is AuthState.AuthenticatedUser ||
-                         authState is AuthState.AuthenticatedAdmin)) {
-                        openedFromFlutterForLogin = false
+                val loginRoute = resolveFlutterLoginRoute(
+                    openedFromFlutterForLogin, authState, activeRecoverySession != null
+                )
+                LaunchedEffect(loginRoute) {
+                    if (loginRoute == FlutterLoginRoute.RETURN_TO_FLUTTER) {
+                        // Keep the handoff flag set until the native activity
+                        // finishes: clearing it would briefly show MainScreen.
                         finish()
                     }
                 }
 
-                // 1. Password Reset Flow via Deep Link
-                if (activeRecoverySession != null) {
+                // Recovery always takes priority, including a new deep link.
+                if (loginRoute == FlutterLoginRoute.RECOVERY) {
                     ResetPasswordScreen(
                         authViewModel = authViewModel,
                         recoverySession = activeRecoverySession,
@@ -199,17 +218,31 @@ class MainActivity : ComponentActivity() {
                             pendingIntentUri = null
                         }
                     )
-                } else if (openedFromFlutterForLogin &&
-                    authState !is AuthState.AuthenticatedUser &&
-                    authState !is AuthState.AuthenticatedAdmin) {
-                    LoginScreen(
-                        authViewModel = authViewModel,
-                        reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
-                        onDismiss = {
-                            openedFromFlutterForLogin = false
-                            finish()
+                } else if (loginRoute == FlutterLoginRoute.CHECKING ||
+                    loginRoute == FlutterLoginRoute.RETURN_TO_FLUTTER) {
+                    FlutterLoginAppearance {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.testTag("flutter_auth_handoff_wait")
+                                )
+                            }
                         }
-                    )
+                    }
+                } else if (loginRoute == FlutterLoginRoute.LOGIN) {
+                    FlutterLoginAppearance {
+                        LoginScreen(
+                            authViewModel = authViewModel,
+                            reasonMessage = "تسجيل الدخول مطلوب لاستخدام واجهة Flutter",
+                            onDismiss = { finish() }
+                        )
+                    }
                 } else if (authState is AuthState.AuthenticatedAdmin && showAdminDashboard) {
                     AdminDashboardScreen(
                         authViewModel = authViewModel,

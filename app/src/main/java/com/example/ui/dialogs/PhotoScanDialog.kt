@@ -61,12 +61,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.components.CameraScannerView
-import com.example.ui.theme.CardBackground
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.theme.WhatsAppTeal
 import com.example.viewmodel.ScannedNumberItem
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @Composable
 fun PhotoScanDialog(
@@ -79,6 +76,7 @@ fun PhotoScanDialog(
     onDismiss: () -> Unit,
     startWithCamera: Boolean = true
 ) {
+    QaNativeAppearance {
     val context = LocalContext.current
     var isLiveCameraActive by remember { mutableStateOf(startWithCamera) }
     var showTextInput by remember { mutableStateOf(false) }
@@ -112,7 +110,7 @@ fun PhotoScanDialog(
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = null,
-                        tint = WhatsAppTeal,
+                        tint = qaNativePalette.teal,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -122,12 +120,12 @@ fun PhotoScanDialog(
                         text = "Snap & Save",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = qaNativePalette.ink
                     )
                     Text(
                         text = "Extract contacts from camera or photo",
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = qaNativePalette.secondary
                     )
                 }
             }
@@ -145,7 +143,7 @@ fun PhotoScanDialog(
                         .height(48.dp)
                         .testTag("button_take_photo"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                    colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
@@ -171,18 +169,18 @@ fun PhotoScanDialog(
                         .height(48.dp)
                         .testTag("button_choose_gallery"),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, WhatsAppTeal)
+                    border = BorderStroke(1.dp, qaNativePalette.teal)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Image,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = WhatsAppTeal
+                        tint = qaNativePalette.teal
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Choose from Gallery",
-                        color = WhatsAppTeal,
+                        color = qaNativePalette.teal,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -199,13 +197,13 @@ fun PhotoScanDialog(
                         .height(48.dp)
                         .testTag("button_try_sample_scan"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E242B))
+                    colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.sampleButton, contentColor = qaNativePalette.sampleText)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = WhatsAppGreen
+                        tint = qaNativePalette.green
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -223,12 +221,12 @@ fun PhotoScanDialog(
                         imageVector = Icons.Default.ContentPaste,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = WhatsAppTeal
+                        tint = qaNativePalette.teal
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (showTextInput) "Hide Text Input" else "Paste / Enter Text Directly",
-                        color = WhatsAppTeal,
+                        color = qaNativePalette.teal,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -244,7 +242,7 @@ fun PhotoScanDialog(
                         placeholder = {
                             Text(
                                 text = "Paste numbers or chat text here...",
-                                color = TextSecondary
+                                color = qaNativePalette.secondary
                             )
                         }
                     )
@@ -257,7 +255,7 @@ fun PhotoScanDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal)
+                        colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal)
                     ) {
                         Text(
                             text = "Extract Numbers",
@@ -276,14 +274,14 @@ fun PhotoScanDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = WhatsAppTeal,
+                            color = qaNativePalette.teal,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Scanning for phone numbers...",
-                            color = TextSecondary,
+                            color = qaNativePalette.secondary,
                             fontSize = 13.sp
                         )
                     }
@@ -303,7 +301,7 @@ fun PhotoScanDialog(
                             text = "Detected Numbers (${scannedNumbers.size}):",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                            color = TextPrimary
+                            color = qaNativePalette.ink
                         )
 
                         TextButton(
@@ -313,7 +311,7 @@ fun PhotoScanDialog(
                             Text(
                                 text = if (allSelected) "Deselect All" else "Select All",
                                 fontSize = 12.sp,
-                                color = WhatsAppTeal
+                                color = qaNativePalette.teal
                             )
                         }
                     }
@@ -345,7 +343,7 @@ fun PhotoScanDialog(
                 onClick = onAddToQueue,
                 enabled = selectedCount > 0,
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppTeal),
+                colors = ButtonDefaults.buttonColors(containerColor = qaNativePalette.teal),
                 modifier = Modifier.testTag("button_add_selected_to_queue")
             ) {
                 Text("Add ($selectedCount) to Queue")
@@ -356,11 +354,11 @@ fun PhotoScanDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("button_dismiss_scan_dialog")
             ) {
-                Text("Cancel", color = TextSecondary)
+                Text("Cancel", color = qaNativePalette.secondary)
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = CardBackground
+        containerColor = qaNativePalette.surface
     )
 
     // Full screen live camera dialog
@@ -384,6 +382,7 @@ fun PhotoScanDialog(
             )
         }
     }
+    }
 }
 
 @Composable
@@ -402,7 +401,7 @@ fun ScannedNumberRow(
                 }
             },
         shape = RoundedCornerShape(12.dp),
-        color = Color(0xFFF7F8FA)
+        color = qaNativePalette.scanRow
     ) {
         Row(
             modifier = Modifier
@@ -415,7 +414,7 @@ fun ScannedNumberRow(
                 onCheckedChange = { onToggle() },
                 enabled = !item.alreadyInContacts,
                 colors = CheckboxDefaults.colors(
-                    checkedColor = WhatsAppTeal,
+                    checkedColor = qaNativePalette.teal,
                     checkmarkColor = Color.White
                 )
             )
@@ -429,13 +428,13 @@ fun ScannedNumberRow(
                     text = item.phoneNumber,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = if (item.alreadyInContacts) TextSecondary else TextPrimary
+                    color = if (item.alreadyInContacts) qaNativePalette.secondary else qaNativePalette.ink
                 )
                 if (item.alreadyInContacts) {
                     Text(
                         text = "Already in contacts",
                         fontSize = 11.sp,
-                        color = WhatsAppGreen,
+                        color = qaNativePalette.green,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -449,7 +448,7 @@ fun ScannedNumberRow(
                     imageVector = Icons.Default.ContentCopy,
                     contentDescription = "Copy number",
                     modifier = Modifier.size(17.dp),
-                    tint = TextSecondary
+                    tint = qaNativePalette.secondary
                 )
             }
         }

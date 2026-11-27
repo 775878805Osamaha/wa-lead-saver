@@ -68,21 +68,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.auth.AuthState
 import com.example.data.auth.LicenseStatus
 import com.example.data.datastore.AppSettings
-import com.example.ui.theme.ColorAccentBlue
-import com.example.ui.theme.ColorAccentBlueTranslucent
-import com.example.ui.theme.ColorAlertAmber
-import com.example.ui.theme.ColorAlertAmberTranslucent
-import com.example.ui.theme.ColorBrandGreen
-import com.example.ui.theme.ColorBrandGreenTranslucent
-import com.example.ui.theme.ColorCardBackground
-import com.example.ui.theme.ColorCardBorder
-import com.example.ui.theme.ColorDangerRed
-import com.example.ui.theme.ColorDangerRedTranslucent
-import com.example.ui.theme.ColorScreenBackground
-import com.example.ui.theme.ColorTextMuted
-import com.example.ui.theme.ColorTextPrimary
-import com.example.ui.theme.ColorTextSecondary
 import com.example.util.PermissionHelper
+import com.example.ui.theme.qaNativePalette
+import com.example.ui.theme.QaNativeAppearance
 
 @Composable
 fun SettingsScreen(
@@ -105,6 +93,7 @@ fun SettingsScreen(
     isBatteryOptimizationIgnoredState: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
+    QaNativeAppearance {
     val context = LocalContext.current
     var isNotificationListenerActiveLocal by remember {
         mutableStateOf(PermissionHelper.isNotificationListenerEnabled(context))
@@ -146,14 +135,14 @@ fun SettingsScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(ColorScreenBackground)
+                .background(qaNativePalette.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             // Header
             Text(
                 text = "الإعدادات",
-                color = ColorTextPrimary,
+                color = qaNativePalette.ink,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -164,16 +153,16 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                         .clickable(onClick = onOpenFlutterUi)
                         .testTag("open_flutter_ui"),
-                    colors = CardDefaults.cardColors(containerColor = ColorBrandGreenTranslucent),
-                    border = BorderStroke(1.dp, ColorBrandGreen),
+                    colors = CardDefaults.cardColors(containerColor = qaNativePalette.greenBg),
+                    border = BorderStroke(1.dp, qaNativePalette.green),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text("فتح الواجهات الجديدة (Flutter)",
-                            fontWeight = FontWeight.Bold, color = ColorBrandGreen,
+                            fontWeight = FontWeight.Bold, color = qaNativePalette.green,
                             fontSize = 15.sp)
                         Text("نسخة اختبار تستخدم بيانات التطبيق الأصلي، والعودة متاحة",
-                            color = ColorTextSecondary, fontSize = 12.sp)
+                            color = qaNativePalette.secondary, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -184,8 +173,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
-                border = BorderStroke(1.dp, ColorCardBorder),
+                colors = CardDefaults.cardColors(containerColor = qaNativePalette.surface),
+                border = BorderStroke(1.dp, qaNativePalette.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -193,47 +182,47 @@ fun SettingsScreen(
                         title = "الحفظ التلقائي للعملاء",
                         description = "حفظ أرقام جهات الاتصال الجديدة مباشرة",
                         icon = Icons.Default.Tune,
-                        iconTint = ColorBrandGreen,
-                        iconBg = ColorBrandGreenTranslucent,
+                        iconTint = qaNativePalette.green,
+                        iconBg = qaNativePalette.greenBg,
                         checked = settings.autoSaveLeads,
                         onCheckedChange = onAutoSaveChange,
                         testTag = "setting_auto_save_switch"
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingSwitchItem(
                         title = "مراقبة واتساب الرسمي",
                         description = "اكتشاف الأرقام من إشعارات WhatsApp",
                         icon = Icons.AutoMirrored.Filled.Chat,
-                        iconTint = ColorBrandGreen,
-                        iconBg = ColorBrandGreenTranslucent,
+                        iconTint = qaNativePalette.green,
+                        iconBg = qaNativePalette.greenBg,
                         checked = settings.monitorWhatsApp,
                         onCheckedChange = onMonitorWhatsAppChange,
                         testTag = "setting_monitor_wa_switch"
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingSwitchItem(
                         title = "مراقبة واتساب للأعمال",
                         description = "اكتشاف الأرقام من إشعارات WhatsApp Business",
                         icon = Icons.Default.Business,
-                        iconTint = ColorAccentBlue,
-                        iconBg = ColorAccentBlueTranslucent,
+                        iconTint = qaNativePalette.blue,
+                        iconBg = qaNativePalette.blueBg,
                         checked = settings.monitorWhatsAppBusiness,
                         onCheckedChange = onMonitorWhatsAppBusinessChange,
                         testTag = "setting_monitor_wb_switch"
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingSwitchItem(
                         title = "تجاهل رسائل المجموعات",
                         description = "عدم حفظ أرقام إشعارات المجموعات وحصرها بالمحادثات الفردية",
                         icon = Icons.Default.GroupRemove,
-                        iconTint = ColorAlertAmber,
-                        iconBg = ColorAlertAmberTranslucent,
+                        iconTint = qaNativePalette.amber,
+                        iconBg = qaNativePalette.amberBg,
                         checked = settings.ignoreGroupMessages,
                         onCheckedChange = onIgnoreGroupMessagesChange,
                         testTag = "setting_ignore_groups_switch"
@@ -248,8 +237,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
-                border = BorderStroke(1.dp, ColorCardBorder),
+                colors = CardDefaults.cardColors(containerColor = qaNativePalette.surface),
+                border = BorderStroke(1.dp, qaNativePalette.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
@@ -267,13 +256,13 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(ColorAccentBlueTranslucent),
+                                .background(qaNativePalette.blueBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Public,
                                 contentDescription = null,
-                                tint = ColorAccentBlue,
+                                tint = qaNativePalette.blue,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -281,13 +270,13 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "رمز الدولة الافتراضي",
-                                color = ColorTextPrimary,
+                                color = qaNativePalette.ink,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "يُضاف تلقائياً للأرقام المحلية (مثل 967+)",
-                                color = ColorTextSecondary,
+                                color = qaNativePalette.secondary,
                                 fontSize = 12.sp
                             )
                         }
@@ -298,8 +287,8 @@ fun SettingsScreen(
                                 .width(90.dp)
                                 .height(40.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(ColorScreenBackground)
-                                .border(1.dp, ColorCardBorder, RoundedCornerShape(10.dp))
+                                .background(qaNativePalette.background)
+                                .border(1.dp, qaNativePalette.border, RoundedCornerShape(10.dp))
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -310,12 +299,12 @@ fun SettingsScreen(
                                     onCountryCodeChange(it)
                                 },
                                 textStyle = TextStyle(
-                                    color = ColorTextPrimary,
+                                    color = qaNativePalette.ink,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     textDirection = TextDirection.Ltr
                                 ),
-                                cursorBrush = SolidColor(ColorBrandGreen),
+                                cursorBrush = SolidColor(qaNativePalette.green),
                                 singleLine = true,
                                 modifier = Modifier.testTag("setting_country_code_input")
                             )
@@ -331,8 +320,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
-                border = BorderStroke(1.dp, ColorCardBorder),
+                colors = CardDefaults.cardColors(containerColor = qaNativePalette.surface),
+                border = BorderStroke(1.dp, qaNativePalette.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -340,8 +329,8 @@ fun SettingsScreen(
                         title = "إذن قراءة الإشعارات",
                         description = if (isNotificationListenerActive) "مفعّل ويعمل بنجاح" else "متوقف · اضغط للمنح في الإعدادات",
                         icon = Icons.Default.NotificationsActive,
-                        iconTint = if (isNotificationListenerActive) ColorBrandGreen else ColorAlertAmber,
-                        iconBg = if (isNotificationListenerActive) ColorBrandGreenTranslucent else ColorAlertAmberTranslucent,
+                        iconTint = if (isNotificationListenerActive) qaNativePalette.green else qaNativePalette.amber,
+                        iconBg = if (isNotificationListenerActive) qaNativePalette.greenBg else qaNativePalette.amberBg,
                         isComplete = isNotificationListenerActive,
                         onClick = {
                             try {
@@ -350,26 +339,26 @@ fun SettingsScreen(
                         }
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingActionItem(
                         title = "صلاحية جهات الاتصال",
                         description = if (hasContactsPermission) "ممنوحة · يمكن حفظ جهات الاتصال" else "غير ممنوحة · اضغط للمنح",
                         icon = Icons.Default.Contacts,
-                        iconTint = if (hasContactsPermission) ColorBrandGreen else ColorAlertAmber,
-                        iconBg = if (hasContactsPermission) ColorBrandGreenTranslucent else ColorAlertAmberTranslucent,
+                        iconTint = if (hasContactsPermission) qaNativePalette.green else qaNativePalette.amber,
+                        iconBg = if (hasContactsPermission) qaNativePalette.greenBg else qaNativePalette.amberBg,
                         isComplete = hasContactsPermission,
                         onClick = onRequestContactsPermission
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingActionItem(
                         title = "استثناء تحسين البطارية",
                         description = if (isBatteryOptimizationIgnored) "مفعّل للحفاظ على الخدمة بالخلفية" else "اضغط لضمان عدم إيقاف النظام للتطبيق",
                         icon = Icons.Default.BatteryChargingFull,
-                        iconTint = if (isBatteryOptimizationIgnored) ColorBrandGreen else ColorAlertAmber,
-                        iconBg = if (isBatteryOptimizationIgnored) ColorBrandGreenTranslucent else ColorAlertAmberTranslucent,
+                        iconTint = if (isBatteryOptimizationIgnored) qaNativePalette.green else qaNativePalette.amber,
+                        iconBg = if (isBatteryOptimizationIgnored) qaNativePalette.greenBg else qaNativePalette.amberBg,
                         isComplete = isBatteryOptimizationIgnored,
                         onClick = {
                             try {
@@ -378,14 +367,14 @@ fun SettingsScreen(
                         }
                     )
 
-                    HorizontalDivider(color = ColorCardBorder, thickness = 1.dp)
+                    HorizontalDivider(color = qaNativePalette.border, thickness = 1.dp)
 
                     SettingActionItem(
                         title = "دليل ضبط أجهزة سامسونج",
                         description = "تعليمات استقرار التطبيق على واجهة One UI",
                         icon = Icons.Default.Security,
-                        iconTint = ColorAccentBlue,
-                        iconBg = ColorAccentBlueTranslucent,
+                        iconTint = qaNativePalette.blue,
+                        iconBg = qaNativePalette.blueBg,
                         isComplete = null,
                         onClick = onOpenSamsungGuide
                     )
@@ -399,8 +388,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBackground),
-                border = BorderStroke(1.dp, ColorCardBorder),
+                colors = CardDefaults.cardColors(containerColor = qaNativePalette.surface),
+                border = BorderStroke(1.dp, qaNativePalette.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -409,8 +398,8 @@ fun SettingsScreen(
                             title = "تسجيل الدخول",
                             description = "سجّل الدخول لتفعيل حفظ العملاء والترخيص",
                             icon = Icons.Default.Person,
-                            iconTint = ColorBrandGreen,
-                            iconBg = ColorBrandGreenTranslucent,
+                            iconTint = qaNativePalette.green,
+                            iconBg = qaNativePalette.greenBg,
                             isComplete = null,
                             onClick = onOpenLogin
                         )
@@ -423,8 +412,8 @@ fun SettingsScreen(
                             title = userEmail,
                             description = if (isAdmin) "مدير النظام · اضغط لفتح لوحة التحكم" else "حساب نشط · اضغط لتسجيل الخروج",
                             icon = Icons.Default.Person,
-                            iconTint = ColorBrandGreen,
-                            iconBg = ColorBrandGreenTranslucent,
+                            iconTint = qaNativePalette.green,
+                            iconBg = qaNativePalette.greenBg,
                             isComplete = true,
                             onClick = if (isAdmin) onOpenAdmin else onLogout
                         )
@@ -435,13 +424,14 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(96.dp))
         }
     }
+    }
 }
 
 @Composable
 private fun SectionHeader(title: String) {
     Text(
         text = title,
-        color = ColorTextSecondary,
+        color = qaNativePalette.secondary,
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
@@ -489,14 +479,14 @@ private fun SettingSwitchItem(
             Column {
                 Text(
                     text = title,
-                    color = ColorTextPrimary,
+                    color = qaNativePalette.ink,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    color = ColorTextSecondary,
+                    color = qaNativePalette.secondary,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -508,10 +498,10 @@ private fun SettingSwitchItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF0C1512),
-                checkedTrackColor = ColorBrandGreen,
-                uncheckedThumbColor = ColorTextMuted,
-                uncheckedTrackColor = ColorCardBorder
+                checkedThumbColor = qaNativePalette.checkedThumb,
+                checkedTrackColor = qaNativePalette.green,
+                uncheckedThumbColor = qaNativePalette.muted,
+                uncheckedTrackColor = qaNativePalette.border
             ),
             modifier = Modifier.testTag(testTag)
         )
@@ -559,14 +549,14 @@ private fun SettingActionItem(
             Column {
                 Text(
                     text = title,
-                    color = ColorTextPrimary,
+                    color = qaNativePalette.ink,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    color = ColorTextSecondary,
+                    color = qaNativePalette.secondary,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -578,14 +568,14 @@ private fun SettingActionItem(
             Icon(
                 imageVector = if (isComplete) Icons.Default.CheckCircle else Icons.Default.Security,
                 contentDescription = null,
-                tint = if (isComplete) ColorBrandGreen else ColorAlertAmber,
+                tint = if (isComplete) qaNativePalette.green else qaNativePalette.amber,
                 modifier = Modifier.size(20.dp)
             )
         } else {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
-                tint = ColorTextMuted,
+                tint = qaNativePalette.muted,
                 modifier = Modifier.size(18.dp)
             )
         }

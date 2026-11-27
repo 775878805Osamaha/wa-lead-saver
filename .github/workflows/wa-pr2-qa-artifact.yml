@@ -1,0 +1,126 @@
+name: WA Lead Saver - PR 2 verified QA artifact
+
+# Only this same-repository QA branch. No release, merge, or production install.
+on:
+  pull_request:
+    branches:
+      - feature/flutter-ui-and-history-performance-20261122
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-pr2-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  qa-installable:
+    name: Verify and upload side-by-side Android QA artifact
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/flutter-qa-light-auth-20261126'
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Verify exact head and native unit tests
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest --stacktrace
+      - name: Generate Flutter Android module from latest source
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --template module --org com.walspreview --project-name wa_lead_saver_ui flutter_module
+          cp flutter_ui/pubspec.yaml flutter_module/pubspec.yaml
+          cp -R flutter_ui/lib/. flutter_module/lib/
+          rm -rf flutter_module/test
+          cp -R flutter_ui/test flutter_module/test
+          cd flutter_module
+          flutter pub get
+          test -f .android/include_flutter.groovy
+      - name: Check Flutter analyzer and widget tests
+        shell: bash
+        working-directory: flutter_module
+        run: |
+          set -euo pipefail
+          flutter analyze lib --no-fatal-infos
+          flutter test
+      - name: Check Supabase build parameters without printing secrets
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo 'Supabase settings are present.'
+            echo 'SUPABASE_READY=yes' >> "$GITHUB_ENV"
+          else
+            echo '::warning::Supabase is not fully configured. Login may not work in this QA build.'
+            echo 'SUPABASE_READY=no' >> "$GITHUB_ENV"
+          fi
+      - name: Build separate Flutter-first QA application
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          # The QA app has its own package, independent local database and
+          # permissions; the user's original app is NOT an upgrade target.
+          # Compile Kotlin and Flutter without touching the installed app.
+          ./gradlew --no-daemon -PwaFlutterUi=true -PwaInstallableTest=true :app:assembleDebug --stacktrace
+      - name: Validate the actual signed installable APK
+        id: validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          BADGING="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK")"
+          echo "$BADGING" | grep -F "package: name='com.example.waleadsaver.flutterqa'"
+          # Catch the exact problem reported by the user: the old APK opened
+          # Kotlin MainActivity instead of the light Flutter screen.
+          echo "$BADGING" | grep -F "launchable-activity: name='com.example.flutterbridge.WaFlutterHostActivity'"
+          if echo "$BADGING" | grep -F "launchable-activity: name='com.example.NativeLauncher'"; then
+            echo '::error::The dark native launcher must be disabled in Flutter QA.'
+            exit 1
+          fi
+          grep -F 'requiresAuthentication: true' flutter_module/lib/main.dart
+          unzip -Z1 "$APK" | grep -E 'lib/(arm64-v8a|armeabi-v7a|x86_64)/libflutter.so' | head -n 3
+          mkdir -p dist
+          cp "$APK" dist/WA-Lead-Saver-Flutter-QA.apk
+          sha256sum dist/WA-Lead-Saver-Flutter-QA.apk | tee dist/SHA256.txt
+          git rev-parse HEAD > dist/SOURCE_COMMIT.txt
+          ls -lh dist/WA-Lead-Saver-Flutter-QA.apk
+      - name: Upload downloadable APK to GitHub Actions (fallback)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WA-Lead-Saver-Flutter-QA-APK
+          path: |
+            dist/WA-Lead-Saver-Flutter-QA.apk
+            dist/SHA256.txt
+            dist/SOURCE_COMMIT.txt
+          retention-days: 14
+          if-no-files-found: error
