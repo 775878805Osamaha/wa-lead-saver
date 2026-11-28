@@ -14,20 +14,24 @@ trap capture EXIT
 assert_alive() {
   adb shell pidof "$PKG" >/dev/null
   adb logcat -b crash -d -v brief > "$OUT/latest-crash.log"
-  if grep -Fq "$PKG" "$OUT/latest-crash.log"; then
+  adb logcat -b events -d -v brief -s am_anr > "$OUT/latest-anr.log"
+  if grep -Fq "$PKG" "$OUT/latest-crash.log" || grep -Fq "$PKG" "$OUT/latest-anr.log"; then
     echo "::error::QA app crashed during authentication handoff"
     exit 1
   fi
 }
 await_screen() {
   local expected="$1" activity="$2" name="$3"
-  for attempt in $(seq 1 20); do
+  local deadline=$((SECONDS + 90))
+  while (( SECONDS < deadline )); do
     sleep 2
     assert_alive
-    adb shell uiautomator dump /sdcard/wa-handoff.xml >/dev/null 2>&1 || continue
+    adb shell rm -f /sdcard/wa-handoff.xml
+    timeout 12s adb shell uiautomator dump /sdcard/wa-handoff.xml >/dev/null 2>&1 || continue
     adb pull /sdcard/wa-handoff.xml "$OUT/$name.xml" >/dev/null 2>&1 || continue
     adb shell dumpsys activity activities > "$OUT/$name-activity.txt"
     if grep -E 'mResumedActivity|topResumedActivity' "$OUT/$name-activity.txt" | grep -Fq "$PKG/$activity" &&
+       grep -Fq "package=\"$PKG\"" "$OUT/$name.xml" &&
        grep -Fq "$expected" "$OUT/$name.xml"; then
       adb exec-out screencap -p > "$OUT/$name.png"
       return 0

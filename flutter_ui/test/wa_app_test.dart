@@ -749,4 +749,40 @@ void main() {
     expect(find.text('نتيجة قديمة'), findsNothing);
   });
 
+  testWidgets('unsaved country code survives resume and can be discarded', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    final input = find.byKey(const Key('country_code_input'));
+    await tester.ensureVisible(input);
+    await tester.enterText(input, '+966');
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller?.text, '+966');
+    expect(gateway.changedCountryCodes, isEmpty);
+    final discard = find.byKey(const Key('discard_country_code'));
+    await tester.ensureVisible(discard);
+    await tester.tap(discard);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller?.text, '+967');
+    expect(gateway.changedCountryCodes, isEmpty);
+  });
+
+  testWidgets('explicit settings refresh uses a synchronous state callback', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    final refresh = find.text('تحديث حالة الإعدادات');
+    await tester.scrollUntilVisible(refresh, 240, scrollable: find.byType(Scrollable).first);
+    await tester.tap(refresh);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('account_license_card')), findsOneWidget);
+  });
+
 }

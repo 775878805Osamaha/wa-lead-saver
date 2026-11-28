@@ -70,11 +70,12 @@ class _WaAppShellState extends State<WaAppShell> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('WA Lead Saver',
+              const Text('WA Lead Saver', maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
               Text(
                 widget.isPreview ? 'معاينة التصميم' : (_reviewOpen ? 'مراجعة العملاء' : 'إدارة عملاء واتساب'),
+                maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 12, color: WaPalette.green),
               ),
             ],
