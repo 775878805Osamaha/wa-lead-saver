@@ -202,10 +202,18 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
     }
   }
 
+  void _refreshAccount() {
+    final next = widget.gateway.loadAccountInfo();
+    if (!mounted) return;
+    setState(() {
+      _accountInfo = next;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      setState(() => _accountInfo = widget.gateway.loadAccountInfo());
+      _refreshAccount();
       if (_saving == null) _load();
       _loadCountryCode();
     }
@@ -446,7 +454,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () {
-            setState(() => _accountInfo = widget.gateway.loadAccountInfo());
+            _refreshAccount();
             _load();
             _loadCountryCode();
           },

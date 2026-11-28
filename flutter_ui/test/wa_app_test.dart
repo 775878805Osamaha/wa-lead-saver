@@ -771,4 +771,18 @@ void main() {
     expect(gateway.changedCountryCodes, isEmpty);
   });
 
+  testWidgets('explicit settings refresh uses a synchronous state callback', (tester) async {
+    final gateway = FixtureGateway();
+    await tester.pumpWidget(WaLeadSaverApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الإعدادات').last);
+    await tester.pumpAndSettle();
+    final refresh = find.text('تحديث حالة الإعدادات');
+    await tester.scrollUntilVisible(refresh, 240, scrollable: find.byType(Scrollable).first);
+    await tester.tap(refresh);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('account_license_card')), findsOneWidget);
+  });
+
 }

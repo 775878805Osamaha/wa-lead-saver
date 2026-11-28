@@ -23,9 +23,18 @@ adb shell input keyevent 82 || true
 for round in 1 2; do
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/$ACT" | tee "$OUT/start-$round.txt"
-  grep -q 'Status: ok' "$OUT/start-$round.txt"
+  # am start -W times out at the Android framework's own launch limit.
+  # A timeout alone does not prove a crash or a successful first frame.
+  # Require the actual foreground activity + login UI before the hard deadline.
+  if grep -q 'Status: timeout' "$OUT/start-$round.txt"; then
+    echo "::warning::Android launch wait timed out; verifying real UI and process"
+  elif ! grep -q 'Status: ok' "$OUT/start-$round.txt"; then
+    echo "::error::Unexpected Android activity start status"
+    exit 1
+  fi
   found=0
-  for attempt in $(seq 1 20); do
+  deadline=$((SECONDS + 90))
+  while (( SECONDS < deadline )); do
     sleep 2
     adb shell pidof "$PKG" > "$OUT/pid-$round.txt" || true
     adb logcat -b crash -d -v brief > "$OUT/crash-$round.log"
@@ -34,9 +43,15 @@ for round in 1 2; do
       exit 1
     fi
     if [[ ! -s "$OUT/pid-$round.txt" ]]; then continue; fi
-    adb shell uiautomator dump /sdcard/wa-smoke.xml >/dev/null 2>&1 || continue
+    adb shell rm -f /sdcard/wa-smoke.xml
+    timeout 12s adb shell uiautomator dump /sdcard/wa-smoke.xml >/dev/null 2>&1 || continue
     adb pull /sdcard/wa-smoke.xml "$OUT/ui-$round.xml" >/dev/null 2>&1 || continue
-    if grep -Fq 'WA Lead Saver' "$OUT/ui-$round.xml" && grep -Eq 'تسجيل الدخول|الدخول إلى التطبيق|إعادة التحقق' "$OUT/ui-$round.xml"; then
+    adb shell dumpsys activity activities > "$OUT/activity-$round.txt"
+    if grep -E 'mResumedActivity|topResumedActivity' "$OUT/activity-$round.txt" | grep -Fq "$PKG/$ACT" &&
+       grep -Fq "package=\"$PKG\"" "$OUT/ui-$round.xml" &&
+       grep -Fq 'WA Lead Saver' "$OUT/ui-$round.xml" &&
+       grep -Fq 'الدخول إلى التطبيق' "$OUT/ui-$round.xml" &&
+       grep -Fq 'إعادة التحقق' "$OUT/ui-$round.xml"; then
       found=1
       break
     fi
@@ -49,6 +64,11 @@ for round in 1 2; do
   adb shell pidof "$PKG" >/dev/null
   adb logcat -b crash -d -v brief > "$OUT/crash-$round.log"
   if grep -Fq "$PKG" "$OUT/crash-$round.log"; then exit 1; fi
+  adb logcat -b events -d -v brief -s am_anr > "$OUT/anr-$round.log"
+  if grep -Fq "$PKG" "$OUT/anr-$round.log"; then
+    echo "::error::Android reported an ANR in the QA app"
+    exit 1
+  fi
   adb exec-out screencap -p > "$OUT/screen-$round.png"
 done
 echo 'Two cold starts reached the Flutter login gate without a recorded process crash.'
